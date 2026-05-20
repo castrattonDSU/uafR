@@ -32,7 +32,9 @@ Takes categorated output as input and makes chemical subsets by the information 
 }
 \details{
 Provides a set of search chemicals for `mzExacto()`. User gets to select
-chemicals based on information generated from `categorate()`.
+chemicals based on information generated from `categorate()`. Database
+subsetting accepts both historical `Databases` output and current split
+database tables from `categorate()`.
 }
 \examples{
 exactoThese(standard_categorated, subsetBy = "Database", subsetArgs = "All")

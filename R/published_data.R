@@ -3,7 +3,7 @@
 #'A data frame containing raw output from Agilent's Unknowns Analysis
 #'
 #'@format
-#'A data frame with 2433 rows and 7 columns:
+#'A data frame with 2432 rows and 7 columns:
 #'\describe{
 #'  \item{Component.RT}{Retention time of captured component}
 #'  \item{Base.Peak.MZ}{Mass to charge ratio (m/z) of captured component}

@@ -23,26 +23,118 @@
 #'@param compounds A vector containing chemical names in IUPAC notation
 #'(preferred).
 #'
-#'@param chemical_library A .CSV file containing columns with chemical
+#'@param chemical_library A data frame containing columns with chemical
 #'groups. Column names label the group while the rows contain chemicals
-#'that are described by the label.
+#'that are described by the label. Use `data("library_data", package = "uafR")`
+#'to load the bundled example library.
 #'
 #'@param input_format Designates the data structure for input library
 #'(`chemical_library`). Default setting is "wide" can be changed to "long."
 #'
-#'@return List with 4 data frames: (1) information from database
-#'searches, (2) atomic and molecular sub-group structure summary, (3) strong
+#'@param detail One of `"standard"`, `"research"`, or `"full"`. `"standard"`
+#'returns the original eight output tables. `"research"` appends tidy PubChem
+#'and KEGG enrichment tables, source coverage, and derived grouping columns.
+#'`"full"` additionally requests broader PubChem annotations and assay summary
+#'data.
+#'
+#'@param cache Logical. If `TRUE`, enrichment requests are cached. Only used
+#'when `detail` is `"research"` or `"full"`.
+#'
+#'@param cache_dir Directory for cached enrichment responses. Defaults to a
+#'user-cache location when available.
+#'
+#'@param throttle Seconds to wait between uncached enrichment requests.
+#'
+#'@param assay_detail_limit Maximum number of unique PubChem BioAssay AIDs per
+#'query for which assay-description metadata is fetched when `detail = "full"`.
+#'Active, numeric, and target-bearing assays are prioritized. Set to `0` to skip
+#'assay-description requests.
+#'
+#'@param trait_matrix_profile Trait profile used to build `ChemicalTraitMatrix`.
+#'Defaults to `"core"` for a compact cross-domain matrix. Use
+#'`chemicalTraitMatrix(result, profile = "full")` to rebuild wider matrices from
+#'`ChemicalTraits` without repeating database requests.
+#'
+#'@param trait_matrix_mode Matrix value mode for `ChemicalTraitMatrix`: `"binary"`
+#'for 0/1 presence, `"count"` for trait-row counts, or `"confidence"` for the
+#'maximum trait confidence score.
+#'
+#'@param trait_matrix_min_confidence Minimum confidence required for traits in
+#'`ChemicalTraitMatrix`. Accepts a numeric score or `"low"`, `"medium"`, or
+#'`"high"`.
+#'
+#'@param trait_matrix_max_traits Maximum number of trait columns to include in
+#'`ChemicalTraitMatrix`, ranked by prevalence and confidence. Defaults to
+#'`Inf`.
+#'
+#'@param request_fun Optional PubChem request function for tests and advanced
+#'users. Only used when `detail` is `"research"` or `"full"`.
+#'
+#'@param kegg_request_fun Optional KEGG request function for tests and advanced
+#'users. Only used when `detail` is `"research"` or `"full"`.
+#'
+#'@return List with at least 8 data frames: `reactives`, `LOTUS`, `KEGG`, `FEMA`,
+#'`FDA_SPL`, `FMCS`, `FunctionalGroups`, and `BestChemMatch`. Database
+#'tables store extracted source annotations by chemical; `FMCS` stores atomic
+#'and molecular sub-group summaries; `FunctionalGroups` stores strong
 #'(similarity > 0.95) or moderate (similarity > 0.85) matches with input
-#'library groups, and (4) top chemical from groups a chemical shared a
-#'strong match with.
+#'library groups; and `BestChemMatch` stores top chemicals from groups a
+#'chemical shared a strong match with. With `detail = "research"` or
+#'`detail = "full"`, the list also includes PubChem and KEGG enrichment tables:
+#'`PubChemIdentity`, `PubChemProperties`, `PubChemSynonyms`,
+#'`PubChemAnnotations`, `PubChemSourceAnnotations`, `PubChemSpectra`,
+#'`PubChemSafety`, `PubChemExperimental`, `PubChemBioactivity`,
+#'`PubChemIdentifiers`, `SafetyProfile`, `FEMAProfile`, `FDA_SPL_Profile`,
+#'`LOTUSProfile`, `PubChemClassifications`, `MeSHProfile`, `LiteratureProfile`,
+#'`ChemicalTerms`, `ChemicalTraits`, `ChemicalTraitOntology`,
+#'`ChemicalTraitMatrix`, `ChemicalTraitOntologyMatrix`,
+#'`ChemicalTraitEvidence`, `ChemicalTraitReport`, `ChemicalTraitSummary`,
+#'`ChemicalTraitSimilarity`, `ChemicalClasses`,
+#'`ChemicalMeasurements`,
+#'`ChemicalMeasurementSummary`, `ChemicalHazards`, `ChemicalUses`, `ChemicalBioassays`,
+#'`ChemicalBioactivities`, `ChemicalTargets`, `ChemicalPotencies`,
+#'`ChemicalTaxonomy`,
+#'`ChemicalOccurrences`,
+#'`ChemicalPathwayRoles`, `KEGGReactionParticipants`,
+#'`KEGGMatches`, `KEGGRecords`, `KEGGIdentifiers`, `KEGGPathways`,
+#'`KEGGReactions`, `KEGGEnzymes`, `KEGGModules`, `KEGGLinks`,
+#'`KEGGLinkMetadata`, `KEGGClassifications`, `SourceCoverage`,
+#'`DerivedGroups`, `Provenance`, `DataDictionary`, `TableQuality`,
+#'`SourceDiagnostics`, `ValidationIssues`, and `ValidationSummary`. The
+#'normalized `Chemical*` tables split
+#'source evidence into discrete terms, traits, classes, measurements, standardized
+#'measurement summaries, hazards,
+#'uses, bioactivity calls, assay targets, potency values, taxonomy fields,
+#'organism occurrences, pathway roles, and reaction participants for grouping
+#'and comparative analysis. `ChemicalTraits` provides a cross-source long-form
+#'trait vocabulary. `ChemicalTraitOntology` maps whitelisted discrete traits to
+#'controlled ontology domains and groups while preserving source evidence and
+#'source-backed identifiers where available.
+#'`ChemicalTraitMatrix` and `ChemicalTraitOntologyMatrix` provide compact binary
+#'wide matrices for filtering, clustering, ordination, heatmaps, and model
+#'inputs. Use `chemicalTraitMatrix()` and `chemicalTraitOntologyMatrix()` to
+#'rebuild full, confidence-weighted, or capped matrices without rerunning web
+#'requests. `ChemicalTraitEvidence` and `chemicalTraitEvidence()` trace matrix
+#'and ontology keys back to source evidence, IDs, URLs, extraction rules, and
+#'confidence values. `ChemicalTraitReport` and `chemicalTraitReport()` provide
+#'one compact, researcher-facing row per compound with domain signals, evidence
+#'coverage, identifiers, and nearest ontology neighbors. `ChemicalTraitSummary`
+#'summarizes trait breadth by compound and trait type, while
+#'`ChemicalTraitSimilarity` compares compounds by shared and distinct traits.
+#'`DataDictionary`, `TableQuality`, `SourceDiagnostics`, `ValidationIssues`,
+#'and `ValidationSummary` document expected schemas and audit each result for
+#'missing tables, missing required columns, type mismatches, duplicate analysis
+#'keys, completeness, and source-specific coverage.
 #'
 #'@examples
+#'\dontrun{
 #'compounds = c("3-Octanone","Decane","Mesitylene","1,2,4-trimethyl-benzene",
 #'"D-Limonene","beta-ethyl benzeneethanol","1,4-diethyl benzene",
 #'"1,2-diethyl benzene","1,3,8-p-Menthatriene","(2-methyl-1-propenyl)-Benzene",
 #'"1-Phenyl-1-butene","Linalool","Nonanal","5-nonyl-2-Thiophenecarboxylic acid",
 #'"Dichloroacetaldehyde","Linalyl acetate","Beta-Ocimene")
 #'categorate(compounds, library_data, input_format = "wide")
+#'}
 #'
 #'@importFrom ChemmineR read.SDFset
 #'@importFrom fmcsR fmcsBatch
@@ -51,7 +143,21 @@
 #'@importFrom methods hasArg
 #'@export
 
-categorate = function(compounds, chemical_library, input_format = "wide"){
+categorate = function(compounds,
+                      chemical_library,
+                      input_format = "wide",
+                      detail = c("standard", "research", "full"),
+                      cache = TRUE,
+                      cache_dir = NULL,
+                      throttle = 0.2,
+                      assay_detail_limit = 50,
+                      trait_matrix_profile = "core",
+                      trait_matrix_mode = "binary",
+                      trait_matrix_min_confidence = 0,
+                      trait_matrix_max_traits = Inf,
+                      request_fun = NULL,
+                      kegg_request_fun = NULL){
+  detail = match.arg(detail)
   librarylist = NULL
   getNCI = function(url_path){
     con = url(url_path)
@@ -67,6 +173,17 @@ categorate = function(compounds, chemical_library, input_format = "wide"){
     string_holder = tryCatch(ChemmineR::read.SDFset(con, warn = F),
                              error = function(error) {return(T)})
     string_holder
+  }
+
+  if (missing(compounds) || is.null(compounds) || length(compounds) < 1) {
+    stop("`compounds` is required and must contain at least one chemical name.",
+         call. = FALSE)
+  }
+  if (missing(chemical_library) || is.null(chemical_library)) {
+    stop("`chemical_library` is required for categorate(). Load the bundled ",
+         "example with data(\"library_data\", package = \"uafR\"), then call ",
+         "categorate(compounds, chemical_library = library_data, ...).",
+         call. = FALSE)
   }
 
   if(hasArg(chemical_library) & hasArg(compounds)){
@@ -124,11 +241,11 @@ categorate = function(compounds, chemical_library, input_format = "wide"){
       CMPs_tmp = compounds[w]
       Sys.sleep(1)
 
-      chem_cid = tryCatch(webchem::get_cid(CMPs_tmp), error = function(error) {return("Limit Met")})
+      chem_cid = .uaf_get_cid(CMPs_tmp)
       if(w == 1){cat("Searching query chemicals for structural data, please be patient!\n")}
       cat(paste0('[', w, '/', length(compounds), ']', '-', CMPs_tmp, '\n'))
 
-      if(is.na(chem_cid[[1,2]])){
+      if(is.na(chem_cid)){
         smiles_url = paste0("https://cactus.nci.nih.gov/chemical/structure/",CMPs_tmp,"/smiles")
         inchi_url = paste0("https://cactus.nci.nih.gov/chemical/structure/",CMPs_tmp,"/stdinchikey")
         smiles_url = gsub("\\ ", "%20", smiles_url)
@@ -139,12 +256,12 @@ categorate = function(compounds, chemical_library, input_format = "wide"){
 
         if(smile_string != "None"){
           InChiKey = substr(inchi_string, 10, nchar(inchi_string))
-          smile_cid = webchem::get_cid(paste0(smile_string), from = "smiles")
+          smile_cid = .uaf_get_cid(paste0(smile_string), from = "smiles")
 
           chem_cid = smile_cid
         }else{}
       }
-      chem_cid = paste0(chem_cid[[1,2]])
+      chem_cid = paste0(chem_cid)
 
       if(chem_cid == "0"){chem_cid = ""}
 
@@ -256,7 +373,9 @@ categorate = function(compounds, chemical_library, input_format = "wide"){
       FDA_SPL_df = FDA_SPL_final
 
 
-      cids_all_input = c(cids_all_input, chem_cid)
+      if(!is.na(chem_cid) && chem_cid != ""){
+        cids_all_input = c(cids_all_input, chem_cid)
+      }
 
       reactives_row = as.data.frame(cbind(reactives_df, CMPs_tmp))
       LOTUS_row = as.data.frame(cbind(LOTUS_df, CMPs_tmp))
@@ -281,6 +400,14 @@ categorate = function(compounds, chemical_library, input_format = "wide"){
       row.names(CMP_KEGG) = NULL
       row.names(CMP_FEMA) = NULL
       row.names(CMP_FDA_SPL) = NULL
+    }
+
+    cids_all_input = unique(cids_all_input[!is.na(cids_all_input) &
+                                            cids_all_input != "" &
+                                            cids_all_input != "NA"])
+    if(length(cids_all_input) < 1){
+      stop("No PubChem CIDs could be resolved for the query compounds. Check chemical names and network availability.",
+           call. = FALSE)
     }
 
     SDF_input_set = ChemmineR::SDFset()
@@ -320,10 +447,10 @@ categorate = function(compounds, chemical_library, input_format = "wide"){
         CMPs_tmp = chemicals_tmp[k]
 
         Sys.sleep(1)
-        chem_cid = webchem::get_cid(CMPs_tmp)
+        chem_cid = .uaf_get_cid(CMPs_tmp)
 
         cat(paste0('[', k, '/', length(chemicals_tmp), ']', '-', CMPs_tmp, '\n'))
-        if(is.na(chem_cid[[1,2]])){
+        if(is.na(chem_cid)){
           smiles_url = paste0("https://cactus.nci.nih.gov/chemical/structure/",CMPs_tmp,"/smiles")
           inchi_url = paste0("https://cactus.nci.nih.gov/chemical/structure/",CMPs_tmp,"/stdinchikey")
           smile_string = suppressWarnings(getNCI(smiles_url))
@@ -331,12 +458,12 @@ categorate = function(compounds, chemical_library, input_format = "wide"){
 
           if(smile_string != "None"){
             InChiKey = substr(inchi_string, 10, nchar(inchi_string))
-            smile_cid = webchem::get_cid(paste0(smile_string), from = "smiles")
+            smile_cid = .uaf_get_cid(paste0(smile_string), from = "smiles")
 
             chem_cid = smile_cid
           }else{}
         }
-        chem_cid = paste0(chem_cid[[1,2]])
+        chem_cid = paste0(chem_cid)
 
         if(chem_cid == "0") next
         if(chem_cid == "NA") next
@@ -466,6 +593,24 @@ categorate = function(compounds, chemical_library, input_format = "wide"){
     }
     data_list = list(CMP_reactives, CMP_LOTUS, CMP_KEGG, CMP_FEMA, CMP_FDA_SPL, SDF_info_df, functional_df, matchems_df)
     names(data_list) = c("reactives", "LOTUS", "KEGG", "FEMA", "FDA_SPL", "FMCS", "FunctionalGroups", "BestChemMatch")
+    if (detail != "standard") {
+      enrichment = .categorate_research_enrichment(
+        compounds = compounds,
+        data_list = data_list,
+        detail = detail,
+        cache = cache,
+        cache_dir = cache_dir,
+        throttle = throttle,
+        assay_detail_limit = assay_detail_limit,
+        trait_matrix_profile = trait_matrix_profile,
+        trait_matrix_mode = trait_matrix_mode,
+        trait_matrix_min_confidence = trait_matrix_min_confidence,
+        trait_matrix_max_traits = trait_matrix_max_traits,
+        request_fun = request_fun,
+        kegg_request_fun = kegg_request_fun
+      )
+      data_list = c(data_list, enrichment)
+    }
     return(data_list)
   }
   else{cat("No library detected! Please Try Again.")}

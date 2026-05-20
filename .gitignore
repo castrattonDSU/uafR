@@ -1,54 +1,28 @@
-<<<<<<< HEAD
-.Rproj.user
-.Rhistory
-.RData
-.Ruserdata
-=======
-# History files
 .Rhistory
 .Rapp.history
-
-# Session Data files
 .RData
-
-# User-specific files
 .Ruserdata
-
-# Example code in package build process
-*-Ex.R
-
-# Output files from R CMD build
-/*.tar.gz
-
-# Output files from R CMD check
-/*.Rcheck/
-
-# RStudio files
-.Rproj.user/
-
-# produced vignettes
-vignettes/*.html
-vignettes/*.pdf
-
-# OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
+.Renviron
 .httr-oauth
 
-# knitr and R markdown default cache directories
+.Rproj.user/
+*.Rproj.user
+
+*-Ex.R
+/*.tar.gz
+/*.Rcheck/
+/uafR*_export*/
+/uafR*_export.xlsx
+
+vignettes/*.html
+vignettes/*.pdf
 *_cache/
 /cache/
-
-# Temporary files created by R markdown
 *.utf8.md
 *.knit.md
 
-# R Environment Variables
-.Renviron
-
-.Rproj
-.html
->>>>>>> 1a167b825293dfedeb466693bb48fea638c944d9
 inst/doc
 revdep/
 /doc/
 /Meta/
-docs
+docs/

@@ -1,7 +1,7 @@
 Type: Package
 Package: uafR
 Title: Automates Mass Spectrometry Data Processing
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: c(
     person("Chase", 
           "Stratton", 
@@ -25,9 +25,8 @@ Authors@R: c(
           email = "murrell@landinstitute.org"))
 Description: This R package automates chemical processing for tentative chemical identities in mass spectrometry workflows. It includes a powerful set of functions that make chemical interpretations accurate and efficient.
 License: MIT + file LICENSE
-URL: https://github.com/castratton/uafR,
-    https://castratton.github.io/uafR/
-BugReports: https://github.com/castratton/uafR/issues
+URL: https://github.com/castrattonDSU/uafR
+BugReports: https://github.com/castrattonDSU/uafR/issues
 Depends:
     R (>= 4.2)
 Imports: 
@@ -40,9 +39,14 @@ Imports:
     webchem
 Suggests: 
     knitr,
+    openxlsx,
     rmarkdown,
     spelling,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    writexl
+Remotes:
+    bioc::ChemmineR,
+    bioc::fmcsR
 VignetteBuilder: 
     knitr
 Config/testthat/edition: 3
