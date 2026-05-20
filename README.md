@@ -50,6 +50,39 @@ quick_result$ChemicalTraitReport
 quick_result$ChemicalMeasurementSummary
 ```
 
+### Installing from the private repository
+
+Because this repository is private, R will report that it cannot find the
+repository unless GitHub authentication is configured on the machine installing
+uafR. Use a GitHub personal access token that has read access to this repository.
+For a fine-grained token, grant access to `castrattonDSU/uafR` with read-only
+`Contents` permission. For a classic token, use the `repo` scope.
+
+Do not save the token in a script. Add it to the user's `.Renviron` file:
+
+``` r
+usethis::edit_r_environ()
+```
+
+Add this line, replacing the placeholder with the real token:
+
+``` text
+GITHUB_PAT=replace_with_your_token
+```
+
+Restart R, then install:
+
+``` r
+install.packages(c("remotes", "BiocManager"))
+BiocManager::install(c("ChemmineR", "fmcsR"), ask = FALSE, update = FALSE)
+remotes::install_github(
+  "castrattonDSU/uafR",
+  auth_token = Sys.getenv("GITHUB_PAT"),
+  dependencies = TRUE,
+  build_vignettes = FALSE
+)
+```
+
 ## Example Mass Spectrometry Workflows
 
 These are basic examples of how to use core functions. The input .CSV file has strict column name/input data requirements. The column names MUST include: 'Component.RT', 'Component.Area', 'Base.Peak.MZ', 'File.Name', 'Compound.Name', and 'Match.Factor' in no particular order.

@@ -1,3 +1,8 @@
+url: https://castrattonDSU.github.io/uafR/
+
+template:
+  bootstrap: 5
+
 navbar:
   structure:
     left:
@@ -61,3 +66,4 @@ reference:
   - '`standard_exacto`'
   - '`standard_spread`'
   - '`standards_model_data`'
+  - '`validateCategorateResult`'
