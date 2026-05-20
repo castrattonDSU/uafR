@@ -61,7 +61,7 @@ For a fine-grained token, grant access to `castrattonDSU/uafR` with read-only
 Do not save the token in a script. Add it to the user's `.Renviron` file:
 
 ``` r
-usethis::edit_r_environ()
+file.edit("~/.Renviron")
 ```
 
 Add this line, replacing the placeholder with the real token:
