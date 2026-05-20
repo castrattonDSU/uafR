@@ -27,9 +27,16 @@ jobs:
 
       - name: Install website dependencies
         run: |
-          install.packages(c("BiocManager", "pkgdown", "remotes", "sessioninfo"))
-          BiocManager::install(c("ChemmineR", "fmcsR"), ask = FALSE, update = FALSE)
-          remotes::install_deps(dependencies = TRUE, upgrade = "never")
+          install.packages(c("BiocManager", "pkgdown", "remotes", "sessioninfo",
+                             "knitr", "rmarkdown", "spelling", "testthat",
+                             "openxlsx", "writexl"))
+          BiocManager::install(c("ChemmineR", "fmcsR"), ask = FALSE,
+                               update = FALSE,
+                               dependencies = c("Depends", "Imports",
+                                                "LinkingTo"))
+          remotes::install_deps(dependencies = c("Depends", "Imports",
+                                                 "LinkingTo"),
+                                upgrade = "never")
         shell: Rscript {0}
 
       - name: Build site
