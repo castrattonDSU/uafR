@@ -22,8 +22,10 @@
 #'aggregated component area across every sample it was identified in.
 #'
 #'@examples
+#'\dontrun{
 #'query_chemicals = c("Ethyl hexanoate","Methyl salicylate","Octanal","Undecane")
 #'mzExacto(standard_spread, query_chemicals)
+#'}
 #'
 #'@importFrom ChemmineR read.SDFset
 #'@importFrom webchem get_cid
@@ -150,9 +152,9 @@ mzExacto <- function(data_in, chemicals, decontaminate = T){
     alt_trigger = F
     current_CMP = chemicals[chem]
     Sys.sleep(1)
-    chem_cid = webchem::get_cid(chemicals[chem])
+    chem_cid = .uaf_get_cid(chemicals[chem])
 
-    if(is.na(chem_cid[[1,2]])){
+    if(is.na(chem_cid)){
       smiles_url = paste0("https://cactus.nci.nih.gov/chemical/structure/",
                           current_CMP,
                           "/smiles")
@@ -172,15 +174,15 @@ mzExacto <- function(data_in, chemicals, decontaminate = T){
         InChiKey = substr(inchi_string,
                           10,
                           nchar(inchi_string))
-        smile_cid = webchem::get_cid(paste0(smile_string),
-                                     from = "smiles")
+        smile_cid = .uaf_get_cid(paste0(smile_string),
+                                  from = "smiles")
 
         chem_cid = smile_cid
       }else{}
 
 
     }
-    chem_cid = paste0(chem_cid[[1,2]])
+    chem_cid = paste0(chem_cid)
 
     if(chem_cid == "0"){chem_cid = "180"}
 

@@ -1,6 +1,11 @@
-standard_spread_t1 = suppressWarnings(spreadOut(standard_data))
+run_live_uafr_tests = function() {
+        identical(Sys.getenv("UAFR_RUN_LIVE_TESTS"), "true")
+}
 
 test_that("outputs in list are correct sizes",{
+        skip_if_not(run_live_uafr_tests(),
+                    "Live PubChem/NCI integration test")
+        standard_spread_t1 = suppressWarnings(spreadOut(standard_data))
         expect_equal(nrow(standard_spread_t1$Area), nrow(standard_data))
         expect_equal(nrow(standard_spread_t1$Compounds), nrow(standard_data))
         expect_equal(nrow(standard_spread_t1$MZ), nrow(standard_data))
@@ -12,6 +17,9 @@ test_that("outputs in list are correct sizes",{
 })
 
 test_that("items are in the correct order",{
+        skip_if_not(run_live_uafr_tests(),
+                    "Live PubChem/NCI integration test")
+        standard_spread_t1 = suppressWarnings(spreadOut(standard_data))
         expect_equal(paste0(standard_spread_t1$Area[3,][!is.na(standard_spread_t1$Area[3,])]), paste0(standard_data$Component.Area[3]))
         expect_equal(paste0(standard_spread_t1$Compounds[3,][!is.na(standard_spread_t1$Compounds[3,])]), paste0(standard_data$Compound.Name[3]))
         expect_equal(paste0(standard_spread_t1$MZ[3,][!is.na(standard_spread_t1$MZ[3,])]), paste0(standard_data$Base.Peak.MZ[3]))
@@ -35,7 +43,15 @@ test_that("items are in the correct order",{
 })
 
 test_that("having missing input columns is bad",{
-        expect_error(spreadOut(standard_data[,-1:5]))
-        expect_error(spreadOut(standard_data[,-2:6]))
-        expect_error(spreadOut(standard_data[,-3:7]))
+        expect_error(spreadOut(standard_data[, setdiff(colnames(standard_data), "Component.RT")]),
+                     "Missing required input columns")
+        expect_error(spreadOut(standard_data[, setdiff(colnames(standard_data), "Component.Area")]),
+                     "Missing required input columns")
+        expect_error(spreadOut(standard_data[, setdiff(colnames(standard_data), "File.Name")]),
+                     "Missing required input columns")
+})
+
+test_that("duplicate peak keys fail before web requests", {
+        duplicated_input = rbind(standard_data[1,], standard_data[1,])
+        expect_error(spreadOut(duplicated_input), "duplicate peak keys")
 })

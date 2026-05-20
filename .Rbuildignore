@@ -1,5 +1,9 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^.*\.tar\.gz$
+^.*\.Rcheck$
+^uafR.*_export.*$
+^uafR.*_export\.xlsx$
 ^LICENSE\.md$
 ^revdep$
 ^doc$

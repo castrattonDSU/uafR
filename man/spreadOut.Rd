@@ -32,6 +32,8 @@ detected m/z, component area, compound name, match factor, and sample
 or file name for downstream uafR functions.
 }
 \examples{
+\dontrun{
 spreadOut(standard_data)
+}
 
 }

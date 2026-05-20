@@ -22,7 +22,9 @@
 #'top m/z peaks, exact mass, and structural fingerprints in SDF format.
 #'
 #'@examples
+#'\dontrun{
 #'spreadOut(standard_data)
+#'}
 #'
 #'@importFrom ChemmineR read.SDFset
 #'@importFrom webchem get_cid
@@ -46,8 +48,23 @@ spreadOut = function(input){
                                error = function(error) {return(T)})
       suppressWarnings(string_holder)
    }
-   # possible_clmns = c("Component.RT", "Base.Peak.MZ", "Base.Peak.Area", "Component.Area", "Compound.Name", "Match.Factor", "Sample.Name", "File.Name")
-   # if(!(all(colnames(input) %in% possible_clmns))){stop("Column Names Do Not Match Expected Input!! \n Necessary columns are: 'Component.RT', 'Component.Area', \n 'Base.Peak.MZ', 'File.Name', 'Compound.Name', 'Match.Factor'")}
+   required_clmns = c("Component.RT", "Component.Area", "Base.Peak.MZ",
+                      "File.Name", "Compound.Name", "Match.Factor")
+   if(!is.data.frame(input)){
+      stop("`input` must be a data frame containing GC/MS output columns.")
+   }
+   missing_clmns = setdiff(required_clmns, colnames(input))
+   if(length(missing_clmns) > 0){
+      stop(paste0("Missing required input columns: ",
+                  paste(missing_clmns, collapse = ", ")))
+   }
+   peak_keys = paste(input$Component.RT,
+                     input$Component.Area,
+                     input$Base.Peak.MZ,
+                     sep = " | ")
+   if(any(duplicated(peak_keys))){
+      stop("Input contains duplicate peak keys based on Component.RT, Component.Area, and Base.Peak.MZ.")
+   }
    cat("Welcome to uafR! Preparing your data, please be patient.\n")
 
    gcms_spread_area = data.frame(matrix(ncol = length(unique(input$File.Name)), nrow = length(input$Component.RT)))
@@ -100,9 +117,9 @@ spreadOut = function(input){
       alt_trigger = F
       current_CMP = tentative_identities[chem]
       current_RT = tentative_RTs[chem]
-      chem_cid = tryCatch(webchem::get_cid(tentative_identities[chem]), error = function(error) {return(NA)})
+      chem_cid = .uaf_get_cid(tentative_identities[chem])
 
-      if(is.na(chem_cid[[1,2]])){
+      if(is.na(chem_cid)){
          smiles_url = paste0("https://cactus.nci.nih.gov/chemical/structure/",current_CMP,"/smiles")
          inchi_url = paste0("https://cactus.nci.nih.gov/chemical/structure/",current_CMP,"/stdinchikey")
          smiles_url = gsub("\\ ", "%20", smiles_url)
@@ -112,12 +129,12 @@ spreadOut = function(input){
 
          if(smile_string != "None"){
             InChiKey = inchi_string
-            smile_cid = webchem::get_cid(paste0(smile_string), from = "smiles")
+            smile_cid = .uaf_get_cid(paste0(smile_string), from = "smiles")
 
             chem_cid = smile_cid
          }else{}
       }
-      chem_cid = paste0(chem_cid[[1,2]])
+      chem_cid = paste0(chem_cid)
 
       if(chem_cid == "0"){chem_cid = "180"}
 

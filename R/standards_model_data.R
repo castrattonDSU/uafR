@@ -3,7 +3,7 @@
 #'Contains summary data that was used for linear model figures/analyses of standards data
 #'
 #'@format
-#'A data frame with 16 rows and 7 columns:
+#'A data frame with 15 rows and 7 columns:
 #'\describe{
 #'  \item{uafR.RT}{Retention Time identified by uafR for referenced chemical}
 #'  \item{uafR.Mass}{Exact Mass found by uafR for referenced chemical}

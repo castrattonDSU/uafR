@@ -38,10 +38,16 @@ standardifyIt = function(data_in, standard_type = "Internal",
  ES_fun_set = list(log_function, exponent_function, linear_function)
  names(ES_fun_set) = c("log", "exponent", "linear")
 
+ old_scipen = getOption("scipen")
  options(scipen = 999)
+ on.exit(options(scipen = old_scipen), add = TRUE)
  type_internal = standard_type == "Internal"
  type_external = standard_type == "External"
  external_models = c("log", "exponent", "linear")
+
+ if(!(type_internal | type_external)){
+    stop("`standard_type` must be either 'Internal' or 'External'.")
+ }
 
  size_sample_amt = length(sample_amt)
 
@@ -51,7 +57,13 @@ standardifyIt = function(data_in, standard_type = "Internal",
  if(type_internal){
     data_out_standard = data.frame(matrix(nrow = nrow(data_clms)-1, ncol = 0))
     IS = standard_used
+    if(!(IS %in% meta_clms$Compound)){
+       stop("`standard_used` was not found in the Compound column.")
+    }
     IS_quants = as.numeric(paste0(data_clms[meta_clms$Compound == IS,]))
+    if(any(is.na(IS_quants) | IS_quants == 0)){
+       stop("Internal standard areas must be non-missing and non-zero.")
+    }
     data_clms = data_clms[meta_clms$Compound != IS,]
     meta_clms = meta_clms[meta_clms$Compound != IS,]
  }else{
@@ -175,8 +187,8 @@ standardifyIt = function(data_in, standard_type = "Internal",
           current_area = as.numeric(paste0(data_clms[x,y]))
           if(current_area == 0 | is.na(current_area)) next
           area_standardized[x,y] = model_fun_use(current_area,
-                                                 eqn_coefficients[2],
-                                                 eqn_coefficients[1])
+                                                 eqn_coefficients[1],
+                                                 eqn_coefficients[2])
        }
     }
     data_out_standard = area_standardized
@@ -184,5 +196,4 @@ standardifyIt = function(data_in, standard_type = "Internal",
  data_out_standard = data.frame(cbind(meta_clms, data_out_standard))
  colnames(data_out_standard) = colnames(data_in)
  return(data_out_standard)
- options(scipen = 0)
 }

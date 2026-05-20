@@ -32,7 +32,9 @@ chemical. Uses this information to search the
 raw `spreadOut()` data for samples where a chemical exists.
 }
 \examples{
+\dontrun{
 query_chemicals = c("Ethyl hexanoate","Methyl salicylate","Octanal","Undecane")
 mzExacto(standard_spread, query_chemicals)
+}
 
 }
