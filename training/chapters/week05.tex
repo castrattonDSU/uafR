@@ -1,0 +1,75 @@
+\chapter{Research-Grade categorate Enrichment}
+
+\WeekHeader{5}{Research-Grade categorate Enrichment}{Use public database enrichment to convert chemical names into traceable research tables.}{Validated \texttt{categorate(detail = "research")} result and source coverage report.}
+
+\section{Why This Matters}
+The upgraded \texttt{categorate()} workflow gives students much more than a simple database lookup. It returns source-specific tables, normalized chemical traits, ontology-style terms, measurement summaries, hazard fields, occurrence evidence, KEGG roles, quality diagnostics, and data dictionaries. This is where the chemical list becomes a research dataset.
+
+\section{Key Output Families}
+\begin{itemize}
+  \item \textbf{Identity and properties}: \texttt{PubChemIdentity}, \texttt{PubChemProperties}, \texttt{PubChemIdentifiers}.
+  \item \textbf{Source profiles}: \texttt{SafetyProfile}, \texttt{FEMAProfile}, \texttt{FDA\_SPL\_Profile}, \texttt{LOTUSProfile}, \texttt{MeSHProfile}, \texttt{LiteratureProfile}.
+  \item \textbf{Discrete trait data}: \texttt{ChemicalTerms}, \texttt{ChemicalTraits}, \texttt{ChemicalTraitOntology}.
+  \item \textbf{Analysis matrices}: \texttt{ChemicalTraitMatrix}, \texttt{ChemicalTraitOntologyMatrix}.
+  \item \textbf{Research summaries}: \texttt{ChemicalTraitReport}, \texttt{ChemicalMeasurementSummary}, \texttt{SourceCoverage}, \texttt{DerivedGroups}.
+  \item \textbf{Database quality}: \texttt{DataDictionary}, \texttt{TableQuality}, \texttt{SourceDiagnostics}, \texttt{ValidationSummary}.
+\end{itemize}
+
+\section{Guided Lab}
+Run a small enrichment first. Use caching for routine work and set a gentle throttle when live services are queried.
+
+\begin{rcode}
+library(uafR)
+data("library_data", package = "uafR")
+
+compounds <- c("aspirin", "caffeine", "methyl salicylate")
+
+result <- categorate(
+  compounds = compounds,
+  chemical_library = library_data,
+  input_format = "wide",
+  detail = "research",
+  cache = TRUE,
+  throttle = 0.2,
+  assay_detail_limit = 0,
+  trait_matrix_profile = "core",
+  trait_matrix_min_confidence = "medium",
+  trait_matrix_max_traits = 100
+)
+
+validateCategorateResult(result)$Summary
+result$SourceCoverage
+result$ChemicalTraitReport
+result$ChemicalTraitMatrix
+\end{rcode}
+
+\section{Evidence Inspection}
+Students should not trust a matrix until they inspect the supporting evidence.
+
+\begin{rcode}
+trait_key <- names(result$ChemicalTraitMatrix)[2]
+
+evidence <- chemicalTraitEvidence(result)
+evidence[evidence$MatrixKey == trait_key, ]
+\end{rcode}
+
+\section{Independent Extension}
+Students run \texttt{categorate()} on their reviewed chemical list. If the list is long, they should begin with 5 to 10 representative chemicals, inspect output quality, then scale up.
+
+\section{Deliverables}
+\begin{tabularx}{\textwidth}{p{0.25\textwidth}YY}
+\DeliverableTableHeader
+Enrichment object & Saved result contains validation tables, source coverage, and trait matrices. & RDS\\
+Coverage report & Summarizes which sources returned useful data by chemical. & CSV or table\\
+Evidence audit & Traces five matrix traits back to source evidence. & Research log\\
+\end{tabularx}
+
+\section{Quality Checklist}
+\begin{checklistbox}{Before Week 6}
+\begin{itemize}
+  \item \texttt{ValidationSummary} has been inspected.
+  \item Missing source data are documented rather than silently ignored.
+  \item At least five high-value traits have been traced to evidence rows.
+  \item The student can identify which output tables are raw-ish source evidence and which are normalized analysis tables.
+\end{itemize}
+\end{checklistbox}

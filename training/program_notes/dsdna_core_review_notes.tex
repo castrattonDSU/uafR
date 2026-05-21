@@ -1,0 +1,95 @@
+\chapter{dsDNA Core Review Notes and Answer Guidance}
+
+\section{Facilitating Without Doing the Project for the Student}
+In dsDNA Core sessions, evidence stays at the center before answers. The strongest teaching question is often, ``Which table, row, script, or citation supports that?'' Students learn to diagnose problems by moving from output to source, not by guessing.
+
+\section{Daily Check-In Structure}
+This five-minute structure works at the start or end of each day:
+\begin{enumerate}
+  \item What did you produce yesterday?
+  \item What evidence supports the main thing you think you learned?
+  \item What is uncertain, broken, missing, or confusing?
+  \item What will you produce by the end of today?
+  \item What decision do you need from the program lead or dsDNA Core mentor?
+\end{enumerate}
+
+\section{Expected Answers by Program Stage}
+\begin{longtable}{p{0.18\textwidth}p{0.36\textwidth}p{0.36\textwidth}}
+\toprule
+\textbf{Stage} & \textbf{Strong student answer} & \textbf{Needs coaching}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Stage} & \textbf{Strong student answer} & \textbf{Needs coaching}\\
+\midrule
+\endhead
+Question design & Names the system, comparison, chemical evidence, and limitation. & Says only that they want to see what chemicals are important.\\
+Database interpretation & Distinguishes identity, source annotation, occurrence, pathway, hazard, and assay evidence. & Treats any database hit as equivalent support.\\
+GC-MS workflow & Explains match factor, retention time, base peak, area, and tentative identity caveats. & Says the software identified the compound without caveat.\\
+Enrichment & Starts with validation, source coverage, and provenance. & Jumps directly to the most exciting trait or pathway.\\
+Trait matrix & Explains source fields, confidence, matrix keys, and why weak traits were removed. & Uses every available column because more data seem better.\\
+Figure interpretation & Ties each figure to a question and a source table. & Makes decorative plots without a decision or claim.\\
+Literature integration & Uses papers to contextualize results and limitations. & Searches only for papers that support the desired conclusion.\\
+Final report & Methods can be rerun and claims are traceable. & Reads like a narrative without reproducible evidence.\\
+\bottomrule
+\end{longtable}
+
+\section{Common Program Responses}
+\begin{tabularx}{\textwidth}{p{0.30\textwidth}Y}
+\toprule
+\textbf{Student pattern} & \textbf{Program response}\\
+\midrule
+Overly broad project & The work is limited to one chemical list, one comparison, and one main evidence family.\\
+Too much time cleaning messy data & The student switches to a program-reviewed case dataset for training, then returns to the real data later.\\
+Interpreting before validation & A validation summary screenshot or table is reviewed before biological meaning is discussed.\\
+Matrix is too wide & The matrix is narrowed to medium-confidence traits tied to the research question.\\
+Weak writing & The student writes one claim, one evidence sentence, and one limitation sentence for each figure.\\
+No progress after errors & The workflow moves to a small reproducible example with the exact error, input, expected output, and actual output.\\
+\bottomrule
+\end{tabularx}
+
+\section{Review Notes for Real-World Exercises}
+\subsection{Unmatched Chemical}
+A good answer does not delete unmatched chemicals silently. It should preserve them in a missingness table and identify the next action: synonym search, identifier correction, manual review, or follow-up validation.
+
+\subsection{Hazard Code Trap}
+A good answer separates hazard screening from risk interpretation. Students should state that risk requires exposure, dose, route, organism, and context.
+
+\subsection{Pathway Does Not Mean Presence}
+A good answer rewrites ``this pathway is active'' as ``this compound has KEGG pathway context consistent with...'' unless independent pathway activity evidence exists.
+
+\subsection{Natural Product Occurrence}
+A good answer separates direct taxonomic evidence from broad natural product context. Students should not imply occurrence in their organism unless the source supports it.
+
+\subsection{Matrix Sparsity}
+A good answer favors a smaller matrix if it has clearer interpretation, better confidence, and sufficient coverage across compounds. Students should explain what was removed and why.
+
+\section{When To Slow the Program Down}
+The program slows down when:
+\begin{itemize}
+  \item Students cannot explain their research question without reading notes.
+  \item Source coverage is weak and students are ignoring it.
+  \item Scripts contain absolute paths or manual steps that cannot be repeated.
+  \item Figures are being made before variables are defined.
+  \item Literature is being used as decoration rather than evidence.
+\end{itemize}
+
+\section{When To Accelerate}
+The program accelerates when:
+\begin{itemize}
+  \item The student can rerun their workflow from a clean R session.
+  \item The grouping dictionary is reviewed and matrix outputs are stable.
+  \item Figures have clear captions and limitations.
+  \item The student can explain what would change their interpretation.
+\end{itemize}
+
+\section{Final Review Questions}
+Before the final package is accepted, the review asks:
+\begin{enumerate}
+  \item Which result is strongest, and what evidence supports it?
+  \item Which result is most uncertain, and why?
+  \item Which chemicals were excluded, unmatched, or weakly supported?
+  \item Which database source was most useful, and which was least useful?
+  \item What should the next student do first?
+  \item What claim should not be made from this project?
+\end{enumerate}

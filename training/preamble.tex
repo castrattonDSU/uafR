@@ -1,0 +1,150 @@
+\usepackage[letterpaper,margin=0.9in,headheight=15pt]{geometry}
+\usepackage[table]{xcolor}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{multicol}
+
+\definecolor{DSURed}{HTML}{EE3124}
+\definecolor{DSUBlue}{HTML}{0099CC}
+\definecolor{DSUDarkBlue}{HTML}{005A7A}
+\definecolor{DSUBlack}{HTML}{151515}
+\definecolor{DSULightBlue}{HTML}{E6F5FA}
+\definecolor{DSULightRed}{HTML}{FDE8E6}
+\definecolor{DSULightGray}{HTML}{F4F6F7}
+\definecolor{DSUMidGray}{HTML}{5F666A}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=DSURed,
+  citecolor=DSUDarkBlue,
+  urlcolor=DSUDarkBlue,
+  pdftitle={DSU dsDNA Core Undergraduate Research Training Program},
+  pdfauthor={DSU dsDNA Core}
+}
+
+\setlist[itemize]{leftmargin=1.3em,itemsep=0.25em,topsep=0.25em}
+\setlist[enumerate]{leftmargin=1.5em,itemsep=0.25em,topsep=0.25em}
+\renewcommand{\arraystretch}{1.18}
+\setlength{\parskip}{0.55em}
+\setlength{\parindent}{0pt}
+\emergencystretch=2em
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textcolor{DSURed}{DSU dsDNA Core}}
+\rhead{\textcolor{DSUMidGray}{uafR Undergraduate Research Training}}
+\cfoot{\thepage}
+
+\titleformat{\chapter}
+  {\Huge\bfseries\color{DSURed}}
+  {\thechapter}{0.75em}{}
+\titleformat{\section}
+  {\Large\bfseries\color{DSURed}}
+  {\thesection}{0.6em}{}
+\titleformat{\subsection}
+  {\large\bfseries\color{DSUBlack}}
+  {\thesubsection}{0.55em}{}
+
+\lstdefinestyle{RStyle}{
+  language=R,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{DSURed}\bfseries,
+  commentstyle=\color{DSUMidGray},
+  stringstyle=\color{DSUDarkBlue},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  frame=single,
+  rulecolor=\color{DSULightBlue},
+  backgroundcolor=\color{DSULightGray},
+  framerule=0.4pt,
+  xleftmargin=0.5em,
+  xrightmargin=0.5em
+}
+\lstnewenvironment{rcode}{\lstset{style=RStyle}}{}
+
+\newtcolorbox{programbox}[2][]{
+  enhanced,
+  colback=DSULightBlue,
+  colframe=DSUBlue,
+  coltitle=white,
+  title={#2},
+  fonttitle=\bfseries,
+  boxrule=0.6pt,
+  arc=2mm,
+  left=1.1em,
+  right=1.1em,
+  top=0.8em,
+  bottom=0.8em,
+  #1
+}
+
+\newtcolorbox{goldbox}[2][]{
+  enhanced,
+  colback=DSULightRed,
+  colframe=DSURed,
+  coltitle=DSUBlack,
+  title={#2},
+  fonttitle=\bfseries,
+  boxrule=0.6pt,
+  arc=2mm,
+  left=1.1em,
+  right=1.1em,
+  top=0.8em,
+  bottom=0.8em,
+  #1
+}
+
+\newtcolorbox{checklistbox}[2][]{
+  enhanced,
+  colback=white,
+  colframe=DSUDarkBlue,
+  coltitle=white,
+  title={#2},
+  fonttitle=\bfseries,
+  boxrule=0.6pt,
+  arc=2mm,
+  left=1.1em,
+  right=1.1em,
+  top=0.8em,
+  bottom=0.8em,
+  #1
+}
+
+\newcommand{\CoreLogo}{%
+  \IfFileExists{assets/dsdna_core_logo.png}{%
+    \includegraphics[width=1.35in]{assets/dsdna_core_logo.png}%
+  }{%
+    \fcolorbox{DSURed}{DSULightBlue}{%
+      \parbox[c][1.05in][c]{1.35in}{\centering\bfseries\color{DSURed}dsDNA\\Core\\Logo}%
+    }%
+  }%
+}
+
+\newcommand{\WeekHeader}[4]{%
+  \begin{programbox}{Week #1: #2}
+  \textbf{Research milestone:} #3
+
+  \textbf{Primary product:} #4
+  \end{programbox}
+}
+
+\newcommand{\DeliverableTableHeader}{%
+  \rowcolor{DSUBlue}
+  \textcolor{white}{\textbf{Deliverable}} &
+  \textcolor{white}{\textbf{Evidence of quality}} &
+  \textcolor{white}{\textbf{Submission format}}\\
+}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}

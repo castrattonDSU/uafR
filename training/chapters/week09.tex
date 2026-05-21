@@ -1,0 +1,60 @@
+\chapter{Manuscript-Style Research Product}
+
+\WeekHeader{9}{Manuscript-Style Research Product}{Convert the analysis into a concise scientific report.}{Draft report with abstract, methods, results, figures, and limitations.}
+
+\section{Why This Matters}
+Writing is part of analysis. A report exposes weak logic, missing methods, unclear figures, and overclaims. Week 9 turns the student's project into a product that can become a poster, internal report, thesis chapter, manuscript section, or grant preliminary result.
+
+\section{Report Structure}
+\begin{itemize}
+  \item \textbf{Title}: specific, not inflated.
+  \item \textbf{Abstract}: question, approach, main result, limitation, and significance.
+  \item \textbf{Introduction}: system background and why chemical traits matter.
+  \item \textbf{Methods}: data source, uafR workflow, enrichment settings, filtering, visualization, and literature review.
+  \item \textbf{Results}: figures and tables with restrained interpretation.
+  \item \textbf{Discussion}: what the results suggest, what remains uncertain, and what should be done next.
+  \item \textbf{Reproducibility statement}: how to rerun the analysis and where outputs are stored.
+\end{itemize}
+
+\section{Methods Details To Include}
+\begin{itemize}
+  \item uafR version.
+  \item R version and operating system.
+  \item Chemical query list source.
+  \item \texttt{categorate()} detail level, cache setting, throttle setting, and assay detail limit.
+  \item Trait matrix profile, confidence threshold, and maximum traits.
+  \item Any manual filtering or grouping rules.
+  \item How missing data and unmatched chemicals were handled.
+\end{itemize}
+
+\section{Guided Lab}
+Run the reproducibility check:
+
+\begin{rcode}
+source("training/scripts/09_reproducibility_check.R")
+
+check_training_project(".")
+\end{rcode}
+
+Then draft the methods paragraph from script settings and validation summaries.
+
+\section{Independent Extension}
+Students complete a 4 to 6 page report. The goal is not length. The goal is a defensible chain from question to data to evidence to interpretation.
+
+\section{Deliverables}
+\begin{tabularx}{\textwidth}{p{0.25\textwidth}YY}
+\DeliverableTableHeader
+Draft report & Includes all required sections and at least three figures or tables. & PDF or Word export\\
+Reproducibility check & Confirms project files, scripts, results, and session information. & Log file\\
+Peer review notes & Student gives and receives structured feedback. & Worksheet\\
+\end{tabularx}
+
+\section{Quality Checklist}
+\begin{checklistbox}{Before Week 10}
+\begin{itemize}
+  \item The methods section is specific enough to rerun the analysis.
+  \item Results are separated from speculation.
+  \item Each figure is cited in the text.
+  \item The discussion includes limitations and next steps.
+\end{itemize}
+\end{checklistbox}

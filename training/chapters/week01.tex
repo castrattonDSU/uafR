@@ -1,0 +1,73 @@
+\chapter{Research Onboarding and Question Design}
+
+\WeekHeader{1}{Research Onboarding and Question Design}{Turn a broad interest into a testable chemical research question.}{One-page project brief with question, system, candidate chemicals, expected evidence, and risks.}
+
+\section{Why This Matters}
+Strong computational research starts before any code is run. Students need a clear scientific question, a defensible reason for studying a chemical set, and a plan for evaluating evidence. Without this foundation, database enrichment becomes a list of facts rather than a research workflow.
+
+\section{Concepts}
+\begin{itemize}
+  \item \textbf{Research system}: the organism, environment, treatment, material, food, exposure, sample type, or process being studied.
+  \item \textbf{Chemical evidence}: tentative identifications, mass spectral matches, database annotations, literature support, functional groups, biological activities, hazard terms, occurrence records, pathways, reactions, and measured properties.
+  \item \textbf{Analysis-ready variable}: a clean field that can be grouped, counted, filtered, modeled, or visualized.
+  \item \textbf{Provenance}: the source and retrieval context for a piece of evidence.
+  \item \textbf{Uncertainty}: the gap between a database hit and a confirmed scientific conclusion.
+\end{itemize}
+
+\section{uafR and R Skills}
+Students do not need to run the full workflow in Week 1. They should learn what the tool can produce:
+\begin{itemize}
+  \item Core GC-MS workflow: \texttt{spreadOut()}, \texttt{mzExacto()}, and \texttt{exactoThese()}.
+  \item Chemical enrichment: \texttt{categorate(detail = "research")}.
+  \item Research trait tables: \texttt{ChemicalTraits}, \texttt{ChemicalTraitOntology}, and \texttt{ChemicalTraitMatrix}.
+  \item Hazard summary table: \texttt{ChemicalHazards}.
+  \item Occurrence summary table: \texttt{ChemicalOccurrences}.
+  \item Measurement summary table: \texttt{ChemicalMeasurementSummary}.
+  \item KEGG-specific interpretation table: \texttt{KEGGReactionParticipants}.
+  \item Quality checks: \texttt{validateCategorateResult()} and \texttt{TableQuality}.
+\end{itemize}
+
+\section{Guided Lab}
+\begin{enumerate}
+  \item Choose one research domain: plant metabolites, environmental exposure, food chemistry, microbial products, pharmacology, materials, forensic chemistry, toxicology, or another reviewed topic.
+  \item Write three possible research questions. Each question must name the system, chemicals or chemical class, comparison, and expected evidence.
+  \item Identify a starting chemical list. This can come from GC-MS results, literature, standards, known metabolites, or a small exploratory list.
+  \item Mark each chemical as known, tentative, uncertain, or exploratory.
+  \item Write a risk note: what could make the analysis misleading?
+\end{enumerate}
+
+\begin{goldbox}{Example Research Questions}
+\begin{itemize}
+  \item Do volatile compounds detected in two plant treatments differ in sensory trait profiles, natural product occurrence, or pathway roles?
+  \item Which detected compounds have safety or exposure signals that require additional review before biological interpretation?
+  \item Do compounds associated with a sample group cluster by functional group, pathway, or literature-backed biological activity?
+\end{itemize}
+\end{goldbox}
+
+\section{Independent Extension}
+Students interview the program lead, the dsDNA Core mentor, or a project lead for 20 minutes and capture:
+\begin{itemize}
+  \item The research context.
+  \item Why the chemical list matters.
+  \item What decisions the analysis should support.
+  \item What evidence would be convincing.
+  \item What evidence would be weak or unacceptable.
+\end{itemize}
+
+\section{Deliverables}
+\begin{tabularx}{\textwidth}{p{0.25\textwidth}YY}
+\DeliverableTableHeader
+Project brief & Includes question, system, comparison, candidate chemical list, and expected output. & PDF or Markdown\\
+Chemical intake table & Has one row per chemical and columns for source, confidence, project relevance, and notes. & CSV\\
+Risk note & Names at least three ways the analysis could be wrong or overinterpreted. & Research log\\
+\end{tabularx}
+
+\section{Quality Checklist}
+\begin{checklistbox}{Before Week 2}
+\begin{itemize}
+  \item The question is narrow enough to analyze in 10 weeks.
+  \item The chemical list has a clear source and inclusion rule.
+  \item The student can explain why chemical traits, database evidence, or GC-MS patterns matter for the question.
+  \item The project scope has passed dsDNA Core review.
+\end{itemize}
+\end{checklistbox}

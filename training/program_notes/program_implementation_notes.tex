@@ -1,0 +1,108 @@
+\chapter{Program Implementation Notes}
+
+\section{Program Philosophy}
+This program treats undergraduate interns as early-career researchers. The expectation is not that students arrive knowing R, chemistry, statistics, or manuscript writing. The expectation is that they learn how to make their work traceable, honest, and useful. The second-pass curriculum assumes a full-day internship: students have enough time each week for reading, guided lab work, independent analysis, writing, peer review, and revision.
+
+\section{Program Setup Before Week 1}
+Before Week 1, program setup includes:
+\begin{itemize}
+  \item A short orientation to the lab or core facility.
+  \item A list of possible research domains and dsDNA Core contacts.
+  \item A small set of example chemicals for demonstrations.
+  \item Confirmation that R, RStudio, Git, and uafR can be installed.
+  \item A current private student bundle with installer, verifier, package archive, and training PDF.
+  \item Guidance on what data are public, private, unpublished, or restricted.
+\end{itemize}
+
+\section{Suggested Weekly Pacing}
+\begin{tabularx}{\textwidth}{p{0.18\textwidth}Y}
+\toprule
+\textbf{Week} & \textbf{Program focus}\\
+\midrule
+1 & Research questions are narrowed before projects become too large.\\
+2 & Project structure, relative paths, and safe token handling are established.\\
+3 & Database interpretation and evidence limits are made explicit.\\
+4 & GC-MS inputs, duplicates, and tentative identity claims are inspected.\\
+5 & Enrichment outputs, validation summaries, and source coverage are reviewed.\\
+6 & Grouping variables and extraction rules are reviewed before analysis expands.\\
+7 & Figures are tied to clear questions and explicit missing-data interpretation.\\
+8 & Major claims are supported by literature and source evidence.\\
+9 & Methods are reproducible and results remain restrained.\\
+10 & Communication, handoff quality, and next research steps are finalized.\\
+\bottomrule
+\end{tabularx}
+
+\section{Suggested Daily Rhythm}
+\begin{tabularx}{\textwidth}{p{0.20\textwidth}Y}
+\toprule
+\textbf{Time block} & \textbf{Use}\\
+\midrule
+9:00--9:30 & Daily check-in, objective, and one concept.\\
+9:30--11:30 & Guided lab or reading discussion.\\
+11:30--12:00 & Research log update and troubleshooting list.\\
+1:00--3:00 & Independent project application or case exercise.\\
+3:00--4:00 & Writing, figure captioning, or evidence audit.\\
+4:00--4:30 & dsDNA Core or peer checkpoint and next-day plan.\\
+\bottomrule
+\end{tabularx}
+
+\section{Minimum Viable Project}
+If a student struggles or time is limited, scope is reduced rather than lowering quality. A strong minimum project can use 8 to 15 chemicals, one research question, one trait matrix, two figures, and one interpretation memo. The student still preserves reproducibility, source evidence, and uncertainty.
+
+\section{Advanced Project Options}
+Students who move quickly can add:
+\begin{itemize}
+  \item Comparison of trait profiles across treatments or sample groups.
+  \item A curated literature table for a chemical class.
+  \item A pathway-focused KEGG interpretation.
+  \item A safety or exposure screening appendix.
+  \item A natural product occurrence analysis using LOTUS-derived fields.
+  \item A reusable R function for project-specific filtering or plotting.
+\end{itemize}
+
+\section{Database Etiquette}
+Live database practice is deliberately conservative:
+\begin{itemize}
+  \item Start with small smoke tests.
+  \item Use caching for repeated work.
+  \item Use throttling for broad queries.
+  \item Save result objects so students do not repeat identical requests.
+  \item Use offline saved examples when teaching in a room with unstable internet.
+\end{itemize}
+
+\section{Common Coaching Moments}
+\begin{tabularx}{\textwidth}{p{0.25\textwidth}Y}
+\toprule
+\textbf{Issue} & \textbf{Program response}\\
+\midrule
+Student overclaims tentative GC-MS hits & Evidence for confirmed identity and tentative status is reviewed before claims move forward.\\
+Matrix has many columns but no interpretation & The student narrows the work through a project-specific grouping dictionary.\\
+Database text is copied into results & The result is rewritten as discrete extracted values with source-backed fields.\\
+Unmatched chemicals disappear & The project adds a missing-data and source-coverage note.\\
+Figures are decorative & The figure is tied to a specific question and research decision.\\
+Script only runs on one laptop & Absolute paths are removed and the workflow is rerun from the project root.\\
+\bottomrule
+\end{tabularx}
+
+\section{Recommended Grading Weight}
+\begin{tabularx}{\textwidth}{p{0.35\textwidth}p{0.15\textwidth}Y}
+\toprule
+\textbf{Component} & \textbf{Weight} & \textbf{Notes}\\
+\midrule
+Weekly deliverables & 30\% & Completion, quality, and responsiveness to feedback.\\
+Reproducible project package & 20\% & File structure, scripts, logs, and rerunnable outputs.\\
+Final report & 25\% & Scientific logic, methods, results, and interpretation.\\
+Presentation & 15\% & Clear communication and ability to answer questions.\\
+Research professionalism & 10\% & Documentation, integrity, collaboration, and growth.\\
+\bottomrule
+\end{tabularx}
+
+\section{Final Presentation Questions}
+These questions are used during final presentations:
+\begin{enumerate}
+  \item What was your original question?
+  \item Which chemical evidence changed your thinking?
+  \item Which result is strongest?
+  \item Which result is most uncertain?
+  \item What should the next student or collaborator do next?
+\end{enumerate}

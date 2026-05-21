@@ -1,0 +1,94 @@
+\chapter{Assessment Rubrics}
+
+\section{Weekly Deliverable Rubric}
+\begin{longtable}{p{0.18\textwidth}p{0.22\textwidth}p{0.22\textwidth}p{0.22\textwidth}}
+\toprule
+\textbf{Criterion} & \textbf{Exemplary} & \textbf{Developing} & \textbf{Needs revision}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Criterion} & \textbf{Exemplary} & \textbf{Developing} & \textbf{Needs revision}\\
+\midrule
+\endhead
+Research focus & Question is specific, feasible, and connected to chemical evidence. & Question is relevant but broad or missing a clear comparison. & Question is vague, untestable, or disconnected from available data.\\
+Reproducibility & Scripts run from the project root and outputs are clearly named. & Most work is reproducible but some paths or manual steps remain. & Work cannot be rerun without guessing or manual intervention.\\
+Evidence traceability & Claims link to tables, fields, figures, or citations. & Some claims have evidence but links are incomplete. & Claims are mostly unsupported or based on broad impressions.\\
+Data quality & Missing values, duplicates, and source coverage are inspected. & Some quality checks are present but incomplete. & Data quality issues are not inspected or documented.\\
+Interpretation & Conclusions are cautious, specific, and aligned with evidence. & Interpretation is plausible but overstates some evidence. & Interpretation makes claims the data cannot support.\\
+\bottomrule
+\end{longtable}
+
+\section{Final Report Rubric}
+\begin{longtable}{p{0.18\textwidth}p{0.22\textwidth}p{0.22\textwidth}p{0.22\textwidth}}
+\toprule
+\textbf{Area} & \textbf{High impact} & \textbf{Acceptable} & \textbf{Revise}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Area} & \textbf{High impact} & \textbf{Acceptable} & \textbf{Revise}\\
+\midrule
+\endhead
+Abstract & States question, approach, result, limitation, and significance in clear language. & Covers most elements but lacks precision or caveat. & Reads as a general summary without a concrete result.\\
+Methods & Includes package version, settings, data source, filtering, validation, and analysis steps. & Includes core workflow but omits some settings or checks. & Too vague to reproduce.\\
+Results & Figures and tables directly answer the research question. & Results are relevant but not fully connected to the question. & Results are descriptive without a clear purpose.\\
+Figures & Professional, readable, scripted, and captioned with source tables. & Understandable but needs formatting or caption improvements. & Hard to read, manually produced, or not traceable.\\
+Discussion & Explains significance, uncertainty, and next steps. & Provides interpretation but limited uncertainty or future direction. & Overclaims or repeats results without interpretation.\\
+Reproducibility & Project package is clean, runnable, and documented. & Mostly organized with minor missing files or unclear paths. & Files are disorganized or analysis cannot be rerun.\\
+\bottomrule
+\end{longtable}
+
+\section{Presentation Rubric}
+\begin{tabularx}{\textwidth}{p{0.24\textwidth}Y}
+\toprule
+\textbf{Criterion} & \textbf{What strong performance looks like}\\
+\midrule
+Opening & The audience understands the research problem within the first minute.\\
+Workflow explanation & The student explains data source, uafR processing, enrichment, and analysis without excessive technical clutter.\\
+Main result & The central figure is readable and tied to the research question.\\
+Evidence & The student can name the tables, database sources, or citations supporting the result.\\
+Limitations & Uncertainty is explicit and scientifically mature.\\
+Next steps & The proposed follow-up is realistic and connected to the result.\\
+\bottomrule
+\end{tabularx}
+
+\section{Review Prompts}
+\begin{itemize}
+  \item What is the strongest scientific move the student made this week?
+  \item What is the most important reproducibility issue to fix?
+  \item Which claim needs better evidence?
+  \item Which result is ready for a figure, table, or manuscript sentence?
+  \item What should the student do before collecting or analyzing more data?
+\end{itemize}
+
+\section{Research Log Rubric}
+\begin{tabularx}{\textwidth}{p{0.24\textwidth}Y}
+\toprule
+\textbf{Criterion} & \textbf{Full-credit standard}\\
+\midrule
+Daily entries & Each workday has an entry with objective, output, evidence inspected, problem, decision, and next step.\\
+Decision traceability & Important changes in question, data, filtering, or interpretation are dated and justified.\\
+Error documentation & Errors include enough context for another student to understand what failed and how it was fixed.\\
+Evidence discipline & Claims in the log refer to source tables, figures, scripts, or citations.\\
+Program usefulness & A reviewer can read the log and understand current project status within 10 minutes.\\
+\bottomrule
+\end{tabularx}
+
+\section{Final Package Rubric}
+\begin{longtable}{p{0.20\textwidth}p{0.33\textwidth}p{0.37\textwidth}}
+\toprule
+\textbf{Component} & \textbf{High-quality evidence} & \textbf{Common deduction}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Component} & \textbf{High-quality evidence} & \textbf{Common deduction}\\
+\midrule
+\endhead
+README & Explains question, data, scripts, outputs, and rerun order. & Reader cannot tell where to start.\\
+Scripts & Numbered, runnable from project root, and write outputs predictably. & Absolute paths, manual steps, or unclear dependencies.\\
+Data & Raw data are preserved and processed data are derived by scripts. & Edited raw files or undocumented manual cleaning.\\
+uafR outputs & Saved result object, validation summary, source coverage, and trait outputs are present. & Only final figures are saved.\\
+Figures & Regenerated by code and captioned with source table and limitation. & Figures are manually edited or overclaim.\\
+Report & Methods, results, discussion, limitations, and next steps are complete. & Report lacks reproducibility details or uncertainty.\\
+Handoff & Continuation note names what to do next and what not to claim. & Future student would need to reconstruct decisions from scratch.\\
+\bottomrule
+\end{longtable}

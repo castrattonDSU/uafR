@@ -1,0 +1,67 @@
+\chapter{Visualization and Exploratory Analysis}
+
+\WeekHeader{7}{Visualization and Exploratory Analysis}{Use figures to reveal patterns, gaps, and hypotheses without overclaiming.}{At least three publication-style exploratory figures with captions.}
+
+\section{Why This Matters}
+Figures are where students often discover whether the research question is working. A good exploratory figure makes patterns visible, but also shows uncertainty, missing data, and source coverage. Week 7 trains students to make figures that can survive dsDNA Core review.
+
+\section{Figure Types}
+\begin{tabularx}{\textwidth}{p{0.25\textwidth}Y}
+\toprule
+\textbf{Figure} & \textbf{Use}\\
+\midrule
+Source coverage heatmap & Shows which databases contributed evidence for each chemical.\\
+Trait matrix heatmap & Groups chemicals by shared discrete traits.\\
+Property scatterplot & Compares measured or computed properties such as exact mass, molecular weight, XLogP, or TPSA when available.\\
+Bar chart & Summarizes trait counts, hazard code counts, source hits, or pathway roles.\\
+Network sketch & Shows chemical-trait or chemical-pathway relationships for a small set.\\
+\bottomrule
+\end{tabularx}
+
+\section{Guided Lab}
+Use the script in \path{training/scripts/07_visualization.R}. It creates example figures from a saved \texttt{categorate()} result.
+
+\begin{rcode}
+source("training/scripts/07_visualization.R")
+
+plots <- build_training_figures(result, output_dir = "figures")
+names(plots)
+\end{rcode}
+
+\section{Caption Standard}
+Each figure caption should include:
+\begin{itemize}
+  \item What the figure shows.
+  \item Which table or matrix was used.
+  \item What counts as evidence.
+  \item What limitation matters most.
+  \item One interpretation that can be defended.
+\end{itemize}
+
+\section{Independent Extension}
+Students produce a figure set that answers one of these:
+\begin{itemize}
+  \item Which chemicals share the most traits?
+  \item Which source contributed the most useful evidence?
+  \item Which chemical classes or traits separate sample groups?
+  \item Which compounds need additional confirmation before interpretation?
+  \item Which chemical traits connect most directly to the project question?
+\end{itemize}
+
+\section{Deliverables}
+\begin{tabularx}{\textwidth}{p{0.25\textwidth}YY}
+\DeliverableTableHeader
+Figure set & At least three figures, each with a caption and source table. & PNG or PDF\\
+Figure script & Recreates all figures from processed data. & R script\\
+Exploratory interpretation & Names patterns, caveats, and next analysis decisions. & Report draft\\
+\end{tabularx}
+
+\section{Quality Checklist}
+\begin{checklistbox}{Before Week 8}
+\begin{itemize}
+  \item Every figure can be regenerated from a script.
+  \item Axes, labels, colors, and legends are readable.
+  \item Captions do not claim more than the data support.
+  \item Missing source coverage is visible or discussed.
+\end{itemize}
+\end{checklistbox}

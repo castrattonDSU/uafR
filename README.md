@@ -10,26 +10,85 @@ An R package that automates GC-MS processing.
 
 ## Installation
 
-uafR is installed from GitHub. It depends on the Bioconductor packages
-`ChemmineR` and `fmcsR`, so install with `remotes` and `BiocManager` from a
-current R session.
+### Student install from a private bundle
+
+Student machines should install uafR from a private student bundle distributed
+by the DSU dsDNA Core program. This keeps the repository private and gives
+students a direct RStudio workflow.
+
+The bundle contains a local uafR source archive, preflight checks, installer
+and update scripts, verification scripts, an offline acceptance test, and the
+training manual. The installer still uses CRAN and Bioconductor for
+dependencies.
+
+From the unzipped bundle folder, students should open `START_HERE.md`, then run
+these scripts in RStudio:
+
+``` r
+source("preflight_check.R")
+source("install_uafR_from_bundle.R")
+source("run_student_acceptance_test.R")
+```
+
+After installation, confirm the package loads:
+
+``` r
+library(uafR)
+data("library_data", package = "uafR")
+```
+
+### Build a student bundle
+
+From the repository root:
+
+``` sh
+Rscript tools/build_student_bundle.R
+```
+
+The script creates:
+
+``` text
+student_bundle/uafR_student_bundle_<version>/
+student_bundle/uafR_student_bundle_<version>.zip
+```
+
+The bundle folder includes:
+
+``` text
+START_HERE.md
+README_STUDENT_INSTALL.md
+preflight_check.R
+install_uafR_from_bundle.R
+update_uafR_from_bundle.R
+verify_uafR_install.R
+run_student_acceptance_test.R
+packages/uafR_<version>.tar.gz
+training/uafR_training_manual.pdf
+training/scripts/
+training/data/
+examples/test_install.R
+```
+
+### Developer install from a local checkout
+
+Developers working from the private repository can install from the local source
+checkout:
 
 ``` r
 install.packages(c("remotes", "BiocManager"))
 BiocManager::install(c("ChemmineR", "fmcsR"), ask = FALSE, update = FALSE)
-remotes::install_github(
-  "castrattonDSU/uafR",
-  dependencies = TRUE,
+remotes::install_local(
+  ".",
+  dependencies = c("Depends", "Imports"),
+  upgrade = "never",
   build_vignettes = FALSE
 )
 ```
 
-Windows users should install
-[Rtools](https://cran.r-project.org/bin/windows/Rtools/) if R asks to compile a
-package from source. macOS users should install Xcode Command Line Tools if R
-asks for a compiler.
+### Optional live smoke test
 
-Confirm the installation with:
+After installation, a small live database smoke test can be run when internet
+access is available:
 
 ``` r
 library(uafR)
@@ -48,39 +107,6 @@ quick_result = categorate(
 validateCategorateResult(quick_result)$Summary
 quick_result$ChemicalTraitReport
 quick_result$ChemicalMeasurementSummary
-```
-
-### Installing from the private repository
-
-Because this repository is private, R will report that it cannot find the
-repository unless GitHub authentication is configured on the machine installing
-uafR. Use a GitHub personal access token that has read access to this repository.
-For a fine-grained token, grant access to `castrattonDSU/uafR` with read-only
-`Contents` permission. For a classic token, use the `repo` scope.
-
-Do not save the token in a script. Add it to the user's `.Renviron` file:
-
-``` r
-file.edit("~/.Renviron")
-```
-
-Add this line, replacing the placeholder with the real token:
-
-``` text
-GITHUB_PAT=replace_with_your_token
-```
-
-Restart R, then install:
-
-``` r
-install.packages(c("remotes", "BiocManager"))
-BiocManager::install(c("ChemmineR", "fmcsR"), ask = FALSE, update = FALSE)
-remotes::install_github(
-  "castrattonDSU/uafR",
-  auth_token = Sys.getenv("GITHUB_PAT"),
-  dependencies = TRUE,
-  build_vignettes = FALSE
-)
 ```
 
 ## Example Mass Spectrometry Workflows

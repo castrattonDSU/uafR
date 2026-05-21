@@ -1,0 +1,94 @@
+\chapter{Turning Chemical Metadata Into Research Variables}
+
+\WeekHeader{6}{Turning Chemical Metadata Into Research Variables}{Convert enrichment outputs into clean variables for grouping, filtering, and comparison.}{Analysis-ready trait table and project-specific grouping dictionary.}
+
+\section{Why This Matters}
+Full sentences are difficult to analyze. Researchers need discrete values: hazard codes, pathway IDs, organism names, property bins, pharmacologic actions, measurement units, reaction roles, and presence or absence of curated traits. Week 6 teaches students to build those variables without inventing unsupported labels.
+
+\section{Concepts}
+\begin{itemize}
+  \item \textbf{Trait type}: a broad evidence domain such as safety, sensory, pathway, taxonomy, bioactivity, or physicochemical behavior.
+  \item \textbf{Trait value}: the specific clean value, such as a GHS code, KEGG pathway, organism, or functional term.
+  \item \textbf{Matrix key}: a stable column name used in a wide analysis matrix.
+  \item \textbf{Confidence}: a source-aware estimate of how reliable or direct an extracted trait is.
+  \item \textbf{Project grouping dictionary}: the student's reviewed mapping from traits to analysis groups.
+\end{itemize}
+
+\section{Guided Lab}
+Start with the normalized tables:
+
+\begin{rcode}
+traits <- result$ChemicalTraits
+ontology <- result$ChemicalTraitOntology
+matrix <- result$ChemicalTraitMatrix
+
+table(traits$TraitType, useNA = "ifany")
+table(ontology$OntologyDomain, useNA = "ifany")
+
+head(traits[order(traits$Query, traits$TraitType), ])
+\end{rcode}
+
+Build a focused matrix:
+
+\begin{rcode}
+core_matrix <- chemicalTraitMatrix(
+  result,
+  profile = "core",
+  mode = "binary",
+  min_confidence = "medium",
+  max_traits = 100
+)
+
+confidence_matrix <- chemicalTraitMatrix(
+  result,
+  profile = "full",
+  mode = "confidence",
+  min_confidence = "medium",
+  max_traits = 200
+)
+\end{rcode}
+
+\section{Grouping Rules}
+Every grouping variable must pass four tests:
+\begin{enumerate}
+  \item It is useful for the research question.
+  \item It is extracted from a traceable source field.
+  \item It has a reproducible rule.
+  \item It does not overstate what the database evidence proves.
+\end{enumerate}
+
+\begin{goldbox}{Good Versus Weak Grouping Variables}
+\textbf{Good}: A binary variable marking chemicals with source-backed GHS hazard codes. The evidence row stores the code and source.
+
+\textbf{Weak}: A manually assigned variable called ``dangerous'' based on reading broad safety sentences.
+\end{goldbox}
+
+\section{Independent Extension}
+Students design a project-specific grouping dictionary with 8 to 20 variables. Each row should include:
+\begin{itemize}
+  \item Variable name.
+  \item Source table.
+  \item Source field.
+  \item Extraction rule.
+  \item Allowed values.
+  \item Confidence rule.
+  \item Reason the variable matters.
+\end{itemize}
+
+\section{Deliverables}
+\begin{tabularx}{\textwidth}{p{0.25\textwidth}YY}
+\DeliverableTableHeader
+Trait table & Cleaned long table with selected traits and confidence fields. & CSV\\
+Trait matrix & Wide matrix ready for visualization or modeling. & CSV\\
+Grouping dictionary & Documents how each project variable was derived. & CSV or spreadsheet\\
+\end{tabularx}
+
+\section{Quality Checklist}
+\begin{checklistbox}{Before Week 7}
+\begin{itemize}
+  \item No grouping variable is based only on unsupported intuition.
+  \item The student can trace each selected variable to a source table and evidence row.
+  \item Matrix columns are named clearly enough to interpret later.
+  \item Missing values are handled deliberately.
+\end{itemize}
+\end{checklistbox}

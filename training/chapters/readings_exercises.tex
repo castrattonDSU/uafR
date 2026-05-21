@@ -1,0 +1,124 @@
+\chapter{Supplementary Readings and Real-World Exercises}
+
+Readings are assigned to support the work, not to fill time. Students should annotate each reading with three items: what the source teaches, how it changes their project decisions, and what limitation or caution it raises.
+
+\section{Core Reading List}
+\begin{longtable}{p{0.16\textwidth}p{0.31\textwidth}p{0.43\textwidth}}
+\toprule
+\textbf{Week} & \textbf{Reading} & \textbf{Reason for assigning it}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Week} & \textbf{Reading} & \textbf{Reason for assigning it}\\
+\midrule
+\endhead
+1 & Wilson et al., Good enough practices in scientific computing \cite{wilson2017}. & Gives students a practical standard for files, scripts, documentation, and collaboration.\\
+2 & R Markdown documentation \cite{rmarkdown2024}. & Helps students see how code, results, and text can live in one reproducible report.\\
+3 & PubChem update paper \cite{pubchem2019} and PUG-REST update \cite{pubchemPugRest2018}. & Explains why PubChem is more than a name lookup and why source/provenance matters.\\
+3 & PubChem PUG-REST documentation \cite{pubchemPugRestDocs}. & Shows the programmatic access model behind many chemical data workflows.\\
+3 & KEGG API documentation \cite{keggApiDocs}. & Teaches students KEGG REST operations and reinforces the three-calls-per-second academic-use limit.\\
+3 & KEGG reference resource paper \cite{kegg2021}. & Gives biochemical context for compounds, pathways, enzymes, reactions, and annotation.\\
+3 & LOTUS natural products occurrence database \cite{lotus2022}. & Helps students interpret natural product occurrence and taxonomy evidence.\\
+4 & Metabolomics Standards Initiative chemical analysis guidance \cite{msiCawg2007}. & Establishes why chemical identification rigor and reporting detail matter.\\
+8 & Viant et al. metabolomics reporting and best practices \cite{viant2019}. & Provides a mature example of how metabolomics evidence is used in high-stakes toxicology contexts.\\
+\bottomrule
+\end{longtable}
+
+\section{Reading Annotation Template}
+For every assigned reading, students should write:
+\begin{itemize}
+  \item \textbf{Main idea}: one or two sentences.
+  \item \textbf{Project consequence}: what the reading changes about the student's data, code, interpretation, or reporting.
+  \item \textbf{Caution}: what the reading says or implies that should prevent overclaiming.
+  \item \textbf{Useful phrase}: one technical phrase the student should be able to define.
+  \item \textbf{Question for discussion}: one specific question raised by the reading.
+\end{itemize}
+
+\section{Real-World Exercise Bank}
+\subsection{Exercise A: The Unmatched Chemical}
+\textbf{Scenario:} A student has 20 tentative chemical hits. Four do not return strong source coverage.
+
+\textbf{Task:} Build a missingness table. For each unmatched chemical, decide whether to rename, remove, retain as unmatched, search by synonym, or request follow-up validation.
+
+\textbf{Expected learning:} Missing data are not clutter. They are evidence about the limits of the workflow.
+
+\subsection{Exercise B: The Hazard Code Trap}
+\textbf{Scenario:} A chemical has safety annotations and GHS-style terms, but the project is ecological.
+
+\textbf{Task:} Decide which safety terms are relevant to the research question and which belong only in a cautionary appendix.
+
+\textbf{Expected learning:} A hazard code can support screening or caution, but it does not automatically explain biological behavior in a sample.
+
+\subsection{Exercise C: Pathway Does Not Mean Presence}
+\textbf{Scenario:} KEGG links a compound to a pathway. A student wants to claim that the pathway is active in their sample.
+
+\textbf{Task:} Rewrite the claim at three evidence levels: source-backed context, hypothesis, and confirmed pathway activity.
+
+\textbf{Expected learning:} Pathway annotation is context, not direct measurement of pathway flux or activity.
+
+\subsection{Exercise D: Natural Product Occurrence}
+\textbf{Scenario:} LOTUS-derived evidence suggests a compound occurs in several organisms, but the taxonomic context differs from the student's organism.
+
+\textbf{Task:} Separate direct occurrence evidence, related-organism evidence, and broad natural product evidence.
+
+\textbf{Expected learning:} Occurrence records can guide hypotheses while still requiring taxonomic caution.
+
+\subsection{Exercise E: Sensory Versus Biological Interpretation}
+\textbf{Scenario:} FEMA or annotation text suggests flavor or odor relevance.
+
+\textbf{Task:} Decide whether the sensory trait belongs in the main result, a descriptive table, or background motivation.
+
+\textbf{Expected learning:} Sensory descriptors are useful grouping variables only when the research question is sensory, food, aroma, behavior, or exposure related.
+
+\subsection{Exercise F: Literature Conflict}
+\textbf{Scenario:} One paper reports a chemical as biologically active, but another paper treats it as a contaminant or background compound.
+
+\textbf{Task:} Build a conflict table with system, dose or abundance, method, evidence strength, and relevance to the student's project.
+
+\textbf{Expected learning:} Conflicting literature is handled by context, not by choosing the more exciting citation.
+
+\subsection{Exercise G: Matrix Sparsity}
+\textbf{Scenario:} A full trait matrix has hundreds of columns, but most are present in only one compound.
+
+\textbf{Task:} Compare a full matrix, a core matrix, and a medium-confidence capped matrix. Choose one for the report and justify the choice.
+
+\textbf{Expected learning:} More variables can make analysis weaker when they are sparse, redundant, or poorly supported.
+
+\subsection{Exercise H: The Reviewer Request}
+\textbf{Scenario:} A reviewer asks, ``How do you know these compounds are meaningfully grouped?''
+
+\textbf{Task:} Prepare a response with matrix construction rules, evidence fields, source coverage, and a limitation statement.
+
+\textbf{Expected learning:} A grouping claim needs source-backed variables, not only visual clustering.
+
+\subsection{Exercise I: Public Data Ethics}
+\textbf{Scenario:} A collaborator wants to upload unpublished sample metadata to a public repository before approval.
+
+\textbf{Task:} Write a data handling decision memo: what can be shared, what must be withheld, and what metadata can be generalized.
+
+\textbf{Expected learning:} Reproducibility and confidentiality must be balanced deliberately.
+
+\subsection{Exercise J: Final Handoff Recovery}
+\textbf{Scenario:} A student inherits a project folder with no README, ambiguous scripts, and several saved result objects.
+
+\textbf{Task:} Reconstruct the workflow order, identify missing context, and write a recovery plan.
+
+\textbf{Expected learning:} The value of documentation becomes obvious when students experience the cost of missing documentation.
+
+\section{Discussion Prompts}
+\begin{itemize}
+  \item When is a database result strong enough for a Results section, and when does it belong in Discussion?
+  \item What is the difference between a chemical being present in PubChem and a chemical being present in a biological sample?
+  \item How should a student report a potentially interesting result with weak source coverage?
+  \item What makes a trait matrix scientifically meaningful rather than merely computationally convenient?
+  \item How should a researcher discuss compounds that are tentatively identified but biologically plausible?
+\end{itemize}
+
+\section{Recommended Online References}
+\begin{itemize}
+  \item PubChem PUG-REST documentation: \url{https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest}
+  \item KEGG API documentation: \url{https://www.genome.jp/kegg/rest/}
+  \item KEGG API manual: \url{https://www.genome.jp/kegg/rest/keggapi.html}
+  \item PubChem LOTUS data source page: \url{https://pubchem.ncbi.nlm.nih.gov/source/25132}
+  \item R Markdown documentation: \url{https://rmarkdown.rstudio.com/}
+\end{itemize}

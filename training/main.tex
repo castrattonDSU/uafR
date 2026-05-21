@@ -1,0 +1,67 @@
+\documentclass[11pt,oneside]{book}
+\input{preamble}
+
+\begin{document}
+
+\begin{titlepage}
+\pagecolor{DSULightBlue}
+\begin{center}
+\vspace*{0.4in}
+\CoreLogo
+
+\vspace{0.55in}
+{\Huge\bfseries\color{DSURed} DSU dsDNA Core Undergraduate Research Training Program\par}
+\vspace{0.25in}
+{\Large\bfseries Using uafR for Reproducible Chemical and Mass Spectrometry Research\par}
+\vspace{0.35in}
+{\large A 10-week applied research curriculum for undergraduate interns\par}
+
+\vfill
+\begin{programbox}[width=0.86\textwidth]{Program Promise}
+Students finish this program with a reproducible research project, defensible chemical annotations, interpretable trait matrices, publication-style figures, and a clear plan for communicating results to scientific audiences.
+\end{programbox}
+
+\vfill
+{\large DSU dsDNA Core\par}
+{\large Version 1.0\par}
+{\large \today\par}
+\end{center}
+\end{titlepage}
+\nopagecolor
+
+\frontmatter
+\tableofcontents
+
+\include{chapters/preface}
+
+\mainmatter
+\include{chapters/program_architecture}
+\include{chapters/daily_plans}
+\include{chapters/week01}
+\include{chapters/week02}
+\include{chapters/week03}
+\include{chapters/week04}
+\include{chapters/week05}
+\include{chapters/week06}
+\include{chapters/week07}
+\include{chapters/week08}
+\include{chapters/week09}
+\include{chapters/week10}
+\include{chapters/lab_compendium}
+\include{chapters/readings_exercises}
+\include{chapters/project_tracks}
+
+\appendix
+\include{worksheets/worksheets}
+\include{rubrics/rubrics}
+\include{program_notes/program_implementation_notes}
+\include{program_notes/dsdna_core_review_notes}
+\include{chapters/appendix_installation}
+\include{chapters/appendix_tables}
+
+\backmatter
+\nocite{pubchem2019,pubchemPugRest2018,pubchemPugRestDocs,kegg2021,keggApiDocs,lotus2022,msiCawg2007,viant2019,rmarkdown2024,wilson2017}
+\bibliographystyle{plain}
+\bibliography{bibliography/references}
+
+\end{document}

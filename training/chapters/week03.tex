@@ -1,0 +1,82 @@
+\chapter{Chemical Data Literacy and Public Database Foundations}
+
+\WeekHeader{3}{Chemical Data Literacy and Public Database Foundations}{Learn what public chemical databases can and cannot prove.}{Database evidence map for the student's chemical list.}
+
+\section{Why This Matters}
+Public databases are powerful, but they are not interchangeable. PubChem, KEGG, LOTUS, FEMA, FDA/SPL, MeSH, and literature records answer different questions. Students need to know which source supports which type of claim.
+
+\section{Database Roles}
+\begin{tabularx}{\textwidth}{p{0.18\textwidth}Y Y}
+\toprule
+\textbf{Source} & \textbf{Useful evidence} & \textbf{Important caution}\\
+\midrule
+PubChem & Identifiers, synonyms, properties, annotations, hazards, classifications, assays, literature links. & Records can aggregate broad text from many sources; verify source-specific context.\\
+KEGG & Compound IDs, reactions, pathways, enzymes, modules, biochemical context. & Coverage is strongest for curated biochemical systems; absence is not evidence of no role.\\
+LOTUS & Natural product occurrence and taxonomic context. & Occurrence records can be sparse or uneven across organisms.\\
+FEMA & Flavor-use context and sensory relevance. & Flavor presence does not prove abundance or biological role in a sample.\\
+FDA/SPL & Drug product, route, dosage form, and regulatory text. & Regulatory annotation may describe a formulation context rather than the chemical alone.\\
+MeSH & Pharmacologic actions and biomedical terms. & Terms may reflect literature indexing rather than direct mechanism.\\
+\bottomrule
+\end{tabularx}
+
+\section{Concepts}
+\begin{itemize}
+  \item \textbf{Identifier ambiguity}: the same name can map to multiple structures or salts.
+  \item \textbf{Synonym noise}: synonyms include trade names, old names, registry names, abbreviations, and mixture names.
+  \item \textbf{Annotation source}: a database field should be interpreted through its source and section.
+  \item \textbf{Ground-truth extraction}: clean values must come from traceable source fields, not guesses.
+  \item \textbf{Negative space}: missing data can mean no record, no query match, no source coverage, or a real absence.
+\end{itemize}
+
+\section{Guided Lab}
+Students inspect three chemicals from different contexts. For each chemical, they answer:
+\begin{itemize}
+  \item What are the stable identifiers?
+  \item What synonyms might confuse a search?
+  \item What database evidence is relevant to the project?
+  \item Which fields are clean enough for grouping?
+  \item Which fields are only useful as narrative evidence?
+\end{itemize}
+
+\begin{rcode}
+library(uafR)
+data("library_data", package = "uafR")
+
+compounds <- c("aspirin", "caffeine", "methyl salicylate")
+
+profile <- pubchemProfile(
+  compounds = compounds,
+  profile = "minimal",
+  cache = TRUE,
+  throttle = 0.1
+)
+
+profile$identity
+profile$properties
+head(profile$synonyms)
+\end{rcode}
+
+\section{Independent Extension}
+Students create a source evidence map:
+\begin{itemize}
+  \item Rows are chemicals.
+  \item Columns are evidence types: identity, properties, hazard, occurrence, pathway, reaction, sensory, biomedical, literature, assay, and regulatory.
+  \item Cells contain yes, no, uncertain, or not relevant.
+\end{itemize}
+
+\section{Deliverables}
+\begin{tabularx}{\textwidth}{p{0.25\textwidth}YY}
+\DeliverableTableHeader
+Evidence map & Shows source coverage by chemical and evidence type. & CSV or spreadsheet\\
+Ambiguity note & Identifies naming or identifier problems for at least three chemicals. & Research log\\
+Database interpretation paragraph & Explains which sources are most relevant to the project and why. & Report draft\\
+\end{tabularx}
+
+\section{Quality Checklist}
+\begin{checklistbox}{Before Week 4}
+\begin{itemize}
+  \item The student can explain why a PubChem annotation, KEGG pathway, and LOTUS occurrence do not mean the same thing.
+  \item The chemical intake table has stable names or identifiers whenever available.
+  \item The project has a plan for handling unmatched or ambiguous chemicals.
+\end{itemize}
+\end{checklistbox}

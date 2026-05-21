@@ -4,6 +4,7 @@
 .Ruserdata
 .Renviron
 .httr-oauth
+.DS_Store
 
 .Rproj.user/
 *.Rproj.user
@@ -26,3 +27,16 @@ revdep/
 /doc/
 /Meta/
 docs/
+
+Rplots.pdf
+/student_bundle/
+/uafR_student_bundle_*.zip
+training/**/*.aux
+training/*.bbl
+training/*.blg
+training/*.fdb_latexmk
+training/*.fls
+training/*.log
+training/*.out
+training/*.toc
+training/*.synctex.gz

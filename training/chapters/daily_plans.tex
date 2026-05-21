@@ -1,0 +1,183 @@
+\chapter{Full-Day 10-Week Schedule}
+
+This chapter provides the day-by-day structure that turns the program into a full-day internship. The order can be adjusted for local scheduling, but the sequence remains intact: scope before analysis, validation before interpretation, and evidence before claims.
+
+\section{Week 1: Research Onboarding and Question Design}
+\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endhead
+1 & Orientation to DSU dsDNA Core research expectations, safety, data integrity, and responsible conduct. & Students inventory their interests and match them to possible chemical evidence types. & Draft interest statement and initial discussion questions.\\
+2 & What makes a chemical research question testable. & Convert broad topics into question, system, comparison, evidence, and limitation fields. & Three candidate research questions.\\
+3 & Chemical identity, tentative annotation, and why uncertainty matters. & Build first chemical intake table from literature, standards, GC-MS hits, or program-provided examples. & Chemical intake table v1.\\
+4 & Evidence types across PubChem, KEGG, LOTUS, FEMA, FDA/SPL, MeSH, and literature. & Map which evidence types could answer each candidate question. & Evidence feasibility matrix.\\
+5 & Scope review and project selection. & Revise question, write risk note, and define Week 2 setup needs. & Reviewed one-page project brief.\\
+\bottomrule
+\end{longtable}
+
+\section{Week 2: R, RStudio, Git, and Reproducible Structure}
+\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endhead
+1 & RStudio projects, file paths, and why raw data are protected. & Create project folder and run installation checks. & Project skeleton and install log.\\
+2 & Reading and writing tables in R. & Practice importing CSV files, checking dimensions, and writing processed outputs. & Data import script with comments explaining decisions.\\
+3 & Git concepts: commits, branches, ignored files, and secrets. & Make first local commits and inspect what should not be committed. & Clean repository status and research log entry.\\
+4 & Reproducible scripts and numbered workflows. & Create script sequence for the student's project. & Numbered script plan and README update.\\
+5 & Troubleshooting clinic. & Each student reruns setup from a clean R session and documents failures. & Reproducibility checkpoint signed off in program review.\\
+\bottomrule
+\end{longtable}
+
+\section{Week 3: Chemical Data Literacy and Public Databases}
+\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endhead
+1 & Names, CIDs, InChIKeys, synonyms, salts, mixtures, stereochemistry, and ambiguity. & Students audit five chemicals for naming risks. & Identifier ambiguity note.\\
+2 & PubChem structure: properties, annotations, assays, classifications, and source-specific records. & Explore one compound manually and compare to uafR profile tables. & PubChem evidence worksheet.\\
+3 & KEGG biochemical context: compounds, reactions, enzymes, modules, pathways, and academic-use etiquette. & Inspect a KEGG compound record and identify pathway or reaction fields. & KEGG evidence worksheet.\\
+4 & Natural product occurrence, biomedical terms, regulatory records, and flavor/sensory context. & Compare LOTUS, MeSH, FEMA, and FDA/SPL evidence roles. & Source comparison table.\\
+5 & Database evidence discussion. & Students revise project scope based on source coverage expectations. & Database evidence map v1.\\
+\bottomrule
+\end{longtable}
+
+\section{Week 4: uafR Core GC-MS Workflow}
+\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endhead
+1 & GC-MS hit tables, required columns, match factors, retention time, base peaks, and peak area. & Audit example input columns and suspicious values. & Input column audit.\\
+2 & Reshaping and extracting chemical hits with uafR. & Run the offline core workflow and inspect bundled outputs. & Annotated core workflow script.\\
+3 & Duplicates, ambiguous peaks, and tentative identity limits. & Students identify duplicate or conflicting hits in an example table. & Duplicate and uncertainty note.\\
+4 & Applying the workflow to student data or a case dataset. & Run a small project-specific workflow. & Processed output v1.\\
+5 & Methods writing clinic. & Write a methods paragraph for GC-MS processing and tentative identification caveats. & Methods paragraph draft.\\
+\bottomrule
+\end{longtable}
+
+\section{Week 5: Research-Grade categorate Enrichment}
+\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endhead
+1 & What \texttt{categorate(detail = "research")} returns and why validation comes first. & Run a two-compound smoke test when services are available or inspect saved examples. & Validation summary and table inventory.\\
+2 & Source coverage and provenance. & Inspect \texttt{SourceCoverage}, \texttt{SourceDiagnostics}, \texttt{TableQuality}, and \texttt{DataDictionary}. & Source coverage report.\\
+3 & PubChem enrichment outputs. & Trace properties, safety, literature, classifications, and source annotations for selected chemicals. & PubChem evidence audit.\\
+4 & KEGG and source-specific enrichment outputs. & Trace pathway, reaction, enzyme, occurrence, and taxonomy rows. & KEGG/LOTUS evidence audit.\\
+5 & Scaling and caching. & Run project list in batches, save RDS results, and document query settings. & Saved enrichment object and query log.\\
+\bottomrule
+\end{longtable}
+
+\section{Week 6: Research Variables and Trait Matrices}
+\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endhead
+1 & Discrete variables versus descriptive text. & Inspect \texttt{ChemicalTraits} and separate analysis-ready values from narrative fields. & Candidate variable list.\\
+2 & Confidence, evidence, and matrix keys. & Build binary and confidence-weighted matrices. & Trait matrix v1.\\
+3 & Project grouping dictionary. & Define allowed values, source fields, extraction rules, and caveats. & Grouping dictionary v1.\\
+4 & Real-world grouping exercise. & Compare two chemical sets by shared and distinct traits. & Comparison table and interpretation note.\\
+5 & Variable gate. & Remove weak variables, revise rules, and freeze analysis inputs for Week 7. & Reviewed trait matrix and dictionary.\\
+\bottomrule
+\end{longtable}
+
+\section{Week 7: Visualization and Exploratory Analysis}
+\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endhead
+1 & Figure purpose, audience, and visual honesty. & Sketch three figure questions before plotting. & Figure plan worksheet.\\
+2 & Coverage and trait heatmaps. & Generate heatmaps and inspect missingness. & Coverage and trait figures v1.\\
+3 & Property and trait summaries. & Build bar charts, scatterplots, and summary tables. & Two additional figures or tables.\\
+4 & Figure critique. & Peer review labels, captions, color choices, and claim strength. & Revised figure set.\\
+5 & Exploratory interpretation. & Write a results paragraph for each figure. & Figure captions and results draft.\\
+\bottomrule
+\end{longtable}
+
+\section{Week 8: Literature Integration and Evidence-Based Interpretation}
+\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endhead
+1 & Evidence ladder from tentative match to confirmed conclusion. & Rank the student's major findings by evidence strength. & Evidence ladder table.\\
+2 & Literature search strategies. & Build search strings from chemical names, traits, pathways, organisms, and methods. & Search log.\\
+3 & Reading scientific papers efficiently. & Extract system, method, chemical evidence, and limitation from three papers. & Annotated literature table.\\
+4 & Connecting literature to figures. & Write claim-evidence-limitation paragraphs. & Interpretation memo v1.\\
+5 & Interpretation gate. & Remove unsupported claims and identify follow-up experiments. & Reviewed interpretation memo.\\
+\bottomrule
+\end{longtable}
+
+\section{Week 9: Manuscript-Style Research Product}
+\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endhead
+1 & Manuscript structure and argument flow. & Build report outline from figures and evidence memo. & Report outline.\\
+2 & Methods detail and reproducibility. & Write methods from scripts, settings, package versions, and validation outputs. & Methods section v1.\\
+3 & Results without overclaiming. & Write results paragraphs tied to figures and tables. & Results section v1.\\
+4 & Discussion, limitations, and next steps. & Draft discussion and follow-up plan. & Discussion section v1.\\
+5 & Full draft review. & Peer and dsDNA Core review for logic, reproducibility, and claim strength. & Complete draft report.\\
+\bottomrule
+\end{longtable}
+
+\section{Week 10: Presentation and Final Handoff}
+\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
+\midrule
+\endhead
+1 & Scientific presentation structure. & Build slide or poster outline around one central result. & Presentation outline.\\
+2 & Visual polishing and narrative flow. & Revise figures, captions, and talking points. & Presentation draft.\\
+3 & Reproducibility and handoff audit. & Run final project check and clean file organization. & Handoff package v1.\\
+4 & Practice presentation and peer review. & Deliver practice talk, answer questions, revise weak points. & Revised final presentation.\\
+5 & Final symposium and archive. & Present, submit final report, and write continuation note. & Complete final research package.\\
+\bottomrule
+\end{longtable}

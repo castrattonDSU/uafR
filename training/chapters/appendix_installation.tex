@@ -1,0 +1,114 @@
+\chapter{Installation and Setup Appendix}
+
+\section{Recommended Student Installation}
+The recommended student installation path is a private uafR student bundle distributed by the DSU dsDNA Core program. This keeps the package repository private and gives every student the same RStudio-based setup.
+
+The student bundle includes:
+\begin{itemize}
+  \item \path{START_HERE.md}, the first checklist to open.
+  \item A local uafR source package archive in \path{packages/}.
+  \item \path{preflight_check.R}, the machine readiness check.
+  \item \path{install_uafR_from_bundle.R}, the student installer.
+  \item \path{update_uafR_from_bundle.R}, the reinstall/update script for newer bundles.
+  \item \path{verify_uafR_install.R}, the post-install verification script.
+  \item \path{run_student_acceptance_test.R}, the offline readiness test.
+  \item The current training manual PDF.
+  \item Training scripts and data templates used during the internship.
+\end{itemize}
+
+The installer still needs internet access for CRAN and Bioconductor dependencies. The uafR package itself is installed from the local bundle archive.
+
+\section{Install From the Student Bundle}
+The installation workflow is:
+
+\begin{enumerate}
+  \item Install current R and RStudio.
+  \item Unzip the whole bundle folder.
+  \item Open RStudio.
+  \item Open \path{START_HERE.md} from the unzipped bundle folder.
+  \item Source \path{preflight_check.R}.
+  \item If preflight has no failed checks, source \path{install_uafR_from_bundle.R}.
+  \item Source \path{run_student_acceptance_test.R}.
+  \item Open \path{training/uafR_training_manual.pdf}.
+\end{enumerate}
+
+The three main commands are:
+
+\begin{rcode}
+source("preflight_check.R")
+source("install_uafR_from_bundle.R")
+source("run_student_acceptance_test.R")
+\end{rcode}
+
+The installer prints five visible steps: checking the bundle and R library, installing CRAN dependencies, installing Bioconductor dependencies, installing uafR from the local archive, and verifying the installation. The installer writes \path{uafR_install_log.txt} in the bundle folder.
+
+\section{Create a New Student Bundle}
+From the repository root, the program build step is:
+
+\begin{verbatim}
+Rscript tools/build_student_bundle.R
+\end{verbatim}
+
+This creates a versioned bundle folder and zip archive under \path{student_bundle/}. The zip archive can be copied to a USB drive, shared through an approved campus file-transfer method, or unpacked onto classroom machines.
+
+\section{Confirm the Installation Without Live Web Queries}
+The verification script checks package loading, required dependencies, bundled datasets, and the saved standard categorate result. It does not query live web services.
+
+\begin{rcode}
+source("verify_uafR_install.R")
+\end{rcode}
+
+\section{Student Acceptance Test}
+The acceptance test confirms that the installed package is ready for the training workflow. It runs package verification, loads the core data objects, and runs the offline workflow from \path{training/scripts/04_core_workflow.R}. It should end with:
+
+\begin{verbatim}
+Acceptance test result: PASS.
+\end{verbatim}
+
+\begin{rcode}
+source("run_student_acceptance_test.R")
+\end{rcode}
+
+\section{Optional Live Smoke Test}
+After the offline verification passes, run a two-compound live test when internet access is available:
+
+\begin{rcode}
+library(uafR)
+data("library_data", package = "uafR")
+
+quick_result <- categorate(
+  compounds = c("aspirin", "caffeine"),
+  chemical_library = library_data,
+  input_format = "wide",
+  detail = "research",
+  cache = FALSE,
+  throttle = 0.1,
+  assay_detail_limit = 0
+)
+
+validateCategorateResult(quick_result)$Summary
+quick_result$ChemicalTraitReport
+\end{rcode}
+
+The acceptance test can also include the live smoke test:
+
+\begin{rcode}
+Sys.setenv(UAFR_STUDENT_LIVE = "1")
+source("run_student_acceptance_test.R")
+\end{rcode}
+
+\section{Troubleshooting}
+\begin{tabularx}{\textwidth}{p{0.24\textwidth}p{0.32\textwidth}Y}
+\toprule
+\textbf{Problem} & \textbf{Likely cause} & \textbf{What to do}\\
+\midrule
+Installer cannot find uafR archive & The bundle was not fully unzipped or the \path{packages/} folder was moved. & Unzip the whole bundle again and keep the folder structure unchanged.\\
+Preflight says the R library is not writable & R cannot install packages into the first library path. & Restart RStudio. If the problem remains, set a user library before installing.\\
+Bioconductor dependency fails & Internet access, R version, or Bioconductor access is blocked. & Run \path{preflight_check.R}, update R if it is old, and try again on a network that can reach Bioconductor.\\
+R asks about updating many packages & RStudio or Bioconductor is offering broad updates. & Choose the option that does not update unrelated packages.\\
+\texttt{library(uafR)} fails right after install & RStudio has not refreshed the library. & Restart RStudio, then run \texttt{library(uafR)}.\\
+No library detected & The chemical library argument was not supplied to \texttt{categorate()}. & Load \texttt{library\_data} and pass \texttt{chemical\_library = library\_data}.\\
+Long database query & Live PubChem, KEGG, LOTUS, or other services are responding slowly. & Start with one or two compounds, keep \texttt{assay\_detail\_limit = 0}, use caching, and scale up after the smoke test works.\\
+Missing output tables & A live lookup failed or returned incomplete source data. & Run \texttt{validateCategorateResult()} and inspect \texttt{ValidationSummary}, \texttt{TableQuality}, and \texttt{SourceDiagnostics}.\\
+\bottomrule
+\end{tabularx}
