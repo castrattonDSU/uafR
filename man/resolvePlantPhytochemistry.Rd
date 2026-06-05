@@ -20,6 +20,9 @@ resolvePlantPhytochemistry(
   max_pubmed_records = 50,
   max_provider_records = max_pubmed_records,
   min_confidence = "medium",
+  enrichment_batch_size = Inf,
+  resume_enrichment = TRUE,
+  progress = interactive(),
   strict = FALSE,
   curated_data = NULL,
   provider_results = NULL,
@@ -77,6 +80,15 @@ in result tables.}
 non-PubMed provider adapters.}
 
 \item{min_confidence}{Minimum confidence for summary/matrix features.}
+
+\item{enrichment_batch_size}{Maximum number of unique compounds per
+PubChem-only enrichment batch. Use `Inf` for one batch.}
+
+\item{resume_enrichment}{Logical. If `TRUE`, reuse saved PubChem-only
+enrichment batch files when available.}
+
+\item{progress}{Logical. If `TRUE`, print simple enrichment progress
+messages.}
 
 \item{strict}{Logical. If `TRUE`, validation treats optional missing fields
 more strictly.}

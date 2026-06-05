@@ -157,7 +157,9 @@ phyto = resolvePlantPhytochemistry(
   cache = TRUE,
   cache_dir = "uafR_plant_cache",
   max_pubmed_records = 25,
-  max_provider_records = 100
+  max_provider_records = 100,
+  enrichment_batch_size = 25,
+  resume_enrichment = TRUE
 )
 
 phyto$SpeciesChemistrySummary
@@ -177,6 +179,19 @@ leaf_records = filterPlantPhytochemistryEvidence(
   phyto,
   plant_part_group = "leaf"
 )
+
+# Candidate, fallback, literature, and unresolved rows should be reviewed
+# before they are promoted into analysis-ready occurrence evidence.
+review = plantPhytochemistryReviewTable(phyto)
+if (nrow(review) > 0) {
+  review$review_decision[1] = "promote_curated"
+  review$reviewed_by[1] = "researcher name"
+  review$review_note[1] = "Source reports the compound from leaf tissue."
+  review$proposed_citation_or_url[1] = "https://doi.org/example"
+  review$proposed_plant_part[1] = "leaf"
+  review$proposed_method[1] = "LC-MS"
+  phyto_reviewed = applyPlantPhytochemistryReview(phyto, review)
+}
 
 exportPlantPhytochemistryWorkbook(
   phyto,

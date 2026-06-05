@@ -197,6 +197,77 @@ test_that("filterPlantPhytochemistryEvidence keeps analysis-ready biological con
   expect_true(any(all_evidence$occurrence_status == "candidate"))
 })
 
+test_that("resolver collapses duplicate occurrence evidence keys", {
+  curated = data.frame(
+    species = c("Salix nigra", "Salix nigra"),
+    compound_name = c("salicin", "salicin"),
+    source_database = c("manual", "manual"),
+    citation_or_url = c("https://example.test/salicin",
+                        "https://example.test/salicin"),
+    evidence_tier = c("manual_curated", "manual_curated"),
+    plant_part = c("bark", NA),
+    method = c(NA, "LC-MS"),
+    stringsAsFactors = FALSE
+  )
+  phyto = resolvePlantPhytochemistry(
+    plants = "Salix nigra",
+    sources = character(),
+    curated_data = curated,
+    enrich_compounds = FALSE,
+    detail = "none"
+  )
+  expect_equal(nrow(phyto$PlantCompoundOccurrences), 1)
+  expect_equal(phyto$PlantCompoundOccurrences$plant_part_group, "bark_wood")
+  expect_equal(phyto$PlantCompoundOccurrences$method_group, "lc_ms")
+  expect_false(any(phyto$Validation$Issues$issue ==
+                     "Duplicate evidence keys were found"))
+})
+
+test_that("review table promotes candidate evidence only after review", {
+  candidate = standardizePlantCompoundIntake(data.frame(
+    species = "Salix nigra",
+    compound_name = "salicin",
+    source_database = "PubTator",
+    citation_or_url = "https://pubmed.ncbi.nlm.nih.gov/333/",
+    evidence_tier = "direct_species_pubtator_candidate",
+    stringsAsFactors = FALSE
+  ))
+  review = plantPhytochemistryReviewTable(candidate)
+  expect_equal(nrow(review), 1)
+  expect_equal(review$review_decision, "needs_review")
+
+  review$review_decision = "promote_curated"
+  review$reviewed_by = "test reviewer"
+  review$review_note = "Paper reports salicin in sampled bark."
+  review$proposed_citation_or_url = "https://doi.org/10.1000/example"
+  review$proposed_plant_part = "bark"
+  review$proposed_method = "LC-MS"
+  updated = applyPlantPhytochemistryReview(candidate, review)
+
+  expect_equal(updated$occurrence_status, "curated_reported")
+  expect_equal(updated$analysis_ready, "Yes")
+  expect_equal(updated$plant_part_group, "bark_wood")
+  expect_equal(updated$method_group, "lc_ms")
+  expect_true(updated$evidence_quality_score > 0.9)
+
+  phyto = resolvePlantPhytochemistry(
+    plants = "Salix nigra",
+    sources = character(),
+    curated_data = candidate,
+    enrich_compounds = FALSE,
+    detail = "none"
+  )
+  phyto_review = plantPhytochemistryReviewTable(phyto)
+  phyto_review$review_decision = "promote_curated"
+  phyto_review$reviewed_by = "test reviewer"
+  phyto_review$proposed_citation_or_url = "https://doi.org/10.1000/example"
+  phyto_updated = applyPlantPhytochemistryReview(phyto, phyto_review)
+  expect_s3_class(phyto_updated, "uaf_plant_phytochemistry")
+  expect_equal(phyto_updated$PlantCompoundOccurrences$occurrence_status,
+               "curated_reported")
+  expect_true(any(phyto_updated$Provenance$source == "manual_review"))
+})
+
 test_that("resolver reports explicit no-hit diagnostics without fabricating compounds", {
   phyto = resolvePlantPhytochemistry("No hit plant",
                                      sources = "lotus",
@@ -369,6 +440,38 @@ test_that("PubChem-only enrichment fallback resolves compounds and plant trait m
   expect_true(any(grepl("^chemtrait__", names(phyto$SpeciesChemistryMatrix))))
   expect_equal(phyto$SpeciesChemistrySummary$resolved_compound_count, 1)
   expect_equal(phyto$SpeciesChemistrySummary$uafR_validation_status, "pass")
+})
+
+test_that("PubChem-only enrichment can run in resumable batches", {
+  intake = data.frame(species = "Salix nigra",
+                      compound_name = c("salicin", "caffeine"),
+                      source_database = "manual",
+                      citation_or_url = "https://example.test",
+                      evidence_tier = "manual_curated",
+                      stringsAsFactors = FALSE)
+  cache_dir = tempfile("plant_batch_cache_")
+  phyto = resolvePlantPhytochemistry(
+    plants = "Salix nigra",
+    sources = character(),
+    curated_data = intake,
+    enrich_compounds = TRUE,
+    detail = "research",
+    pubchem_fun = plant_pubchem_profile_fixture,
+    cache = TRUE,
+    cache_dir = cache_dir,
+    enrichment_batch_size = 1,
+    progress = FALSE
+  )
+
+  expect_identical(phyto$CategorateResult$EnrichmentMode,
+                   "pubchem_only_batched")
+  expect_equal(phyto$CategorateResult$BatchCount, 2)
+  expect_true(all(phyto$CompoundResolution$resolved))
+  expect_true(any(file.exists(list.files(
+    file.path(cache_dir, "compound_enrichment",
+              "pubchem_only_batches"),
+    full.names = TRUE
+  ))))
 })
 
 test_that("summary, matrix, joins, scores, and export work offline", {

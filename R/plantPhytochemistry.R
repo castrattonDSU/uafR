@@ -40,6 +40,12 @@
 #' @param max_provider_records Maximum occurrence rows to retain per plant from
 #' non-PubMed provider adapters.
 #' @param min_confidence Minimum confidence for summary/matrix features.
+#' @param enrichment_batch_size Maximum number of unique compounds per
+#' PubChem-only enrichment batch. Use `Inf` for one batch.
+#' @param resume_enrichment Logical. If `TRUE`, reuse saved PubChem-only
+#' enrichment batch files when available.
+#' @param progress Logical. If `TRUE`, print simple enrichment progress
+#' messages.
 #' @param strict Logical. If `TRUE`, validation treats optional missing fields
 #' more strictly.
 #' @param curated_data Optional local species-compound table to standardize and
@@ -94,6 +100,9 @@ resolvePlantPhytochemistry = function(plants,
                                       max_pubmed_records = 50,
                                       max_provider_records = max_pubmed_records,
                                       min_confidence = "medium",
+                                      enrichment_batch_size = Inf,
+                                      resume_enrichment = TRUE,
+                                      progress = interactive(),
                                       strict = FALSE,
                                       curated_data = NULL,
                                       provider_results = NULL,
@@ -141,6 +150,9 @@ resolvePlantPhytochemistry = function(plants,
                          cache_dir = file.path(cache_dir, "compound_enrichment"),
                          throttle = throttle,
                          enrichment_fun = enrichment_fun,
+                         batch_size = enrichment_batch_size,
+                         resume = resume_enrichment,
+                         progress = progress,
                          ...)
   } else {
     list(CategorateResult = NULL,
@@ -349,6 +361,12 @@ standardizePlantCompoundIntake = function(x) {
 #' PubChem-only fallback. Intended for tests and advanced cached workflows.
 #' @param compound_request_fun Optional request function passed to
 #' `pubchemProfile()` when the PubChem-only fallback is used.
+#' @param batch_size Maximum number of unique compounds per PubChem-only
+#' enrichment batch. Use `Inf` for one batch.
+#' @param resume Logical. If `TRUE`, reuse saved PubChem-only batch `.rds`
+#' files in `cache_dir`.
+#' @param progress Logical. If `TRUE`, print simple progress messages during
+#' PubChem-only enrichment.
 #' @param ... Additional arguments passed to `categorate()`, `enrichment_fun`,
 #' or the PubChem-only enrichment fallback.
 #'
@@ -365,6 +383,9 @@ enrichPlantCompounds = function(plant_compounds,
                                 enrichment_fun = NULL,
                                 pubchem_fun = NULL,
                                 compound_request_fun = NULL,
+                                batch_size = Inf,
+                                resume = TRUE,
+                                progress = interactive(),
                                 ...) {
   detail = match.arg(detail)
   occurrences = if (is.data.frame(plant_compounds) &&
@@ -406,6 +427,9 @@ enrichPlantCompounds = function(plant_compounds,
         throttle = throttle,
         pubchem_fun = pubchem_fun,
         request_fun = compound_request_fun,
+        batch_size = batch_size,
+        resume = resume,
+        progress = progress,
         ...
       )
     }
@@ -729,6 +753,168 @@ filterPlantPhytochemistryEvidence = function(
   filtered = occurrences[keep, , drop = FALSE]
   row.names(filtered) = NULL
   if (is_result) .plant_rebuild_filtered_result(x, filtered) else filtered
+}
+
+#' Create a plant phytochemistry evidence review table
+#'
+#' @description
+#' Builds a review worksheet for candidate, fallback, literature, or unresolved
+#' plant-compound occurrence evidence. The table is intended for human review:
+#' rows are not promoted automatically. Fill `review_decision` and optional
+#' proposed fields, then pass the completed table to
+#' `applyPlantPhytochemistryReview()`.
+#'
+#' @param x Plant phytochemistry result or normalized occurrence table.
+#' @param occurrence_status Occurrence statuses to include. Use `"all"` to
+#' include every occurrence row.
+#' @param include_analysis_ready Logical. If `FALSE`, rows already marked
+#' analysis-ready are omitted unless `occurrence_status = "all"`.
+#'
+#' @return A data frame suitable for CSV export, editing, and re-import.
+#'
+#' @export
+plantPhytochemistryReviewTable = function(
+    x,
+    occurrence_status = c("candidate", "taxon_fallback",
+                          "literature_reported", "unresolved"),
+    include_analysis_ready = FALSE) {
+  occurrences = if (inherits(x, "uaf_plant_phytochemistry")) {
+    x$PlantCompoundOccurrences
+  } else {
+    x
+  }
+  occurrences = .plant_normalize_occurrences(occurrences)
+  if (nrow(occurrences) < 1) {
+    return(.uaf_empty_table(.plant_review_cols()))
+  }
+  status_filter = .uaf_non_empty(occurrence_status)
+  keep = rep(TRUE, nrow(occurrences))
+  if (length(status_filter) > 0 && !"all" %in% tolower(status_filter)) {
+    keep = keep & occurrences$occurrence_status %in% status_filter
+  }
+  if (!isTRUE(include_analysis_ready) && !"all" %in% tolower(status_filter)) {
+    keep = keep & occurrences$analysis_ready != "Yes"
+  }
+  review = occurrences[keep, , drop = FALSE]
+  if (nrow(review) < 1) return(.uaf_empty_table(.plant_review_cols()))
+  out = data.frame(
+    review_id = sprintf("review_%04d", seq_len(nrow(review))),
+    review_decision = "needs_review",
+    reviewed_by = NA_character_,
+    reviewed_at = NA_character_,
+    review_note = NA_character_,
+    proposed_evidence_tier = NA_character_,
+    proposed_confidence = NA_character_,
+    proposed_source_database = NA_character_,
+    proposed_citation_or_url = NA_character_,
+    proposed_plant_part = NA_character_,
+    proposed_tissue = NA_character_,
+    proposed_method = NA_character_,
+    review_key = .plant_occurrence_key(review),
+    review[, .plant_occurrence_cols(), drop = FALSE],
+    stringsAsFactors = FALSE
+  )
+  row.names(out) = NULL
+  out
+}
+
+#' Apply reviewed plant phytochemistry evidence decisions
+#'
+#' @description
+#' Applies a completed review table created by
+#' `plantPhytochemistryReviewTable()`. Supported decisions are
+#' `"needs_review"`/`"keep"` (leave unchanged), `"keep_candidate"` (mark as
+#' reviewed but keep candidate/fallback status), `"update_context"` (copy
+#' proposed plant part/tissue/method/confidence/source fields),
+#' `"promote_curated"` (promote to `manual_curated` evidence with review
+#' provenance), and `"reject"`/`"exclude"` (remove the occurrence row).
+#'
+#' @param x Plant phytochemistry result or normalized occurrence table.
+#' @param review_table Completed review table.
+#' @param reviewer Optional reviewer name used when `reviewed_by` is empty.
+#' @param require_citation Logical. If `TRUE`, `promote_curated` requires either
+#' an existing evidence URL or `proposed_citation_or_url`.
+#'
+#' @return Updated plant phytochemistry result or occurrence table.
+#'
+#' @export
+applyPlantPhytochemistryReview = function(x,
+                                          review_table,
+                                          reviewer = NA_character_,
+                                          require_citation = TRUE) {
+  if (!is.data.frame(review_table)) {
+    stop("`review_table` must be a data frame.", call. = FALSE)
+  }
+  is_result = inherits(x, "uaf_plant_phytochemistry")
+  occurrences = if (is_result) x$PlantCompoundOccurrences else x
+  occurrences = .plant_normalize_occurrences(occurrences)
+  if (nrow(occurrences) < 1 || nrow(review_table) < 1) {
+    return(if (is_result) .plant_rebuild_filtered_result(x, occurrences) else
+      occurrences)
+  }
+  names(review_table) = .plant_normalize_column_names(names(review_table))
+  keep = rep(TRUE, nrow(occurrences))
+  for (i in seq_len(nrow(review_table))) {
+    review = review_table[i, , drop = FALSE]
+    idx = .plant_review_match_indices(occurrences, review)
+    if (length(idx) < 1) next
+    decision = .plant_review_decision(review$review_decision)
+    if (decision %in% c("reject", "exclude")) {
+      keep[idx] = FALSE
+      next
+    }
+    if (decision %in% c("needs_review", "keep", "")) next
+    if (decision == "keep_candidate") {
+      occurrences$curation_flag[idx] = "reviewed_candidate_kept"
+      next
+    }
+    occurrences = .plant_apply_review_context(occurrences, idx, review)
+    if (decision == "promote_curated") {
+      citation = .uaf_first_non_empty_text(
+        review$proposed_citation_or_url,
+        occurrences$evidence_url[idx][[1]]
+      )
+      if (isTRUE(require_citation) && is.na(citation)) {
+        warning("Skipping promotion for review row ", i,
+                ": no citation or URL supplied.", call. = FALSE)
+        next
+      }
+      occurrences$evidence_tier[idx] = "manual_curated"
+      occurrences$confidence[idx] = .uaf_first_non_empty_text(
+        review$proposed_confidence, "high"
+      )
+      occurrences$source_database[idx] = .uaf_first_non_empty_text(
+        review$proposed_source_database, "manual_review"
+      )
+      occurrences$evidence_url[idx] = citation
+      occurrences$curation_flag[idx] = "reviewed_curated"
+      reviewer_value = .uaf_first_non_empty_text(review$reviewed_by,
+                                                 reviewer)
+      note = .uaf_first_non_empty_text(review$review_note)
+      if (!is.na(reviewer_value) || !is.na(note)) {
+        occurrences$evidence_text[idx] = .plant_truncate(
+          .pubchem_collapse(c(occurrences$evidence_text[idx],
+                              paste("reviewed_by", reviewer_value),
+                              note)),
+          1200
+        )
+      }
+    }
+  }
+  updated = .plant_normalize_occurrences(occurrences[keep, , drop = FALSE])
+  updated = .plant_collapse_occurrence_evidence(updated)
+  if (!is_result) return(updated)
+  out = .plant_rebuild_filtered_result(x, updated)
+  out$Provenance = .plant_bind_tables(list(
+    out$Provenance,
+    .plant_provenance("evidence_review", "manual_review",
+                      paste(unique(.uaf_non_empty(updated$species)),
+                            collapse = "; "),
+                      NA_character_, nrow(review_table),
+                      "Human review table applied to plant occurrence evidence.")
+  ), .plant_provenance_cols())
+  out$Validation = validatePlantPhytochemistryResult(out)
+  out
 }
 
 #' Join plant chemistry summaries to metadata
@@ -1826,7 +2012,75 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 }
 
 .plant_bind_occurrences = function(parts) {
-  .plant_normalize_occurrences(.plant_bind_tables(parts, .plant_occurrence_cols()))
+  .plant_collapse_occurrence_evidence(
+    .plant_normalize_occurrences(.plant_bind_tables(parts, .plant_occurrence_cols()))
+  )
+}
+
+.plant_collapse_occurrence_evidence = function(occurrences) {
+  if (!is.data.frame(occurrences) || nrow(occurrences) < 2) {
+    return(occurrences)
+  }
+  dup_cols = .plant_duplicate_key_cols("PlantCompoundOccurrences")
+  if (!all(dup_cols %in% names(occurrences))) return(occurrences)
+  key_data = occurrences[dup_cols]
+  key_data[] = lapply(key_data, function(value) {
+    value = .uaf_squish_text(value)
+    value[is.na(value)] = ""
+    value
+  })
+  key = do.call(paste, c(key_data, sep = "||"))
+  groups = split(seq_len(nrow(occurrences)), key)
+  rows = lapply(groups, function(idx) {
+    if (length(idx) == 1) return(occurrences[idx, , drop = FALSE])
+    .plant_merge_occurrence_group(occurrences[idx, , drop = FALSE])
+  })
+  out = do.call(rbind, rows)
+  row.names(out) = NULL
+  .plant_normalize_occurrences(out)
+}
+
+.plant_merge_occurrence_group = function(group) {
+  scores = suppressWarnings(as.numeric(group$evidence_quality_score))
+  scores[!is.finite(scores)] = 0
+  rank_score = .plant_occurrence_rank_score(group$occurrence_status) +
+    .plant_confidence_score(group$confidence) + scores
+  best = which.max(rank_score)
+  row = group[best, , drop = FALSE]
+  for (col in names(row)) {
+    if (col %in% c("evidence_text", "curation_flag")) next
+    if (length(.uaf_non_empty(row[[col]])) > 0) next
+    values = .uaf_non_empty(group[[col]])
+    if (length(values) > 0) {
+      row[[col]] = values[[1]]
+      if (identical(col, "plant_part") && "plant_part_group" %in% names(row)) {
+        row$plant_part_group = NA_character_
+      }
+      if (identical(col, "tissue") && "tissue_group" %in% names(row)) {
+        row$tissue_group = NA_character_
+      }
+      if (identical(col, "method") && "method_group" %in% names(row)) {
+        row$method_group = NA_character_
+      }
+    }
+  }
+  row$evidence_text = .plant_truncate(
+    .pubchem_collapse(unique(.uaf_non_empty(group$evidence_text))),
+    1200
+  )
+  row$curation_flag = .pubchem_collapse(unique(.uaf_non_empty(group$curation_flag)))
+  row
+}
+
+.plant_occurrence_rank_score = function(occurrence_status) {
+  status = .plant_matrix_key(occurrence_status)
+  out = rep(0, length(status))
+  out[status == "curated_reported"] = 5
+  out[status == "direct_reported"] = 4
+  out[status == "literature_reported"] = 3
+  out[status == "taxon_fallback"] = 2
+  out[status == "candidate"] = 1
+  out
 }
 
 .plant_bind_tables = function(parts, cols) {
@@ -1878,8 +2132,28 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 
 .plant_pubchem_only_enrichment = function(compounds, detail, cache, cache_dir,
                                           throttle, pubchem_fun = NULL,
-                                          request_fun = NULL, ...) {
+                                          request_fun = NULL,
+                                          batch_size = Inf,
+                                          resume = TRUE,
+                                          progress = FALSE,
+                                          ...) {
   dots = list(...)
+  batch_size = .plant_enrichment_batch_size(batch_size, length(compounds))
+  if (batch_size < length(compounds)) {
+    return(.plant_pubchem_only_enrichment_batched(
+      compounds = compounds,
+      detail = detail,
+      cache = cache,
+      cache_dir = cache_dir,
+      throttle = throttle,
+      pubchem_fun = pubchem_fun,
+      request_fun = request_fun,
+      batch_size = batch_size,
+      resume = resume,
+      progress = progress,
+      ...
+    ))
+  }
   pubchem_fun = pubchem_fun %||% pubchemProfile
   pubchem_profile = if (detail == "full") "full" else "safety"
   pubchem_sections = if (detail == "full") {
@@ -2014,6 +2288,109 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   ))
 }
 
+.plant_enrichment_batch_size = function(batch_size, n_compounds) {
+  batch_size = suppressWarnings(as.numeric(batch_size[[1]]))
+  if (!is.finite(batch_size) || batch_size < 1) return(n_compounds)
+  max(1, as.integer(batch_size))
+}
+
+.plant_pubchem_only_enrichment_batched = function(compounds, detail, cache,
+                                                  cache_dir, throttle,
+                                                  pubchem_fun, request_fun,
+                                                  batch_size, resume,
+                                                  progress, ...) {
+  groups = split(compounds, ceiling(seq_along(compounds) / batch_size))
+  results = vector("list", length(groups))
+  batch_dir = if (is.null(cache_dir)) {
+    file.path(.plant_cache_dir(NULL), "compound_enrichment",
+              "pubchem_only_batches")
+  } else {
+    file.path(cache_dir, "pubchem_only_batches")
+  }
+  if (isTRUE(cache)) dir.create(batch_dir, recursive = TRUE, showWarnings = FALSE)
+  for (i in seq_along(groups)) {
+    batch = groups[[i]]
+    cache_file = file.path(
+      batch_dir,
+      paste0("batch_", sprintf("%04d", i), "_",
+             .pubchem_url_hash(paste(c(detail, batch), collapse = "\r")),
+             ".rds")
+    )
+    if (isTRUE(cache) && isTRUE(resume) && file.exists(cache_file)) {
+      if (isTRUE(progress)) {
+        message("uafR plant enrichment batch ", i, "/", length(groups),
+                ": using cached result")
+      }
+      results[[i]] = readRDS(cache_file)
+      next
+    }
+    if (isTRUE(progress)) {
+      message("uafR plant enrichment batch ", i, "/", length(groups),
+              ": resolving ", length(batch), " compound(s)")
+    }
+    result = .plant_pubchem_only_enrichment(
+      compounds = batch,
+      detail = detail,
+      cache = cache,
+      cache_dir = cache_dir,
+      throttle = throttle,
+      pubchem_fun = pubchem_fun,
+      request_fun = request_fun,
+      batch_size = Inf,
+      resume = FALSE,
+      progress = FALSE,
+      ...
+    )
+    if (isTRUE(cache)) saveRDS(result, cache_file)
+    results[[i]] = result
+  }
+  .plant_merge_categorate_results(results, compounds,
+                                  enrichment_mode = "pubchem_only_batched")
+}
+
+.plant_merge_categorate_results = function(results, compounds,
+                                           enrichment_mode) {
+  results = results[vapply(results, is.list, logical(1))]
+  if (length(results) < 1) return(NULL)
+  names_all = unique(unlist(lapply(results, names), use.names = FALSE))
+  merged = list()
+  for (name in names_all) {
+    values = lapply(results, `[[`, name)
+    values = values[!vapply(values, is.null, logical(1))]
+    if (length(values) < 1) next
+    if (all(vapply(values, is.data.frame, logical(1)))) {
+      merged[[name]] = .plant_bind_flexible_tables(values)
+    } else {
+      merged[[name]] = values[[1]]
+    }
+  }
+  merged$EnrichmentMode = enrichment_mode
+  merged$BatchCount = length(results)
+  merged$BatchCompoundCount = length(compounds)
+  validation = validateCategorateResult(merged)
+  c(merged, list(
+    DataDictionary = validation$DataDictionary,
+    TableQuality = validation$TableQuality,
+    SourceDiagnostics = validation$SourceDiagnostics,
+    ValidationIssues = validation$Issues,
+    ValidationSummary = validation$Summary
+  ))
+}
+
+.plant_bind_flexible_tables = function(parts) {
+  parts = parts[vapply(parts, is.data.frame, logical(1))]
+  if (length(parts) < 1) return(data.frame())
+  cols = unique(unlist(lapply(parts, names), use.names = FALSE))
+  normalized = lapply(parts, function(part) {
+    for (col in cols) if (!col %in% names(part)) part[[col]] = NA_character_
+    part[, cols, drop = FALSE]
+  })
+  out = do.call(rbind, normalized)
+  out = unique(out)
+  row.names(out) = NULL
+  out
+}
+
 .plant_empty_categorate_data_list = function() {
   list(
     reactives = .uaf_empty_table(c("Chemical", "reactives")),
@@ -2025,16 +2402,27 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 }
 
 .plant_enrichment_source = function(categorate_result) {
-  if (is.list(categorate_result) &&
-      identical(categorate_result$EnrichmentMode, "pubchem_only")) {
+  mode = if (is.list(categorate_result)) {
+    .uaf_first_non_empty_text(categorate_result$EnrichmentMode)
+  } else {
+    NA_character_
+  }
+  if (!is.na(mode) && mode %in% c("pubchem_only", "pubchem_only_batched")) {
     return("pubchemProfile")
   }
   "categorate"
 }
 
 .plant_enrichment_note = function(categorate_result) {
-  if (is.list(categorate_result) &&
-      identical(categorate_result$EnrichmentMode, "pubchem_only")) {
+  mode = if (is.list(categorate_result)) {
+    .uaf_first_non_empty_text(categorate_result$EnrichmentMode)
+  } else {
+    NA_character_
+  }
+  if (identical(mode, "pubchem_only_batched")) {
+    return("PubChem-only compound enrichment completed in resumable batches.")
+  }
+  if (identical(mode, "pubchem_only")) {
     return("PubChem-only compound enrichment completed.")
   }
   "Compound enrichment completed or supplied."
@@ -2284,6 +2672,94 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   allowed = .uaf_non_empty(allowed)
   if (length(allowed) < 1 || "all" %in% tolower(allowed)) return(keep)
   keep & values %in% allowed
+}
+
+.plant_review_cols = function() {
+  c("review_id", "review_decision", "reviewed_by", "reviewed_at",
+    "review_note", "proposed_evidence_tier", "proposed_confidence",
+    "proposed_source_database", "proposed_citation_or_url",
+    "proposed_plant_part", "proposed_tissue", "proposed_method",
+    "review_key", .plant_occurrence_cols())
+}
+
+.plant_occurrence_key = function(occurrences) {
+  dup_cols = .plant_duplicate_key_cols("PlantCompoundOccurrences")
+  key_data = occurrences[dup_cols]
+  key_data[] = lapply(key_data, function(value) {
+    value = .uaf_squish_text(value)
+    value[is.na(value)] = ""
+    value
+  })
+  do.call(paste, c(key_data, sep = "||"))
+}
+
+.plant_review_match_indices = function(occurrences, review) {
+  keys = .plant_occurrence_key(occurrences)
+  review_key = if ("review_key" %in% names(review)) {
+    as.character(review$review_key[[1]])
+  } else {
+    NA_character_
+  }
+  if (is.na(review_key) || review_key == "") review_key = NA_character_
+  if (!is.na(review_key)) return(which(keys == review_key))
+  dup_cols = .plant_duplicate_key_cols("PlantCompoundOccurrences")
+  if (!all(dup_cols %in% names(review))) return(integer())
+  review_data = review[dup_cols]
+  review_data[] = lapply(review_data, function(value) {
+    value = .uaf_squish_text(value)
+    value[is.na(value)] = ""
+    value
+  })
+  key = do.call(paste, c(review_data, sep = "||"))
+  which(keys == key)
+}
+
+.plant_review_decision = function(x) {
+  decision = tolower(.uaf_first_non_empty_text(x))
+  if (is.na(decision)) return("needs_review")
+  decision = gsub("[^a-z0-9]+", "_", decision)
+  decision = gsub("^_|_$", "", decision)
+  if (decision %in% c("accept", "promote", "promote_reported",
+                      "accept_curated", "curated")) {
+    return("promote_curated")
+  }
+  if (decision %in% c("remove", "drop")) return("reject")
+  if (decision %in% c("update", "context", "edit_context")) {
+    return("update_context")
+  }
+  if (decision %in% c("candidate", "keep_as_candidate")) {
+    return("keep_candidate")
+  }
+  decision
+}
+
+.plant_apply_review_context = function(occurrences, idx, review) {
+  update = function(col, value) {
+    value = .uaf_first_non_empty_text(value)
+    if (!is.na(value) && col %in% names(occurrences)) {
+      occurrences[[col]][idx] <<- value
+      TRUE
+    } else {
+      FALSE
+    }
+  }
+  if (update("plant_part", review$proposed_plant_part) &&
+      "plant_part_group" %in% names(occurrences)) {
+    occurrences$plant_part_group[idx] = NA_character_
+  }
+  if (update("tissue", review$proposed_tissue) &&
+      "tissue_group" %in% names(occurrences)) {
+    occurrences$tissue_group[idx] = NA_character_
+  }
+  if (update("method", review$proposed_method) &&
+      "method_group" %in% names(occurrences)) {
+    occurrences$method_group[idx] = NA_character_
+  }
+  update("confidence", review$proposed_confidence)
+  update("source_database", review$proposed_source_database)
+  update("evidence_url", review$proposed_citation_or_url)
+  update("evidence_tier", review$proposed_evidence_tier)
+  occurrences
 }
 
 .plant_rebuild_filtered_result = function(x, occurrences) {

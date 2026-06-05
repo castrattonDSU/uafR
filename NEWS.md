@@ -10,13 +10,21 @@
   flags, biological-context grouping for plant part/tissue/method fields,
   evidence quality scores, `filterPlantPhytochemistryEvidence()`, and an
   `exportPlantPhytochemistryWorkbook(preset = "analysis_ready")` export mode.
+- Added duplicate occurrence evidence collapsing so repeated provider rows for
+  the same plant, compound, source, and record are merged without losing useful
+  plant-part, method, evidence-text, or curation details.
+- Added `plantPhytochemistryReviewTable()` and
+  `applyPlantPhytochemistryReview()` for human review of candidate,
+  fallback, unresolved, or literature-derived plant-compound evidence before
+  promotion into curated occurrence records.
 - Added live-capable plant provider adapters for KNApSAcK organism lookup,
   conservative LOTUS taxon-evidence parsing, PubChem taxonomy annotations, and
   PubTator candidate chemical co-mentions, all covered by mocked no-network
   tests.
 - Added PubChem-only compound enrichment fallback for plant phytochemistry
-  workflows when no `chemical_library` is supplied, plus plant-level matrices
-  that include normalized `ChemicalTraits` features.
+  workflows when no `chemical_library` is supplied, resumable PubChem-only
+  enrichment batching for longer species runs, and plant-level matrices that
+  include normalized `ChemicalTraits` features.
 - Added research-grade PubChem and KEGG enrichment outputs to `categorate()`
   with `detail = "research"` and `detail = "full"`.
 - Added normalized `Chemical*` analysis tables for traits, ontology mappings,

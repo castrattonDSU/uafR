@@ -14,6 +14,9 @@ enrichPlantCompounds(
   enrichment_fun = NULL,
   pubchem_fun = NULL,
   compound_request_fun = NULL,
+  batch_size = Inf,
+  resume = TRUE,
+  progress = interactive(),
   ...
 )
 }
@@ -38,6 +41,15 @@ PubChem-only fallback. Intended for tests and advanced cached workflows.}
 
 \item{compound_request_fun}{Optional request function passed to
 `pubchemProfile()` when the PubChem-only fallback is used.}
+
+\item{batch_size}{Maximum number of unique compounds per PubChem-only
+enrichment batch. Use `Inf` for one batch.}
+
+\item{resume}{Logical. If `TRUE`, reuse saved PubChem-only batch `.rds`
+files in `cache_dir`.}
+
+\item{progress}{Logical. If `TRUE`, print simple progress messages during
+PubChem-only enrichment.}
 
 \item{...}{Additional arguments passed to `categorate()`, `enrichment_fun`,
 or the PubChem-only enrichment fallback.}
