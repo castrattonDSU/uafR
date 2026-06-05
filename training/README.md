@@ -29,10 +29,11 @@ Rscript tools/build_student_bundle.R
 ```
 
 The generated zip in `student_bundle/` contains the local uafR package archive,
-`START_HERE.md`, the preflight check, installer, update script, verification
-script, student acceptance test, training manual PDF, classroom support scripts,
-and data templates. Students install from that bundle rather than from an
-online source repository.
+`START_HERE.md`, checksum metadata, bundle integrity verification, the preflight
+check, installer, update script, verification script, student acceptance test,
+student quick reference, training manual PDF, classroom support scripts, and
+data templates. Students install from that bundle rather than from an online
+source repository.
 
 ## Logo
 
@@ -42,8 +43,8 @@ Place the dsDNA Core logo at:
 training/assets/dsdna_core_logo.png
 ```
 
-The manual compiles without the logo and replaces the placeholder automatically
-when the file is present.
+The manual compiles without the logo by using a simple fallback box and switches
+to the logo automatically when the file is present.
 
 ## Directory guide
 
