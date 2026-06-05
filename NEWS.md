@@ -2,6 +2,17 @@
 
 ## Major improvements
 
+- Added a phase-one species-first plant phytochemistry resolver with
+  `resolvePlantPhytochemistry()`, curated intake normalization, provider
+  diagnostics, conservative PubMed/PubTator candidate handling, species
+  summaries, matrices, validation, scoring, and CSV/XLSX export helpers.
+- Added live-capable plant provider adapters for KNApSAcK organism lookup,
+  conservative LOTUS taxon-evidence parsing, PubChem taxonomy annotations, and
+  PubTator candidate chemical co-mentions, all covered by mocked no-network
+  tests.
+- Added PubChem-only compound enrichment fallback for plant phytochemistry
+  workflows when no `chemical_library` is supplied, plus plant-level matrices
+  that include normalized `ChemicalTraits` features.
 - Added research-grade PubChem and KEGG enrichment outputs to `categorate()`
   with `detail = "research"` and `detail = "full"`.
 - Added normalized `Chemical*` analysis tables for traits, ontology mappings,

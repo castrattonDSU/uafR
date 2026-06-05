@@ -120,6 +120,7 @@ validateCategorateResult = function(x, tables = NULL, strict = FALSE) {
   out
 }
 
+#' @export
 print.uaf_categorate_validation = function(x, ...) {
   summary = x$Summary
   if (is.data.frame(summary) && nrow(summary) > 0) {

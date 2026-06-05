@@ -25,6 +25,9 @@
 #' query for which assay-description metadata is fetched when `profile` is
 #' `"bioactivity"` or `"full"`. Active, numeric, and target-bearing assays are
 #' prioritized. Set to `0` to skip assay-description requests.
+#' @param include_annotations Logical. If `TRUE`, fetch PubChem PUG-View
+#' annotation sections selected by `profile`, `sections`, and `sources`. Set to
+#' `FALSE` when only identity and property fields are needed.
 #' @param request_fun Optional function used to retrieve a URL. This is intended
 #' for tests and advanced users. It should return either JSON text or a parsed
 #' list.
@@ -59,6 +62,7 @@ pubchemProfile = function(compounds,
                           cache_dir = NULL,
                           throttle = 0.2,
                           assay_detail_limit = 50,
+                          include_annotations = TRUE,
                           request_fun = NULL) {
   profile = match.arg(profile)
   compounds = .uaf_clean_compounds(compounds)
@@ -83,18 +87,23 @@ pubchemProfile = function(compounds,
                                      fetch = fetch,
                                      cid_query = cid_query)
 
-  headings = unique(c(.pubchem_profile_headings(profile), sections))
-  heading_annotations = .pubchem_fetch_annotations(cids = cids,
-                                                   headings = headings,
-                                                   fetch = fetch,
-                                                   cid_query = cid_query)
-  source_names = unique(c(.pubchem_profile_sources(profile), sources))
-  source_annotations = .pubchem_fetch_source_annotations(
-    cids = cids,
-    sources = source_names,
-    fetch = fetch,
-    cid_query = cid_query
-  )
+  if (isTRUE(include_annotations)) {
+    headings = unique(c(.pubchem_profile_headings(profile), sections))
+    heading_annotations = .pubchem_fetch_annotations(cids = cids,
+                                                     headings = headings,
+                                                     fetch = fetch,
+                                                     cid_query = cid_query)
+    source_names = unique(c(.pubchem_profile_sources(profile), sources))
+    source_annotations = .pubchem_fetch_source_annotations(
+      cids = cids,
+      sources = source_names,
+      fetch = fetch,
+      cid_query = cid_query
+    )
+  } else {
+    heading_annotations = .pubchem_empty_table(.pubchem_annotation_cols())
+    source_annotations = .pubchem_empty_table(.pubchem_annotation_cols())
+  }
   taxonomy = .pubchem_fetch_taxonomy_records(source_annotations, fetch)
   classifications = .pubchem_fetch_classification_records(source_annotations,
                                                           fetch)
@@ -276,7 +285,8 @@ print.uaf_pubchem_profile = function(x, ...) {
 .pubchem_profile_properties = function(profile) {
   minimal = c("Title", "MolecularFormula", "MolecularWeight",
               "IUPACName", "InChI", "InChIKey", "CanonicalSMILES",
-              "IsomericSMILES", "ExactMass", "MonoisotopicMass")
+              "IsomericSMILES", "SMILES", "ConnectivitySMILES",
+              "ExactMass", "MonoisotopicMass")
   descriptors = c("XLogP", "TPSA", "Complexity", "Charge",
                   "HBondDonorCount", "HBondAcceptorCount",
                   "RotatableBondCount", "HeavyAtomCount",

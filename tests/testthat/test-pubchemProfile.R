@@ -172,3 +172,24 @@ test_that("pubchemProfile validates empty compound input", {
   expect_error(pubchemProfile(c("", NA), request_fun = fixture_pubchem_request),
                "at least one non-empty")
 })
+
+test_that("pubchemProfile can skip PUG-View annotations for property-only workflows", {
+  property_only_request = function(url) {
+    if (grepl("/pug_view/", url)) {
+      stop("PUG-View should not be requested when include_annotations = FALSE")
+    }
+    fixture_pubchem_request(url)
+  }
+
+  profile = pubchemProfile("aspirin",
+                           profile = "ms",
+                           cache = FALSE,
+                           throttle = 0,
+                           include_annotations = FALSE,
+                           request_fun = property_only_request)
+
+  expect_equal(profile$identity$CID, 2244)
+  expect_equal(profile$properties$MolecularFormula, "C9H8O4")
+  expect_equal(nrow(profile$annotations), 0)
+  expect_equal(nrow(profile$source_annotations), 0)
+})

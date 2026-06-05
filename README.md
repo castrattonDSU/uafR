@@ -16,15 +16,16 @@ Student machines should install uafR from a private student bundle distributed
 by the DSU dsDNA Core program. This keeps the repository private and gives
 students a direct RStudio workflow.
 
-The bundle contains a local uafR source archive, preflight checks, installer
-and update scripts, verification scripts, an offline acceptance test, and the
-training manual. The installer still uses CRAN and Bioconductor for
-dependencies.
+The bundle contains a local uafR source archive, checksum verification,
+preflight checks, installer and update scripts, verification scripts, an
+offline acceptance test, a quick reference, and the training manual. The
+installer still uses CRAN and Bioconductor for dependencies.
 
 From the unzipped bundle folder, students should open `START_HERE.md`, then run
 these scripts in RStudio:
 
 ``` r
+source("verify_bundle_integrity.R")
 source("preflight_check.R")
 source("install_uafR_from_bundle.R")
 source("run_student_acceptance_test.R")
@@ -57,6 +58,9 @@ The bundle folder includes:
 ``` text
 START_HERE.md
 README_STUDENT_INSTALL.md
+uafR_QUICK_REFERENCE.md
+CHECKSUMS.csv
+verify_bundle_integrity.R
 preflight_check.R
 install_uafR_from_bundle.R
 update_uafR_from_bundle.R
@@ -108,6 +112,110 @@ validateCategorateResult(quick_result)$Summary
 quick_result$ChemicalTraitReport
 quick_result$ChemicalMeasurementSummary
 ```
+
+## Species-first plant phytochemistry workflows
+
+uafR can now start from plant species names instead of a known compound list.
+The plant phytochemistry resolver attempts to normalize plant names, collect
+reported species-compound evidence from normalized provider adapters or curated
+intake tables, include conservative literature/PubTator candidate evidence when
+available, and then reuse uafR compound enrichment for resolved compounds.
+When a `chemical_library` is supplied, enrichment can use the full
+`categorate()` workflow, including library-based FMCS matching. When no
+chemical library is supplied, uafR now falls back to `pubchemProfile()` and
+still returns PubChem-derived properties, traits, matrices, validation, and
+provenance.
+Current live-capable public adapters include PubMed literature search,
+PubTator candidate co-mentions, KNApSAcK organism-metabolite lookup, conservative
+LOTUS API parsing when taxon evidence is present, and PubChem taxonomy
+annotations after NCBI taxonomy resolution. NPASS species-source rows should be
+supplied through curated intake or `provider_results` until a small stable
+species-query endpoint is added.
+
+This workflow is designed for plant, ecology, remediation, metabolomics,
+chemical ecology, natural-products, and environmental chemistry projects. It
+does not produce complete metabolomes. Absence of public records is not absence
+of compounds. Literature co-mentions are candidate evidence unless curated.
+PubChem taxonomy annotations are source-backed chemical associations, not proof
+that a student's sample contains the compound. Direct species evidence is
+stronger than genus or family fallback evidence. Always inspect validation and
+provenance before interpretation.
+
+``` r
+library(uafR)
+data("library_data", package = "uafR")
+
+plants = c("Salix nigra", "Camellia sinensis", "Zea mays")
+
+phyto = resolvePlantPhytochemistry(
+  plants = plants,
+  sources = c("lotus", "pubmed", "pubtator"),
+  taxon_fallback = c("species", "genus"),
+  enrich_compounds = TRUE,
+  chemical_library = library_data,
+  detail = "research",
+  cache = TRUE,
+  cache_dir = "uafR_plant_cache",
+  max_pubmed_records = 25,
+  max_provider_records = 100
+)
+
+phyto$SpeciesChemistrySummary
+phyto$PlantCompoundOccurrences
+validatePlantPhytochemistryResult(phyto)$Summary
+
+exportPlantPhytochemistryWorkbook(
+  phyto,
+  path = "plant_phytochemistry_export",
+  format = "csv",
+  overwrite = TRUE
+)
+```
+
+For quick species-first discovery without a library, omit `chemical_library`.
+This produces PubChem-only enrichment and skips FMCS library matching:
+
+``` r
+phyto = resolvePlantPhytochemistry(
+  plants = c("Camellia sinensis", "Salix nigra"),
+  sources = c("lotus", "knapsack", "pubmed"),
+  enrich_compounds = TRUE,
+  detail = "research",
+  cache = TRUE,
+  cache_dir = "uafR_plant_cache",
+  max_provider_records = 50
+)
+
+names(phyto$SpeciesChemistryMatrix)
+phyto$CompoundResolution
+```
+
+For projects that already have local curation, use the curated intake fallback:
+
+``` r
+curated = data.frame(
+  species = "Salix nigra",
+  compound_name = "salicin",
+  source_database = "manual",
+  citation_or_url = "https://example.org/source",
+  evidence_tier = "manual_curated"
+)
+
+occurrences = standardizePlantCompoundIntake(curated)
+phyto = resolvePlantPhytochemistry(
+  plants = unique(curated$species),
+  sources = character(),
+  curated_data = occurrences,
+  enrich_compounds = TRUE,
+  chemical_library = library_data,
+  detail = "research"
+)
+```
+
+An offline training example is available at
+`training/scripts/10_species_phytochemistry.R`. It uses simulated curated
+species-compound rows and does not call live web services unless the
+`UAFR_LIVE_PLANT_DISCOVERY` environment variable is set to `"true"`.
 
 ## Example Mass Spectrometry Workflows
 
@@ -175,6 +283,38 @@ Available profiles are:
 - `"safety"`: minimal/descriptive data plus safety, hazard, and experimental property annotations.
 - `"bioactivity"`: minimal/descriptive data plus PubChem assay summary data.
 - `"full"`: all supported profile sections.
+
+## aiNsect Molecular-Olfaction Export
+
+`exportAiNsectMolOlfInputs()` converts paired wide essential-oil GC-MS profile
+tables into aiNsect molecular-olfaction input files. The identity table should
+contain treatment columns with compound names by ranked row. The abundance table
+should contain the same treatments and rows with abundance values. Compound
+structures are resolved through `pubchemProfile()`; uafR does not fabricate
+SMILES, InChIKeys, CIDs, formulas, or abundance values.
+
+``` sh
+Rscript tools/export_ainsect_mololf_inputs.R \
+  --chem-id-csv /Users/chasestratton/src/github/castrattonDSU/aiNsect_tracker/EO_PCA_2026/20240612-EO-gcms-data_all.csv \
+  --chem-quant-csv /Users/chasestratton/src/github/castrattonDSU/aiNsect_tracker/EO_PCA_2026/20240612-EO-gcms-quant_all.csv \
+  --out-dir /Users/chasestratton/src/github/castrattonDSU/aiNsect_tracker/EO_PCA_2026/mololf_export \
+  --cache-dir /Users/chasestratton/src/github/castrattonDSU/aiNsect_tracker/EO_PCA_2026/pubchem_cache \
+  --profile ms \
+  --throttle 0.2
+```
+
+The export directory contains:
+
+- `uafR_compounds.csv`: compound IDs, names, SMILES, InChIKeys, PubChem CIDs,
+  molecular formulas, source labels, and notes.
+- `treatment_compound_abundance.csv`: treatment/compound abundance rows with
+  raw parsed abundance and within-treatment relative abundance.
+- `uafR_compounds_unresolved.csv`: compounds that could not be exported because
+  PubChem did not provide a usable SMILES.
+- `uafR_mololf_export_summary.json`: run metadata, counts, output paths, and
+  quality checks.
+- `uafR_pubchem_identity_audit.csv` and `uafR_pubchem_properties_audit.csv`:
+  optional PubChem audit tables.
 
 ## Research-Grade Database Enrichment
 
