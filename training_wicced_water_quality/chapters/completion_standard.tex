@@ -1,0 +1,60 @@
+\chapter{Program Completion Standard}
+
+Completion requires more than attendance. The final product must be auditable. A student has completed the program when the following artifacts exist and meet review standards.
+
+\section{Required Final Package}
+
+\begin{itemize}
+  \item Reproducible R project folder.
+  \item README with project question, data restrictions, script order, and expected outputs.
+  \item Raw-data inventory or teaching-data note.
+  \item Cleaned water-quality data file.
+  \item Water-quality variable dictionary.
+  \item QA/QC flag log and missingness/source-coverage report.
+  \item Project brief and scope/risk note.
+  \item Optional uafR result object, validation output, source coverage, and trait evidence table if chemical screening is used.
+  \item Not-applicable note if uafR chemical screening is not used.
+  \item Analysis-ready ML feature table and feature dictionary.
+  \item Train/test split plan and leakage audit.
+  \item Baseline model and at least one candidate model or feature-set comparison.
+  \item Model card with metrics, diagnostics, and limitations.
+  \item Advanced validation, sensitivity, permutation-importance, and decision-gate outputs if the advanced ML extension is used.
+  \item At least three publication-style figures or tables.
+  \item Literature and evidence synthesis table.
+  \item Manuscript-style report.
+  \item Presentation or poster.
+  \item Daily research log and weekly review notes.
+  \item Session information.
+  \item Final package audit.
+  \item Continuation note with unresolved issues and recommended next steps.
+\end{itemize}
+
+\section{Explicit Non-Claims}
+
+The final report must include a short statement of what should not be claimed. Depending on the project, this may include:
+\begin{itemize}
+  \item The project did not confirm chemical identities without analytical standards.
+  \item Public database annotations do not prove sample presence or biological activity.
+  \item Pathway records do not demonstrate pathway activity in the water system.
+  \item Hazard annotations do not constitute site-specific risk assessment.
+  \item Machine-learning associations do not prove causation.
+  \item The model is not ready for operational decision-making without external validation.
+  \item Teaching data support training only, not environmental conclusions.
+\end{itemize}
+
+\section{Final Acceptance Questions}
+
+Before archive, the project should answer yes to these questions:
+\begin{itemize}
+  \item Can another student identify the research question from the README?
+  \item Can the analysis be rerun from a clean R session?
+  \item Are data restrictions clear?
+  \item Are raw values preserved?
+  \item Are excluded variables and rows explained?
+  \item Are uafR outputs validated before interpretation?
+  \item Are ML features frozen before final model comparison?
+  \item If advanced ML was used, were blocked validation, sensitivity warnings, and decision gates reviewed before interpretation?
+  \item Is the split design appropriate for the intended claim?
+  \item Do figures state units, groups, sample counts, and limitations?
+  \item Does the continuation note identify the most important next experiment?
+\end{itemize}

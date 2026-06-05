@@ -1,0 +1,197 @@
+\chapter{Machine-Learning Guidance for Water Quality}
+
+Machine learning in this program is a research tool, not a shortcut around scientific judgment. Models are useful when they help evaluate patterns in water-quality measurements, prioritize follow-up questions, or compare feature sets. Models are not acceptable when they obscure data problems, inflate weak evidence, or produce claims that the sampling design cannot support.
+
+\section{Beginner Script Ladder}
+
+Students should start with the four-script ladder before modifying any model. Each script is intentionally small enough to inspect, and each one writes outputs that can be opened in RStudio.
+
+Run these commands from the \file{training_wicced_water_quality/} folder:
+
+\begin{rcode}
+Rscript scripts/04_ml_01_build_feature_table.R
+Rscript scripts/04_ml_02_explore_features.R
+Rscript scripts/04_ml_03_train_models.R
+Rscript scripts/04_ml_04_diagnostics_and_model_card.R
+\end{rcode}
+
+\begin{longtable}{p{0.24\textwidth}p{0.34\textwidth}p{0.32\textwidth}}
+\toprule
+\textbf{Step} & \textbf{What it teaches} & \textbf{Key outputs} \\
+\midrule
+Build feature table & Targets, features, exclusions, leakage notes, one-hot context variables, and time-based train/test split. & Feature table, feature dictionary, split plan, training rows, testing rows. \\
+Explore features & Summary statistics, class balance, simple correlations, and plots before modeling. & Feature summary, correlation table, class balance, exploration plots, student questions. \\
+Train models & Mean-only regression baseline, linear regression, majority-class baseline, logistic classifier, metrics, predictions, and coefficients. & Regression metrics, classification metrics, predictions, coefficients, model-comparison summary. \\
+Diagnose and document & Prediction plots, residuals, confusion-matrix thinking, model-card writing, and interpretation limits. & Diagnostic plots, diagnostic summary, model card, interpretation guide. \\
+\bottomrule
+\end{longtable}
+
+\begin{programbox}{Beginner Rule}
+The first ML goal is not to build the most accurate model. The first goal is to build a model that can be inspected, compared to a baseline, explained without overclaiming, and rerun by another student.
+\end{programbox}
+
+\section{Guiding Resources}
+
+The \file{ml_resources/} folder contains beginner support files:
+\begin{itemize}
+  \item \file{README.md}: the beginner path and required interpretation rule.
+  \item \file{ml_glossary.csv}: plain-language definitions for target, feature, leakage, baseline, residual, model card, and common metrics.
+  \item \file{ml_workflow_checklist.csv}: a checklist from question to handoff.
+  \item \file{ml_troubleshooting.md}: common beginner problems and how to reason through them.
+  \item \file{model_card_field_guide.md}: what to write in each model-card section.
+\end{itemize}
+
+\section{What Students Should Open First}
+
+After the four scripts run, students should open these files in order:
+\begin{enumerate}
+  \item \file{results/ml/ml_feature_dictionary.csv}. Confirm which variables are targets, predictors, excluded variables, and metadata.
+  \item \file{results/ml/ml_train_test_split_plan.csv}. Explain what the split tests.
+  \item \file{results/ml/ml_exploration_questions.md}. Answer each question in the research log.
+  \item \file{results/ml/ml_regression_metrics.csv}. Compare the linear model to the mean-only baseline.
+  \item \file{results/ml/ml_classification_metrics.csv}. Compare the logistic model to the majority-class baseline.
+  \item \file{results/ml/ml_predictions.csv}. Find rows where the model missed.
+  \item \file{results/ml/ml_model_card.md}. Revise the model card for the student's project.
+\end{enumerate}
+
+\section{Beginner Feature Policy}
+
+The teaching scripts deliberately exclude \code{conductivity_ms_cm} from the beginner salinity and high-salinity models because conductivity is closely related to salinity. That exclusion teaches leakage caution. Conductivity can be added later only as a documented sensitivity model when the research question says it is available and scientifically appropriate.
+
+\section{Advanced Extension After Beginner Mastery}
+
+The advanced extension is required only after the beginner ladder has been fully understood. It should not be used as a shortcut to make a model look more impressive. Before starting the advanced scripts, students must be able to explain the target, the included features, excluded variables, leakage risks, train/test split, baseline comparison, prediction errors, and the beginner model card.
+
+Run these commands from the \file{training_wicced_water_quality/} folder only after the four beginner ML scripts have been completed:
+
+\begin{rcode}
+Rscript scripts/05_ml_01_advanced_validation.R
+Rscript scripts/05_ml_02_permutation_importance_and_sensitivity.R
+Rscript scripts/05_ml_03_advanced_model_report.R
+\end{rcode}
+
+\begin{longtable}{p{0.25\textwidth}p{0.35\textwidth}p{0.30\textwidth}}
+\toprule
+\textbf{Advanced step} & \textbf{What it adds} & \textbf{Key outputs} \\
+\midrule
+Blocked validation & Compares the beginner feature set and sensitivity feature sets under a time holdout and leave-one-site-out folds. & Validation folds, split comparison, validation notes. \\
+Sensitivity and importance & Tests conductivity as a flagged sensitivity feature, skips overfit feature sets, and estimates held-out permutation importance. & Feature-set metrics, permutation importance, sensitivity warnings, sensitivity plots. \\
+Advanced review & Converts advanced outputs into a decision gate and written interpretation. & Advanced model review, decision gate, final recommendations. \\
+\bottomrule
+\end{longtable}
+
+\begin{cautionbox}{Advanced ML Gate}
+An advanced model is not better because it is more complex. It is better only if it improves held-out performance, survives leakage review, remains interpretable, and matches the scientific question. A sensitivity result that improves performance can still be inappropriate for the main analysis.
+\end{cautionbox}
+
+The advanced extension writes outputs to the advanced ML results folder. Students should open the model-review markdown file first, then the decision-gate CSV, then the validation and permutation-importance tables. Any gate marked as requiring review must be resolved before advanced ML outputs appear in a final report.
+
+The \file{ml_resources/advanced_ml_extension_guide.md} file gives the student-facing sequence and interpretation rules for this extension.
+
+\section{Acceptable ML Question Types}
+
+\begin{longtable}{p{0.24\textwidth}p{0.34\textwidth}p{0.32\textwidth}}
+\toprule
+\textbf{Question type} & \textbf{Example} & \textbf{Good first model} \\
+\midrule
+Regression & Predict salinity, dissolved oxygen, nitrate, or chlorophyll from available environmental features. & Mean-only baseline, linear model, regularized model, or tree model with careful validation. \\
+Classification & Classify samples as high-salinity versus lower-salinity using a pre-defined threshold. & Majority-class baseline, logistic regression, decision tree, or random forest if data volume supports it. \\
+Anomaly screening & Flag observations that are unusual relative to the student's dataset. & Rule-based flags first; simple distance or residual screening only after QA/QC. \\
+Feature-set comparison & Compare water-quality variables alone versus water-quality plus source-backed chemical traits. & Same split and same target across feature sets. \\
+Exploratory grouping & Cluster samples or compounds to identify patterns for follow-up. & PCA or clustering as exploratory analysis with no causal claim. \\
+\bottomrule
+\end{longtable}
+
+\section{Leakage Control}
+
+Leakage occurs when information reaches the model that would not be available at prediction time or that directly encodes the target. Leakage makes performance look better than it is.
+
+Common water-quality leakage examples:
+\begin{itemize}
+  \item Predicting salinity while including conductivity if the purpose is to predict salinity without a salinity-related sensor. Conductivity may be valid in some designs, but the relationship must be explicit.
+  \item Including site ID when the train and test sets contain the same sites and the target is mostly site-specific.
+  \item Randomly splitting repeated measurements from the same site/date when the goal is generalization to new dates or sites.
+  \item Including post-treatment, post-event, or manually interpreted variables that would not be available during deployment.
+  \item Including chemical traits that were selected after inspecting the target response.
+\end{itemize}
+
+\section{Split Designs}
+
+\begin{longtable}{p{0.22\textwidth}p{0.34\textwidth}p{0.34\textwidth}}
+\toprule
+\textbf{Split design} & \textbf{Use when} & \textbf{Caution} \\
+\midrule
+Random split & Rows are independent and the question is narrow. & Often too optimistic for repeated site/date data. \\
+Time-based split & The project asks whether earlier data predict later observations. & Seasonal shifts can dominate performance. \\
+Site-holdout split & The project asks whether a model generalizes to new sites. & Requires enough sites and careful interpretation. \\
+Group split & Samples are nested by site, date, batch, instrument run, or treatment. & Groups must be defined before modeling. \\
+Cross-validation & Data are limited but model comparison is needed. & Folds must respect groups if repeated measures exist. \\
+\bottomrule
+\end{longtable}
+
+\section{Metrics}
+
+Regression models should report at least one scale-dependent metric and one visual diagnostic:
+\begin{itemize}
+  \item RMSE: penalizes larger errors.
+  \item MAE: average absolute error in the target unit.
+  \item Test-set observed-versus-predicted plot.
+  \item Residual plot, especially across site/date or predicted value.
+\end{itemize}
+
+Classification models should report:
+\begin{itemize}
+  \item Confusion matrix.
+  \item Accuracy only with class balance reported.
+  \item Sensitivity and specificity when false negatives and false positives matter.
+  \item Threshold used to convert probabilities into classes.
+  \item If probabilities are used, a probability distribution or calibration check.
+\end{itemize}
+
+\section{Feature Engineering Rules}
+
+Feature engineering should be boring, documented, and defensible. Good features are created from measurements or source-backed records that would be available at prediction time. Transformations should be simple unless there is a strong reason.
+
+Rules:
+\begin{itemize}
+  \item Freeze the analysis row set before comparing models.
+  \item Keep raw variables recoverable.
+  \item Record units before scaling or transformation.
+  \item Avoid transformations that depend on the whole dataset if the model would later be deployed.
+  \item Treat missingness as information only when the missingness mechanism is plausible and documented.
+  \item Use source-backed chemical traits only after an evidence audit.
+\end{itemize}
+
+\section{Model Cards}
+
+Every model must have a model card. A model card is a short technical record that states:
+\begin{itemize}
+  \item Project question.
+  \item Prediction target.
+  \item Rows included and excluded.
+  \item Features included.
+  \item Train/test or cross-validation design.
+  \item Baseline model.
+  \item Candidate model.
+  \item Metrics.
+  \item Diagnostic plots.
+  \item Known limitations.
+  \item Use restrictions.
+  \item Recommended next validation step.
+\end{itemize}
+
+\section{Interpretation Language}
+
+Good model wording:
+\begin{itemize}
+  \item ``Under the recorded time-based split, the baseline model predicted salinity with lower test-set MAE than the mean-only baseline.''
+  \item ``The feature importance summary is treated as a hypothesis-generating screen because correlated predictors and site structure can distort apparent importance.''
+  \item ``The classification threshold favors sensitivity, which increases false positives and is appropriate only for screening.''
+\end{itemize}
+
+Weak model wording:
+\begin{itemize}
+  \item ``The model proves which variable causes poor water quality.''
+  \item ``High accuracy means the model is ready for field deployment.''
+  \item ``This feature is important, so it must be the biological mechanism.''
+\end{itemize}

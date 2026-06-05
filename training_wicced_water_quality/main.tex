@@ -1,0 +1,58 @@
+\documentclass[11pt,oneside]{book}
+\input{preamble}
+
+\begin{document}
+\pagenumbering{Alph}
+
+\begin{titlepage}
+\pagecolor{DSULightBlue}
+\begin{center}
+\vspace*{0.35in}
+\CoreLogo
+
+\vspace{0.45in}
+{\Huge\bfseries\color{DSURed} Project WiCCED Water Quality Research Training Manual\par}
+\vspace{0.18in}
+{\Large\bfseries Using uafR, Reproducible R, and Machine Learning to Understand Coastal Water Quality\par}
+\vspace{0.30in}
+{\large An 8-week applied undergraduate research curriculum\par}
+
+\vfill
+\begin{programbox}[width=0.88\textwidth]{Program Promise}
+Students finish with a reproducible water-quality research project, an evidence-backed chemical and environmental data audit, at least one defensible machine-learning model, publication-style figures, a written report, a presentation, and a handoff package that can support continued Project WiCCED work.
+\end{programbox}
+
+\vfill
+{\large Co-advised by Dr. Chase Stratton and Dr. Gulnihal Ozbay\par}
+{\large DSU dsDNA Core and DSU ONE Health Laboratory\par}
+{\large Version 0.1\par}
+{\large \today\par}
+\end{center}
+\end{titlepage}
+\nopagecolor
+
+\frontmatter
+\tableofcontents
+
+\mainmatter
+\include{chapters/program_overview}
+\include{chapters/wicced_context}
+\include{chapters/eight_week_spine}
+\include{chapters/uafr_water_quality_workflows}
+\include{chapters/machine_learning_guidance}
+\include{chapters/lab_compendium}
+\include{worksheets/worksheets}
+\include{rubrics/rubrics}
+\include{program_notes/mentor_guide}
+\include{chapters/completion_standard}
+
+\appendix
+\include{chapters/appendix_scripts}
+
+\backmatter
+\nocite{projectwiccedHome,projectwiccedAbout,projectwiccedResearch,projectwiccedEducation,projectwiccedArchive,ozbayProfile,strattonProfile,uafrPlos,dnrecMonitoring,paudel2022,ozbay2017,yan2024,dnrecMarshMigration}
+\bibliographystyle{plain}
+\bibliography{bibliography/references}
+
+\end{document}
+

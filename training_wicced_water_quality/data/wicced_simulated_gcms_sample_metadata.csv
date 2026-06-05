@@ -1,0 +1,7 @@
+File.Name,Sample.Name,Site.Class,Salinity.Scenario,Water.Quality.Context,Teaching.Signal
+FreshwaterRef_20260601.D,FreshwaterRef_20260601,freshwater_reference,low_salinity,Reference style freshwater sample,Taste odor background signal
+AgDrain_20260601.D,AgDrain_20260601,agricultural_drainage,low_to_moderate_salinity,Agricultural drainage influenced sample,Agricultural screening signal
+UrbanStorm_20260601.D,UrbanStorm_20260601,urban_stormwater,moderate_salinity,Urban stormwater influenced sample,Anthropogenic and urban runoff signal
+TidalTransition_20260601.D,TidalTransition_20260601,tidal_transition,transition_salinity,Freshwater to tidal transition sample,Mixed source signal
+MarshEdge_20260601.D,MarshEdge_20260601,marsh_edge,higher_salinity,Marsh edge organic matter sample,Reduced sulfur and plant volatile signal
+Aquaculture_20260601.D,Aquaculture_20260601,aquaculture_context,higher_salinity,Aquaculture context teaching sample,Taste odor and organic matter signal

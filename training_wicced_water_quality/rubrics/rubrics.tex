@@ -1,0 +1,101 @@
+\chapter{Rubrics}
+
+Rubrics define what counts as acceptable research work in this program. Scores can be adapted, but evidence quality should remain central.
+
+\section{Weekly Deliverables Rubric}
+\begin{longtable}{p{0.18\textwidth}p{0.18\textwidth}p{0.25\textwidth}p{0.25\textwidth}}
+\toprule
+\textbf{Criterion} & \textbf{Weight} & \textbf{Meets standard} & \textbf{Needs revision} \\
+\midrule
+Milestone completion & 30\% & Required products exist and match the week's decision gate. & Missing product, unclear scope, or artifact does not answer the week's question. \\
+Evidence traceability & 25\% & Claims point to source files, tables, figures, or citations. & Claims are broad, unsupported, or source roles are vague. \\
+Reproducibility & 25\% & Scripts rerun from project root and outputs are documented. & Hidden console objects, broken paths, or unclear script order. \\
+Research log & 20\% & Daily decisions, errors, and corrections are recorded. & Log is a summary only and cannot reconstruct work. \\
+\bottomrule
+\end{longtable}
+
+\section{Research Log Rubric}
+\begin{longtable}{p{0.22\textwidth}p{0.34\textwidth}p{0.34\textwidth}}
+\toprule
+\textbf{Level} & \textbf{Description} & \textbf{Evidence} \\
+\midrule
+Excellent & The log is a technical record that another researcher could follow. & Dates, goals, files, commands, errors, decisions, outputs, and next steps are specific. \\
+Acceptable & The log records most work and decisions but misses some details. & Main scripts and outputs are named, but some errors or reasons are incomplete. \\
+Needs revision & The log reads like a diary or task list. & Missing file names, commands, decisions, or evidence. \\
+\bottomrule
+\end{longtable}
+
+\section{Code and Reproducibility Rubric}
+\begin{longtable}{p{0.20\textwidth}p{0.36\textwidth}p{0.34\textwidth}}
+\toprule
+\textbf{Criterion} & \textbf{Meets standard} & \textbf{Needs revision} \\
+\midrule
+Project structure & Raw, processed, results, figures, models, logs, scripts, and reports are separated. & Files are mixed or outputs overwrite raw data. \\
+Script order & README states exact run order and expected outputs. & Scripts must be run by memory or console history. \\
+Paths & Relative paths work from project root. & Absolute machine-specific paths are required. \\
+Session record & R and package versions are recorded. & Software environment is unknown. \\
+\bottomrule
+\end{longtable}
+
+\section{Water-Quality QA/QC Rubric}
+\begin{longtable}{p{0.20\textwidth}p{0.36\textwidth}p{0.34\textwidth}}
+\toprule
+\textbf{Criterion} & \textbf{Meets standard} & \textbf{Needs revision} \\
+\midrule
+Variable definitions & Units, methods, ranges, and caveats are recorded. & Variables are modeled before they are defined. \\
+Flags & Suspicious values are flagged with rules and raw values retained. & Values are deleted or changed without trace. \\
+Missingness & Missingness is summarized by variable and group. & Missing data are ignored. \\
+Interpretation & QA/QC limits appear in results and discussion. & Results assume data are clean without evidence. \\
+\bottomrule
+\end{longtable}
+
+\section{uafR Evidence Traceability Rubric}
+\begin{longtable}{p{0.20\textwidth}p{0.36\textwidth}p{0.34\textwidth}}
+\toprule
+\textbf{Criterion} & \textbf{Meets standard} & \textbf{Needs revision} \\
+\midrule
+Input audit & GC-MS or query inputs are documented and checked. & uafR is run on unclear or malformed input. \\
+Validation & \code{validateCategorateResult()} or saved validation outputs are inspected. & Enrichment outputs are interpreted without validation. \\
+Trait evidence & Matrix or trait features trace to \code{chemicalTraitEvidence()} or an evidence table. & Trait columns are used as black-box variables. \\
+Claim strength & Tentative annotation and database presence are described cautiously. & Claims imply confirmed identity, exposure, toxicity, or mechanism. \\
+\bottomrule
+\end{longtable}
+
+\section{Machine-Learning Rubric}
+\begin{longtable}{p{0.20\textwidth}p{0.36\textwidth}p{0.34\textwidth}}
+\toprule
+\textbf{Criterion} & \textbf{Meets standard} & \textbf{Needs revision} \\
+\midrule
+Target definition & Target is measured, relevant, and not circular. & Target is vague, derived from predictors, or unavailable. \\
+Split design & Split matches intended generalization and leakage risks are addressed. & Random split is used without considering repeated site/date structure. \\
+Baseline comparison & Candidate model is compared to a simple baseline. & Only the preferred model is reported. \\
+Metrics & Metrics match regression or classification task and test set is used. & Training performance or inappropriate metrics drive conclusions. \\
+Model card & Data, features, algorithm, metrics, and limitations are documented. & Model cannot be interpreted without verbal explanation. \\
+Advanced extension & Blocked validation, feature-set sensitivity, permutation importance, and decision gates are interpreted only after the beginner ladder is complete. & Advanced outputs are used to claim superiority without leakage review or split-design discussion. \\
+\bottomrule
+\end{longtable}
+
+\section{Figures and Captions Rubric}
+\begin{longtable}{p{0.20\textwidth}p{0.36\textwidth}p{0.34\textwidth}}
+\toprule
+\textbf{Criterion} & \textbf{Meets standard} & \textbf{Needs revision} \\
+\midrule
+Purpose & Figure answers a specific question. & Figure exists because the data could be plotted. \\
+Technical clarity & Axes, units, groups, sample counts, and missingness are visible. & Labels or units are missing. \\
+Caption & Caption states evidence and limitation. & Caption overclaims or merely repeats the title. \\
+Reproducibility & Figure script and output path are recorded. & Figure cannot be regenerated. \\
+\bottomrule
+\end{longtable}
+
+\section{Final Report and Presentation Rubric}
+\begin{longtable}{p{0.20\textwidth}p{0.36\textwidth}p{0.34\textwidth}}
+\toprule
+\textbf{Criterion} & \textbf{Meets standard} & \textbf{Needs revision} \\
+\midrule
+Question and context & Report clearly links the question to WiCCED water-quality context. & Context is generic or disconnected from analysis. \\
+Methods & Data, QA/QC, uafR settings if used, ML split, metrics, and software are specific. & Methods omit enough detail that rerun is impossible. \\
+Results & Results are tied to figures/tables and avoid unsupported claims. & Results mix interpretation, causation, and speculation. \\
+Discussion & Limitations and next steps are concrete. & Discussion hides uncertainty or overgeneralizes. \\
+Presentation & Central result, evidence, model validity, and limitations are clear. & Slides are crowded, claim-heavy, or disconnected from evidence. \\
+\bottomrule
+\end{longtable}
