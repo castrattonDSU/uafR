@@ -6,6 +6,10 @@
   `resolvePlantPhytochemistry()`, curated intake normalization, provider
   diagnostics, conservative PubMed/PubTator candidate handling, species
   summaries, matrices, validation, scoring, and CSV/XLSX export helpers.
+- Added plant occurrence evidence classification, analysis-ready occurrence
+  flags, biological-context grouping for plant part/tissue/method fields,
+  evidence quality scores, `filterPlantPhytochemistryEvidence()`, and an
+  `exportPlantPhytochemistryWorkbook(preset = "analysis_ready")` export mode.
 - Added live-capable plant provider adapters for KNApSAcK organism lookup,
   conservative LOTUS taxon-evidence parsing, PubChem taxonomy annotations, and
   PubTator candidate chemical co-mentions, all covered by mocked no-network

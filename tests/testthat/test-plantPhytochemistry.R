@@ -141,7 +141,9 @@ test_that("plantPhytochemistrySchema returns core table contracts", {
                     schema$Table))
   occurrence = plantPhytochemistrySchema("PlantCompoundOccurrences")
   expect_true(all(c("species", "compound_name", "evidence_tier",
-                    "confidence") %in% occurrence$Column))
+                    "confidence", "occurrence_status", "analysis_ready",
+                    "plant_part_group", "evidence_quality_score") %in%
+                    occurrence$Column))
 })
 
 test_that("standardizePlantCompoundIntake normalizes curated fallback rows", {
@@ -159,6 +161,40 @@ test_that("standardizePlantCompoundIntake normalizes curated fallback rows", {
   expect_equal(out$compound_name_clean, "salicin")
   expect_equal(out$confidence, "high")
   expect_equal(out$matched_rank, "species")
+  expect_equal(out$occurrence_status, "curated_reported")
+  expect_equal(out$plant_part_group, "bark_wood")
+  expect_equal(out$analysis_ready, "Yes")
+  expect_true(out$evidence_quality_score > 0.9)
+})
+
+test_that("filterPlantPhytochemistryEvidence keeps analysis-ready biological contexts", {
+  intake = data.frame(
+    species = c("Salix nigra", "Salix nigra", "Salix nigra"),
+    compound_name = c("Salicin", "Caffeic acid", "Candidate"),
+    source_database = c("manual", "manual", "PubTator"),
+    citation_or_url = c("https://example.test/1",
+                        "https://example.test/2",
+                        "https://pubmed.ncbi.nlm.nih.gov/1/"),
+    evidence_tier = c("manual_curated", "manual_curated",
+                      "direct_species_pubtator_candidate"),
+    plant_part = c("bark", "leaf", NA),
+    stringsAsFactors = FALSE
+  )
+  occurrences = standardizePlantCompoundIntake(intake)
+  bark = filterPlantPhytochemistryEvidence(
+    occurrences,
+    plant_part_group = "bark_wood"
+  )
+  all_evidence = filterPlantPhytochemistryEvidence(
+    occurrences,
+    occurrence_status = "all",
+    analysis_ready = NULL,
+    min_confidence = NULL
+  )
+  expect_equal(nrow(bark), 1)
+  expect_equal(bark$compound_name_clean, "salicin")
+  expect_true(all(bark$analysis_ready == "Yes"))
+  expect_true(any(all_evidence$occurrence_status == "candidate"))
 })
 
 test_that("resolver reports explicit no-hit diagnostics without fabricating compounds", {
@@ -341,6 +377,8 @@ test_that("summary, matrix, joins, scores, and export work offline", {
                       source_database = "manual",
                       citation_or_url = "https://example.test",
                       evidence_tier = "manual_curated",
+                      plant_part = c("root", "leaf"),
+                      method = c("LC-MS", "GC-MS"),
                       stringsAsFactors = FALSE)
   phyto = resolvePlantPhytochemistry(
     plants = "Zea mays",
@@ -356,18 +394,32 @@ test_that("summary, matrix, joins, scores, and export work offline", {
                                                 group = "crop"),
                                       phyto)
   scores = scorePlantChemistryCandidates(phyto)
+  filtered = filterPlantPhytochemistryEvidence(phyto,
+                                               plant_part_group = "root_belowground")
   tmp = tempfile("plant_phyto_export_")
   manifest = exportPlantPhytochemistryWorkbook(phyto, tmp,
                                                format = "csv",
                                                overwrite = TRUE)
+  tmp_ready = tempfile("plant_phyto_export_ready_")
+  ready_manifest = exportPlantPhytochemistryWorkbook(phyto, tmp_ready,
+                                                     format = "csv",
+                                                     preset = "analysis_ready",
+                                                     overwrite = TRUE)
   manifest_file = manifest$FileName[manifest$Table == "ExportManifest"]
 
   expect_equal(summary$compound_count, 2)
+  expect_equal(summary$analysis_ready_compound_count, 2)
+  expect_true(summary$mean_evidence_quality_score > 0.9)
   expect_true(any(grepl("^compound__", names(matrix))))
+  expect_true(any(grepl("^plant_part__", names(matrix))))
+  expect_equal(nrow(filtered$PlantCompoundOccurrences), 1)
+  expect_equal(filtered$PlantCompoundOccurrences$plant_part_group,
+               "root_belowground")
   expect_equal(joined$group, "crop")
   expect_true(scores$chemistry_priority_score >= 0)
   expect_true(file.exists(file.path(tmp, manifest_file)))
   expect_true("PlantCompoundOccurrences" %in% manifest$Table)
+  expect_true("PlantCompoundOccurrences" %in% ready_manifest$Table)
 })
 
 test_that("validation catches missing columns and duplicate evidence keys", {

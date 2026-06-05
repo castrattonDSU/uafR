@@ -164,13 +164,39 @@ phyto$SpeciesChemistrySummary
 phyto$PlantCompoundOccurrences
 validatePlantPhytochemistryResult(phyto)$Summary
 
+# Direct species database records and curated rows are analysis-ready by
+# default. Literature co-mentions and genus/family fallbacks remain available
+# for review but are not treated as analysis-ready occurrence evidence.
+analysis_ready = filterPlantPhytochemistryEvidence(phyto)
+
+# Restrict analyses to compounds reported from a known biological context when
+# that metadata is available. Supported groups include root_belowground, leaf,
+# stem_shoot, bark_wood, flower, fruit_seed, aerial, whole_plant, and
+# exudate_rhizosphere.
+leaf_records = filterPlantPhytochemistryEvidence(
+  phyto,
+  plant_part_group = "leaf"
+)
+
 exportPlantPhytochemistryWorkbook(
   phyto,
   path = "plant_phytochemistry_export",
   format = "csv",
   overwrite = TRUE
 )
+
+exportPlantPhytochemistryWorkbook(
+  phyto,
+  path = "plant_phytochemistry_analysis_ready_export",
+  format = "csv",
+  preset = "analysis_ready",
+  overwrite = TRUE
+)
 ```
+
+Use the full export for audit/provenance and the analysis-ready preset for
+downstream matrices or figures where candidate co-mentions and taxon fallbacks
+should be excluded.
 
 For quick species-first discovery without a library, omit `chemical_library`.
 This produces PubChem-only enrichment and skips FMCS library matching:
@@ -198,7 +224,9 @@ curated = data.frame(
   compound_name = "salicin",
   source_database = "manual",
   citation_or_url = "https://example.org/source",
-  evidence_tier = "manual_curated"
+  evidence_tier = "manual_curated",
+  plant_part = "bark",
+  method = "LC-MS"
 )
 
 occurrences = standardizePlantCompoundIntake(curated)

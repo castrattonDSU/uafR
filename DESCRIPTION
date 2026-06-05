@@ -23,6 +23,12 @@ Authors@R: c(
           "Murrell", 
           role = "aut", 
           email = "murrell@landinstitute.org"))
+Author: Chase Stratton [aut, cre],
+    Yvonne Thompson [aut],
+    Konilo Zio [aut],
+    William Morrison [aut],
+    Ebony Murrell [aut]
+Maintainer: Chase Stratton <cstratton@desu.edu>
 Description: This R package automates chemical processing for tentative chemical identities in mass spectrometry workflows. It includes a powerful set of functions that make chemical interpretations accurate and efficient.
 License: MIT + file LICENSE
 URL: https://github.com/castrattonDSU/uafR,

@@ -9,6 +9,7 @@ exportPlantPhytochemistryWorkbook(
   path,
   format = c("auto", "xlsx", "csv"),
   tables = NULL,
+  preset = c("all", "analysis_ready"),
   include_empty = TRUE,
   overwrite = FALSE,
   max_cell_chars = 30000
@@ -23,6 +24,10 @@ exportPlantPhytochemistryWorkbook(
 \item{format}{One of `"csv"`, `"xlsx"`, or `"auto"`.}
 
 \item{tables}{Optional table names to export.}
+
+\item{preset}{One of `"all"` or `"analysis_ready"`. The latter filters to
+direct/curated analysis-ready occurrence evidence before export while
+preserving validation and provenance tables.}
 
 \item{include_empty}{Logical. If `TRUE`, include empty schema tables.}
 

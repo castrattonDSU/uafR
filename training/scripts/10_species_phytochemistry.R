@@ -8,10 +8,15 @@
 run_species_phytochemistry_smoke <- function(output_dir = NULL,
                                              cache_dir = NULL) {
   if (!requireNamespace("uafR", quietly = TRUE)) {
-    stop("uafR is not installed.", call. = FALSE)
+    if (file.exists("DESCRIPTION") && requireNamespace("devtools", quietly = TRUE)) {
+      devtools::load_all(".", quiet = TRUE)
+    } else {
+      stop("uafR is not installed. Install uafR or run this script from the ",
+           "uafR source tree with devtools available.", call. = FALSE)
+    }
+  } else {
+    library(uafR)
   }
-
-  library(uafR)
 
   plants <- c("Salix nigra", "Camellia sinensis", "Zea mays")
   curated <- data.frame(
@@ -23,6 +28,7 @@ run_species_phytochemistry_smoke <- function(output_dir = NULL,
                         "training example"),
     evidence_tier = c("manual_curated", "manual_curated", "manual_curated"),
     plant_part = c("bark", "leaf", "seedling"),
+    method = c("LC-MS", "GC-MS", "LC-MS"),
     evidence_note = c(
       "Simulated training row for the curated intake workflow.",
       "Simulated training row for the curated intake workflow.",
@@ -40,6 +46,7 @@ run_species_phytochemistry_smoke <- function(output_dir = NULL,
   )
 
   validation <- validatePlantPhytochemistryResult(phyto)
+  analysis_ready <- filterPlantPhytochemistryEvidence(phyto)
   matrix <- plantPhytochemistryMatrix(phyto, mode = "binary")
   scores <- scorePlantChemistryCandidates(phyto)
 
@@ -47,6 +54,7 @@ run_species_phytochemistry_smoke <- function(output_dir = NULL,
           "because live compound enrichment is disabled.")
   print(validation$Summary)
   print(phyto$SpeciesChemistrySummary)
+  print(analysis_ready$PlantCompoundOccurrences)
   print(matrix)
   print(scores)
 
@@ -56,6 +64,13 @@ run_species_phytochemistry_smoke <- function(output_dir = NULL,
       phyto,
       path = file.path(output_dir, "plant_phytochemistry_export"),
       format = "csv",
+      overwrite = TRUE
+    )
+    exportPlantPhytochemistryWorkbook(
+      phyto,
+      path = file.path(output_dir, "plant_phytochemistry_analysis_ready_export"),
+      format = "csv",
+      preset = "analysis_ready",
       overwrite = TRUE
     )
   }
