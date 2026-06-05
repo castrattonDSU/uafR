@@ -179,7 +179,19 @@ test_that("live provider adapters normalize mocked public responses", {
       return(list(results = list(list(
         name = "salicin",
         lotus_id = "LTS000001",
+        organism = list(value = "Salix nigra",
+                        cleaned_organism_id = "75706"),
+        taxonomy = list(ncbi = list(cleaned_organism_id = "75706",
+                                    organism_value = "Salix nigra",
+                                    species = "Salix nigra")),
+        reference = "PMID:12345678"
+      ), list(
+        name = "salicin",
+        lotus_id = "LTS000002",
         organism = "Salix nigra",
+        plant_part = "leaf",
+        tissue = "leaf",
+        method = "GC-MS",
         reference = "PMID:12345678"
       ))))
     }
@@ -234,6 +246,13 @@ test_that("live provider adapters normalize mocked public responses", {
   expect_true(any(phyto$PlantCompoundOccurrences$compound_id == "439503"))
   expect_true(all(phyto$PlantCompoundOccurrences$evidence_tier ==
                     "direct_species_database"))
+  lotus = phyto$PlantCompoundOccurrences[
+    phyto$PlantCompoundOccurrences$source_database == "LOTUS", ,
+    drop = FALSE
+  ]
+  expect_true(any(is.na(lotus$plant_part)))
+  expect_true(any(lotus$plant_part == "leaf", na.rm = TRUE))
+  expect_false(any(grepl("^[0-9]+$", lotus$plant_part)))
 })
 
 test_that("resolver combines mocked provider rows and conservative literature candidates", {

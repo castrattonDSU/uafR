@@ -2464,9 +2464,9 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       reference_id = record_id,
       pmid = .plant_first_pattern(flat, "\\b\\d{7,9}\\b"),
       doi = .plant_first_pattern(flat, "10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+"),
-      plant_part = .plant_first_named(flat, "part|organ|tissue"),
-      tissue = .plant_first_named(flat, "tissue"),
-      method = .plant_first_named(flat, "method|analysis|technique"),
+      plant_part = .plant_lotus_plant_part(flat),
+      tissue = .plant_lotus_tissue(flat),
+      method = .plant_lotus_method(flat),
       occurrence_type = "database_taxon_record",
       retrieved_at = .plant_timestamp(),
       confidence = ifelse(matched_rank == "species", "high", "medium"),
@@ -2962,6 +2962,65 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 .plant_first_named = function(flat, pattern) {
   values = flat[grepl(pattern, names(flat), ignore.case = TRUE)]
   .uaf_first_non_empty_text(values)
+}
+
+.plant_first_named_filtered = function(flat, include, exclude = NA_character_) {
+  nm = names(flat)
+  keep = grepl(include, nm, ignore.case = TRUE, perl = TRUE)
+  if (!is.na(exclude)) {
+    keep = keep & !grepl(exclude, nm, ignore.case = TRUE, perl = TRUE)
+  }
+  values = flat[keep]
+  if (length(values) < 1) return(NA_character_)
+  for (value in unname(values)) {
+    value = .uaf_first_non_empty_text(value)
+    if (is.na(value) || value == "") next
+    if (grepl("^[0-9]+$", value)) next
+    if (grepl("^https?://", value, ignore.case = TRUE)) next
+    return(value)
+  }
+  NA_character_
+}
+
+.plant_lotus_context_exclude = function() {
+  paste(c("organism", "taxonomy", "taxon", "kingdom", "phylum", "classx",
+          "family", "genus", "species", "cleaned_organism_id", "wikidata",
+          "reference", "pubchemfingerprint", "fragment",
+          "chemicaltaxonomy"), collapse = "|")
+}
+
+.plant_lotus_plant_part = function(flat) {
+  .plant_first_named_filtered(
+    flat,
+    paste(c("(^|[._])plant[_ ]?part([._]|$)",
+            "(^|[._])plantpart([._]|$)",
+            "(^|[._])part[_ ]?used([._]|$)",
+            "(^|[._])partused([._]|$)",
+            "(^|[._])sample[_ ]?organ([._]|$)",
+            "(^|[._])sample[_ ]?part([._]|$)",
+            "(^|[._])material([._]|$)"), collapse = "|"),
+    .plant_lotus_context_exclude()
+  )
+}
+
+.plant_lotus_tissue = function(flat) {
+  .plant_first_named_filtered(
+    flat,
+    paste(c("(^|[._])tissue([._]|$)",
+            "(^|[._])sample[_ ]?tissue([._]|$)"), collapse = "|"),
+    .plant_lotus_context_exclude()
+  )
+}
+
+.plant_lotus_method = function(flat) {
+  .plant_first_named_filtered(
+    flat,
+    paste(c("(^|[._])method([._]|$)",
+            "(^|[._])analysis([._]|$)",
+            "(^|[._])technique([._]|$)",
+            "(^|[._])instrument([._]|$)"), collapse = "|"),
+    "chemicaltaxonomy|pubchemfingerprint|fragment"
+  )
 }
 
 .plant_first_pattern = function(values, pattern) {
