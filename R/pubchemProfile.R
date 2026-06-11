@@ -276,20 +276,31 @@ print.uaf_pubchem_profile = function(x, ...) {
     cid = NA_character_
     url = NA_character_
     queried_name = NA_character_
+    query_endpoint = NA_character_
     for (alias in aliases) {
-      url = paste0(.pubchem_base_url(), "/pug/compound/name/",
+      endpoint = if (.uaf_is_inchikey(alias)) "inchikey" else "name"
+      url = paste0(.pubchem_base_url(), "/pug/compound/", endpoint, "/",
                    .pubchem_encode_path(alias), "/cids/JSON")
       json = fetch(url)
       cid = tryCatch(json$IdentifierList$CID[[1]], error = function(error) NA)
       cid = .uaf_first_non_empty_text(cid)
       queried_name = alias
+      query_endpoint = endpoint
       if (!is.na(cid)) break
+    }
+    match_status = if (is.na(cid)) {
+      "not_found"
+    } else if (identical(query_endpoint, "inchikey")) {
+      ifelse(identical(queried_name, compound), "resolved_inchikey",
+             "resolved_inchikey_alias")
+    } else if (identical(queried_name, compound)) {
+      "resolved"
+    } else {
+      "resolved_alias"
     }
     data.frame(Query = compound,
                CID = suppressWarnings(as.integer(cid)),
-               MatchStatus = ifelse(is.na(cid), "not_found",
-                                    ifelse(identical(queried_name, compound),
-                                           "resolved", "resolved_alias")),
+               MatchStatus = match_status,
                QueriedName = queried_name,
                SourceURL = url,
                stringsAsFactors = FALSE)

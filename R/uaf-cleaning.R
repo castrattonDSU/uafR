@@ -118,7 +118,29 @@
   value
 }
 
+.uaf_is_inchikey = function(query) {
+  query = .uaf_squish_text(query)
+  length(query) == 1 &&
+    !is.na(query) &&
+    grepl("^[A-Z]{14}-[A-Z]{10}-[A-Z]$", query)
+}
+
+.uaf_get_cid_from_inchikey = function(query) {
+  url = paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchikey/",
+               utils::URLencode(query, reserved = TRUE),
+               "/cids/JSON")
+  result = tryCatch({
+    json = jsonlite::fromJSON(url, simplifyVector = FALSE)
+    json$IdentifierList$CID[[1]]
+  }, error = function(error) NA_character_)
+  .uaf_extract_cid(result)
+}
+
 .uaf_get_cid = function(query, from = NULL) {
+  if (is.null(from) && .uaf_is_inchikey(query)) {
+    cid = .uaf_get_cid_from_inchikey(query)
+    if (!is.na(cid)) return(cid)
+  }
   cid_result = tryCatch({
     if (is.null(from)) {
       webchem::get_cid(query)

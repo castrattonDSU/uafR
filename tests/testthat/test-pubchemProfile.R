@@ -168,6 +168,48 @@ test_that("pubchemProfile returns structured profile tables from PubChem respons
   expect_true(nrow(profile$provenance) > 0)
 })
 
+test_that("pubchemProfile resolves InChIKey queries through the InChIKey endpoint", {
+  inchikey = "GWCVYMLSGTZAHQ-HNNXBMFYSA-N"
+  request_fun = function(url) {
+    if (grepl("/pug/compound/name/", url)) {
+      stop("InChIKey query should not use the name endpoint")
+    }
+    if (grepl("/pug/compound/inchikey/GWCVYMLSGTZAHQ-HNNXBMFYSA-N/cids/JSON$",
+              url)) {
+      return(list(IdentifierList = list(CID = list(162905822))))
+    }
+    if (grepl("/property/", url)) {
+      return(list(PropertyTable = list(Properties = list(list(
+        CID = 162905822,
+        Title = "Fixture InChIKey compound",
+        MolecularFormula = "C22H23NO6",
+        InChIKey = inchikey,
+        CanonicalSMILES = "COc1ccccc1",
+        IsomericSMILES = "COc1ccccc1"
+      )))))
+    }
+    if (grepl("/synonyms/JSON$", url)) {
+      return(list(InformationList = list(Information = list(list(
+        CID = 162905822,
+        Synonym = list("fixture compound")
+      )))))
+    }
+    list()
+  }
+
+  profile = pubchemProfile(
+    inchikey,
+    profile = "minimal",
+    include_annotations = FALSE,
+    request_fun = request_fun
+  )
+
+  expect_equal(profile$identity$CID, 162905822)
+  expect_equal(profile$identity$MatchStatus, "resolved_inchikey")
+  expect_match(profile$identity$SourceURL, "/compound/inchikey/")
+  expect_equal(profile$properties$InChIKey, inchikey)
+})
+
 test_that("pubchemProfile validates empty compound input", {
   expect_error(pubchemProfile(c("", NA), request_fun = fixture_pubchem_request),
                "at least one non-empty")

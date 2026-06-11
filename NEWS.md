@@ -32,6 +32,12 @@
   labels are retained in `plantCompoundIdentityReviewTable()` instead of being
   silently accepted. Completed review worksheets can be replayed with
   `applyPlantCompoundIdentityReview()` for reproducible identity curation.
+- Added core PubChem Fingerprint2D Tanimoto workflows with
+  `chemicalTanimotoSimilarity()` and `plantChemicalTanimotoSimilarity()`.
+  These functions compute source-labeled compound-compound similarity, plant or
+  group pair summaries, and optional streamed cross-group compound-pair files
+  for downstream analyses such as plant chemistry and phylogenetic similarity
+  comparisons.
 - Added a comparable-chemistry layer for plant workflows with
   `plantChemistryComparability()` and `plantComparableChemistryMatrix()` so
   primary metabolites, specialized metabolites, volatile-specialized chemistry,

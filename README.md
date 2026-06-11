@@ -293,6 +293,47 @@ Use the full export for audit/provenance and the analysis-ready preset for
 downstream matrices or figures where candidate co-mentions and taxon fallbacks
 should be excluded.
 
+Use structural Tanimoto similarity when the question is molecular resemblance,
+not shared database traits. `chemicalTraitSimilarity()` compares normalized
+traits from categorate enrichment. `chemicalTanimotoSimilarity()` and
+`plantChemicalTanimotoSimilarity()` compare PubChem Fingerprint2D bit vectors
+and report true compound-pair structural similarity. The plant helper keeps
+species names, compound IDs, evidence tiers, and plant context attached so the
+result can be joined directly to phylogenetic, ecological, remediation, or
+sample-similarity analyses.
+
+``` r
+# Pairwise molecular similarity for a plant phytochemistry result. For small
+# projects, the pairwise tables can be returned in memory.
+plant_tanimoto = plantChemicalTanimotoSimilarity(
+  phyto,
+  cache = TRUE,
+  cache_dir = "uafR_plant_cache/tanimoto",
+  return_group_compound_pairs = FALSE
+)
+
+plant_tanimoto$PlantPairTanimotoSummary[, c(
+  "species_a", "species_b", "compound_pair_count",
+  "shared_compound_count", "mean_tanimoto", "median_tanimoto",
+  "p95_tanimoto", "max_tanimoto",
+  "compound_pair_count_ge_0_85"
+)]
+
+# For larger plant panels, stream the large pairwise tables to compressed CSV
+# files and keep the compact species-pair summary in the returned object.
+plant_tanimoto = plantChemicalTanimotoSimilarity(
+  phyto,
+  cache = TRUE,
+  cache_dir = "uafR_plant_cache/tanimoto",
+  out_dir = "plant_tanimoto_export",
+  return_compound_pairs = TRUE,
+  return_group_compound_pairs = TRUE
+)
+
+plant_tanimoto$ExportManifest
+plant_tanimoto$PlantPairTanimotoSummary
+```
+
 Use the comparability layer before clustering, ordination, scoring, or group
 comparisons. `metabolite` is a broad biological term, while `volatile`
 describes an analytical or physicochemical fraction; those should not be
