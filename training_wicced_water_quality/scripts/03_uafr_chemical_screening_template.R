@@ -1,12 +1,29 @@
 message("WiCCED simulated GC-MS uafR-compatible pipeline")
 
-cmd_file <- grep("^--file=", commandArgs(FALSE), value = TRUE)
-script_dir <- if (length(cmd_file) > 0) {
-  dirname(normalizePath(sub("^--file=", "", cmd_file[[1]]), mustWork = FALSE))
-} else {
-  getwd()
+locate_manual_dir <- function() {
+  cmd_file <- grep("^--file=", commandArgs(FALSE), value = TRUE)
+  candidates <- character()
+  if (length(cmd_file) > 0) {
+    script_path <- normalizePath(sub("^--file=", "", cmd_file[[1]]), mustWork = FALSE)
+    candidates <- c(candidates, dirname(dirname(script_path)), dirname(script_path))
+  }
+  candidates <- c(
+    candidates,
+    getwd(),
+    dirname(getwd()),
+    file.path(getwd(), "training_wicced_water_quality")
+  )
+  for (candidate in unique(candidates)) {
+    if (dir.exists(file.path(candidate, "scripts")) &&
+        dir.exists(file.path(candidate, "data")) &&
+        file.exists(file.path(candidate, "README.md"))) {
+      return(normalizePath(candidate, mustWork = FALSE))
+    }
+  }
+  normalizePath(getwd(), mustWork = FALSE)
 }
-manual_dir <- dirname(script_dir)
+
+manual_dir <- locate_manual_dir()
 data_dir <- file.path(manual_dir, "data")
 
 args <- commandArgs(trailingOnly = TRUE)

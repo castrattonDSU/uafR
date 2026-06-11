@@ -20,6 +20,6 @@ A data frame with 2432 rows and 7 columns:
 published_data
 }
 \description{
-A data frame containing raw output from Agilent's Unknowns Analysis.
+A data frame containing raw output from Agilent's Unknowns Analysis
 }
 \keyword{datasets}

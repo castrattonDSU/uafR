@@ -1,9 +1,13 @@
 args <- commandArgs(trailingOnly = TRUE)
 input <- if (length(args) >= 1) args[[1]] else file.path("data", "wicced_teaching_water_quality.csv")
 if (!file.exists(input)) {
-  alt <- file.path("training_wicced_water_quality", "data", "wicced_teaching_water_quality.csv")
-  if (file.exists(alt)) {
-    input <- alt
+  candidates <- c(
+    file.path("training_wicced_water_quality", "data", "wicced_teaching_water_quality.csv"),
+    file.path(dirname(getwd()), "data", "wicced_teaching_water_quality.csv")
+  )
+  hits <- candidates[file.exists(candidates)]
+  if (length(hits) > 0) {
+    input <- hits[[1]]
   }
 }
 if (!file.exists(input)) {

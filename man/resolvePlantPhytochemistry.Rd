@@ -13,12 +13,17 @@ resolvePlantPhytochemistry(
   detail = c("research", "full", "none"),
   cache = TRUE,
   cache_dir = NULL,
+  lotus_index = Sys.getenv("UAFR_LOTUS_INDEX", ""),
   throttle = 0.2,
   ncbi_email = Sys.getenv("NCBI_EMAIL", ""),
   ncbi_tool = Sys.getenv("NCBI_TOOL", "uafR"),
   ncbi_api_key = Sys.getenv("NCBI_API_KEY", ""),
   max_pubmed_records = 50,
   max_provider_records = max_pubmed_records,
+  request_timeout = 30,
+  enrich_context = FALSE,
+  context_sources = NULL,
+  max_context_sources = 100,
   min_confidence = "medium",
   enrichment_batch_size = Inf,
   resume_enrichment = TRUE,
@@ -63,6 +68,13 @@ analysis tables without FMCS library matching.}
 \item{cache_dir}{Cache directory. Defaults to a uafR cache directory when
 needed.}
 
+\item{lotus_index}{Optional local LOTUS index as a data frame, path to a
+CSV, TSV, JSON, JSONL, NDJSON, or RDS file, or manifest-backed lookup
+directory produced by `tools/flatten_lotus_mongo_dump.py --lookup-dir`. When
+supplied and `"lotus"` is enabled, uafR queries this local index instead of
+the live LOTUS simple API. Lookup directories are the recommended path for
+hundreds of plant names.}
+
 \item{throttle}{Seconds to wait between uncached provider requests.}
 
 \item{ncbi_email}{Optional NCBI email. Defaults to `Sys.getenv("NCBI_EMAIL")`.}
@@ -78,6 +90,23 @@ in result tables.}
 
 \item{max_provider_records}{Maximum occurrence rows to retain per plant from
 non-PubMed provider adapters.}
+
+\item{request_timeout}{Maximum seconds allowed for an uncached provider
+request before the underlying R connection times out. Cached and mocked
+requests are not delayed by this setting.}
+
+\item{enrich_context}{Logical. If `TRUE`, attempt source-backed PubMed
+context enrichment for occurrence rows that have PMID or DOI provenance.
+This can add plant-part, tissue, or method context only when source text
+contains the relevant terms; it does not fabricate missing context.}
+
+\item{context_sources}{Optional source text table, such as
+`LiteratureCandidates` or a data frame with `pmid`, `doi`, `title`,
+`abstract`, and `evidence_text`, used for source-backed context enrichment
+without live requests.}
+
+\item{max_context_sources}{Maximum unique PMID/DOI records to fetch when
+`enrich_context = TRUE`.}
 
 \item{min_confidence}{Minimum confidence for summary/matrix features.}
 

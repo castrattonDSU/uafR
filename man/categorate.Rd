@@ -27,20 +27,20 @@ categorate(
 
 \item{chemical_library}{A data frame containing columns with chemical
 groups. Column names label the group while the rows contain chemicals
-that are described by the label. Use \code{data("library_data", package = "uafR")}
+that are described by the label. Use `data("library_data", package = "uafR")`
 to load the bundled example library.}
 
 \item{input_format}{Designates the data structure for input library
 (`chemical_library`). Default setting is "wide" can be changed to "long."}
 
-\item{detail}{One of \code{"standard"}, \code{"research"}, or \code{"full"}.
-\code{"standard"} returns the original eight output tables. \code{"research"}
-appends tidy PubChem and KEGG enrichment tables, source coverage, and derived
-grouping columns. \code{"full"} additionally requests broader PubChem
-annotations and assay summary data.}
+\item{detail}{One of `"standard"`, `"research"`, or `"full"`. `"standard"`
+returns the original eight output tables. `"research"` appends tidy PubChem
+and KEGG enrichment tables, source coverage, and derived grouping columns.
+`"full"` additionally requests broader PubChem annotations and assay summary
+data.}
 
-\item{cache}{Logical. If \code{TRUE}, enrichment requests are cached. Only used
-when \code{detail} is \code{"research"} or \code{"full"}.}
+\item{cache}{Logical. If `TRUE`, enrichment requests are cached. Only used
+when `detail` is `"research"` or `"full"`.}
 
 \item{cache_dir}{Directory for cached enrichment responses. Defaults to a
 user-cache location when available.}
@@ -48,92 +48,86 @@ user-cache location when available.}
 \item{throttle}{Seconds to wait between uncached enrichment requests.}
 
 \item{assay_detail_limit}{Maximum number of unique PubChem BioAssay AIDs per
-query for which assay-description metadata is fetched when \code{detail} is
-\code{"full"}. Active, numeric, and target-bearing assays are prioritized. Set
-to \code{0} to skip assay-description requests.}
+query for which assay-description metadata is fetched when `detail = "full"`.
+Active, numeric, and target-bearing assays are prioritized. Set to `0` to skip
+assay-description requests.}
 
-\item{trait_matrix_profile}{Trait profile used to build
-\code{ChemicalTraitMatrix}. Defaults to \code{"core"} for a compact
-cross-domain matrix. Use \code{chemicalTraitMatrix(result, profile = "full")} to
-rebuild wider matrices from \code{ChemicalTraits} without repeating database
-requests.}
+\item{trait_matrix_profile}{Trait profile used to build `ChemicalTraitMatrix`.
+Defaults to `"core"` for a compact cross-domain matrix. Use
+`chemicalTraitMatrix(result, profile = "full")` to rebuild wider matrices from
+`ChemicalTraits` without repeating database requests.}
 
-\item{trait_matrix_mode}{Matrix value mode for \code{ChemicalTraitMatrix}:
-\code{"binary"} for 0/1 presence, \code{"count"} for trait-row counts, or
-\code{"confidence"} for the maximum trait confidence score.}
+\item{trait_matrix_mode}{Matrix value mode for `ChemicalTraitMatrix`: `"binary"`
+for 0/1 presence, `"count"` for trait-row counts, or `"confidence"` for the
+maximum trait confidence score.}
 
 \item{trait_matrix_min_confidence}{Minimum confidence required for traits in
-\code{ChemicalTraitMatrix}. Accepts a numeric score or \code{"low"},
-\code{"medium"}, or \code{"high"}.}
+`ChemicalTraitMatrix`. Accepts a numeric score or `"low"`, `"medium"`, or
+`"high"`.}
 
 \item{trait_matrix_max_traits}{Maximum number of trait columns to include in
-\code{ChemicalTraitMatrix}, ranked by prevalence and confidence. Defaults to
-\code{Inf}.}
+`ChemicalTraitMatrix`, ranked by prevalence and confidence. Defaults to
+`Inf`.}
 
 \item{request_fun}{Optional PubChem request function for tests and advanced
-users. Only used when \code{detail} is \code{"research"} or \code{"full"}.}
+users. Only used when `detail` is `"research"` or `"full"`.}
 
 \item{kegg_request_fun}{Optional KEGG request function for tests and advanced
-users. Only used when \code{detail} is \code{"research"} or \code{"full"}.}
+users. Only used when `detail` is `"research"` or `"full"`.}
 }
 \value{
-List with at least 8 data frames: \code{reactives}, \code{LOTUS}, \code{KEGG},
-\code{FEMA}, \code{FDA_SPL}, \code{FMCS}, \code{FunctionalGroups}, and
-\code{BestChemMatch}. Database tables store extracted source annotations by
-chemical; \code{FMCS} stores atomic and molecular sub-group summaries;
-\code{FunctionalGroups} stores strong (similarity > 0.95) or moderate
-(similarity > 0.85) matches with input library groups; and
-\code{BestChemMatch} stores top chemicals from groups a chemical shared a
-strong match with. With \code{detail = "research"} or \code{detail = "full"},
-the list also includes PubChem and KEGG enrichment tables:
-\code{PubChemIdentity}, \code{PubChemProperties}, \code{PubChemSynonyms},
-\code{PubChemAnnotations}, \code{PubChemSourceAnnotations},
-\code{PubChemSpectra}, \code{PubChemSafety}, \code{PubChemExperimental},
-\code{PubChemBioactivity}, \code{PubChemIdentifiers},
-\code{SafetyProfile}, \code{FEMAProfile}, \code{FDA_SPL_Profile},
-\code{LOTUSProfile}, \code{PubChemClassifications}, \code{MeSHProfile},
-\code{LiteratureProfile}, \code{ChemicalTerms}, \code{ChemicalTraits},
-\code{ChemicalTraitOntology}, \code{ChemicalTraitMatrix},
-\code{ChemicalTraitOntologyMatrix}, \code{ChemicalTraitEvidence},
-\code{ChemicalTraitReport}, \code{ChemicalTraitSummary}, \code{ChemicalTraitSimilarity},
-\code{ChemicalClasses}, \code{ChemicalMeasurements},
-\code{ChemicalMeasurementSummary}, \code{ChemicalHazards}, \code{ChemicalUses},
-\code{ChemicalBioassays}, \code{ChemicalBioactivities},
-\code{ChemicalTargets}, \code{ChemicalPotencies}, \code{PubChemBioAssayDetails},
-\code{ChemicalTaxonomy},
-\code{ChemicalOccurrences},
-\code{ChemicalPathwayRoles}, \code{KEGGReactionParticipants},
-\code{KEGGMatches}, \code{KEGGRecords}, \code{KEGGIdentifiers},
-\code{KEGGPathways}, \code{KEGGReactions}, \code{KEGGEnzymes},
-\code{KEGGModules}, \code{KEGGLinks}, \code{KEGGLinkMetadata},
-\code{KEGGClassifications}, \code{SourceCoverage}, \code{DerivedGroups},
-\code{Provenance}, \code{DataDictionary}, \code{TableQuality},
-\code{SourceDiagnostics}, \code{ValidationIssues}, and
-\code{ValidationSummary}. The normalized \code{Chemical*} tables split source evidence
-into discrete terms, traits, classes, measurements, standardized measurement
-summaries, hazards, uses, taxonomy fields, bioactivity calls, assay targets,
-potency values, organism occurrences,
-pathway roles, and reaction participants for grouping and comparative analysis.
-\code{ChemicalTraits} provides a cross-source long-form trait vocabulary.
-\code{ChemicalTraitOntology} maps whitelisted discrete traits to controlled
-ontology domains and groups while preserving source evidence and source-backed
-identifiers where available.
-\code{ChemicalTraitMatrix} and \code{ChemicalTraitOntologyMatrix} provide
-compact binary wide matrices for filtering, clustering, ordination, heatmaps,
-and model inputs. Use \code{chemicalTraitMatrix()} and
-\code{chemicalTraitOntologyMatrix()} to rebuild full, confidence-weighted, or
-capped matrices without rerunning web requests. \code{ChemicalTraitEvidence}
-and \code{chemicalTraitEvidence()} trace matrix and ontology keys back to source
-evidence, IDs, URLs, extraction rules, and confidence values.
-\code{ChemicalTraitReport} and \code{chemicalTraitReport()} provide one compact,
-researcher-facing row per compound with domain signals, evidence coverage,
-identifiers, and nearest ontology neighbors. \code{ChemicalTraitSummary}
+List with at least 8 data frames: `reactives`, `LOTUS`, `KEGG`, `FEMA`,
+`FDA_SPL`, `FMCS`, `FunctionalGroups`, and `BestChemMatch`. Database
+tables store extracted source annotations by chemical; `FMCS` stores atomic
+and molecular sub-group summaries; `FunctionalGroups` stores strong
+(similarity > 0.95) or moderate (similarity > 0.85) matches with input
+library groups; and `BestChemMatch` stores top chemicals from groups a
+chemical shared a strong match with. With `detail = "research"` or
+`detail = "full"`, the list also includes PubChem and KEGG enrichment tables:
+`PubChemIdentity`, `PubChemProperties`, `PubChemSynonyms`,
+`PubChemAnnotations`, `PubChemSourceAnnotations`, `PubChemSpectra`,
+`PubChemSafety`, `PubChemExperimental`, `PubChemBioactivity`,
+`PubChemIdentifiers`, `SafetyProfile`, `FEMAProfile`, `FDA_SPL_Profile`,
+`LOTUSProfile`, `PubChemClassifications`, `MeSHProfile`, `LiteratureProfile`,
+`ChemicalTerms`, `ChemicalTraits`, `ChemicalTraitOntology`,
+`ChemicalTraitMatrix`, `ChemicalTraitOntologyMatrix`,
+`ChemicalTraitEvidence`, `ChemicalTraitReport`, `ChemicalTraitSummary`,
+`ChemicalTraitSimilarity`, `ChemicalClasses`,
+`ChemicalMeasurements`,
+`ChemicalMeasurementSummary`, `ChemicalHazards`, `ChemicalUses`, `ChemicalBioassays`,
+`ChemicalBioactivities`, `ChemicalTargets`, `ChemicalPotencies`,
+`ChemicalTaxonomy`,
+`ChemicalOccurrences`,
+`ChemicalPathwayRoles`, `KEGGReactionParticipants`,
+`KEGGMatches`, `KEGGRecords`, `KEGGIdentifiers`, `KEGGPathways`,
+`KEGGReactions`, `KEGGEnzymes`, `KEGGModules`, `KEGGLinks`,
+`KEGGLinkMetadata`, `KEGGClassifications`, `SourceCoverage`,
+`DerivedGroups`, `Provenance`, `DataDictionary`, `TableQuality`,
+`SourceDiagnostics`, `ValidationIssues`, and `ValidationSummary`. The
+normalized `Chemical*` tables split
+source evidence into discrete terms, traits, classes, measurements, standardized
+measurement summaries, hazards,
+uses, bioactivity calls, assay targets, potency values, taxonomy fields,
+organism occurrences, pathway roles, and reaction participants for grouping
+and comparative analysis. `ChemicalTraits` provides a cross-source long-form
+trait vocabulary. `ChemicalTraitOntology` maps whitelisted discrete traits to
+controlled ontology domains and groups while preserving source evidence and
+source-backed identifiers where available.
+`ChemicalTraitMatrix` and `ChemicalTraitOntologyMatrix` provide compact binary
+wide matrices for filtering, clustering, ordination, heatmaps, and model
+inputs. Use `chemicalTraitMatrix()` and `chemicalTraitOntologyMatrix()` to
+rebuild full, confidence-weighted, or capped matrices without rerunning web
+requests. `ChemicalTraitEvidence` and `chemicalTraitEvidence()` trace matrix
+and ontology keys back to source evidence, IDs, URLs, extraction rules, and
+confidence values. `ChemicalTraitReport` and `chemicalTraitReport()` provide
+one compact, researcher-facing row per compound with domain signals, evidence
+coverage, identifiers, and nearest ontology neighbors. `ChemicalTraitSummary`
 summarizes trait breadth by compound and trait type, while
-\code{ChemicalTraitSimilarity} compares compounds by shared and distinct traits.
-\code{DataDictionary}, \code{TableQuality}, \code{SourceDiagnostics},
-\code{ValidationIssues}, and \code{ValidationSummary} document expected schemas
-and audit each result for missing tables, missing required columns, type
-mismatches, duplicate analysis keys, completeness, and source-specific coverage.
+`ChemicalTraitSimilarity` compares compounds by shared and distinct traits.
+`DataDictionary`, `TableQuality`, `SourceDiagnostics`, `ValidationIssues`,
+and `ValidationSummary` document expected schemas and audit each result for
+missing tables, missing required columns, type mismatches, duplicate analysis
+keys, completeness, and source-specific coverage.
 }
 \description{
 Searches a vector of chemical names on PubChem for published

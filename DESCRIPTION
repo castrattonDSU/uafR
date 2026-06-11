@@ -45,6 +45,7 @@ Imports:
     utils,
     webchem
 Suggests: 
+    curl,
     knitr,
     openxlsx,
     rmarkdown,

@@ -9,7 +9,8 @@ summarizePlantPhytochemistry(
   categorate_result = NULL,
   compound_resolution = NULL,
   plant_queries = NULL,
-  provider_diagnostics = NULL
+  provider_diagnostics = NULL,
+  comparability = NULL
 )
 }
 \arguments{
@@ -23,6 +24,8 @@ summarizePlantPhytochemistry(
 \item{plant_queries}{Optional plant query table.}
 
 \item{provider_diagnostics}{Optional provider diagnostics table.}
+
+\item{comparability}{Optional precomputed `ChemistryComparability` table.}
 }
 \value{
 Species-level summary table.

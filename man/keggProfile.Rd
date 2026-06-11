@@ -12,8 +12,8 @@ keggProfile(
   cache_dir = NULL,
   throttle = 0.35,
   max_matches_per_query = 3,
-  link_targets = c("pathway", "module", "reaction", "enzyme", "brite", "drug",
-    "disease", "pubmed"),
+  link_targets = c("pathway", "module", "reaction", "enzyme", "brite", "drug", "disease",
+    "pubmed"),
   resolve_link_metadata = TRUE,
   max_link_metadata = 100,
   request_fun = NULL
@@ -24,35 +24,35 @@ keggProfile(
 KEGG COMPOUND and KEGG DRUG.}
 
 \item{kegg_ids}{Optional character vector of known KEGG identifiers. Values
-can be bare IDs such as \code{"C01405"} or source strings such as
-\code{"KEGG: C01405"}.}
+can be bare IDs such as `"C01405"` or source strings such as
+`"KEGG: C01405"`.}
 
-\item{pubchem_profile}{Optional object returned by \code{pubchemProfile()}.
+\item{pubchem_profile}{Optional object returned by `pubchemProfile()`.
 KEGG IDs found in PubChem annotations are reused.}
 
-\item{cache}{Logical. If \code{TRUE}, raw KEGG text responses are cached under
-\code{cache_dir}.}
+\item{cache}{Logical. If `TRUE`, raw KEGG text responses are cached under
+`cache_dir`.}
 
 \item{cache_dir}{Directory for cached KEGG responses. Defaults to a
-user-cache location from \code{tools::R_user_dir()} when available, otherwise a
+user-cache location from `tools::R_user_dir()` when available, otherwise a
 temporary directory.}
 
-\item{throttle}{Seconds to wait between uncached KEGG requests. KEGG asks users
-to keep API calls at or below 3 requests per second.}
+\item{throttle}{Seconds to wait between uncached KEGG requests. KEGG asks
+users to keep API calls at or below 3 requests per second.}
 
 \item{max_matches_per_query}{Maximum number of KEGG name-search matches to
 expand per query chemical. Name searches can be broad for terms such as
-\code{"glucose"}, so the default keeps the most exact matches. Use \code{Inf}
-for an exhaustive expansion.}
+`"glucose"`, so the default keeps the most exact matches. Use `Inf` for an
+exhaustive expansion.}
 
 \item{link_targets}{KEGG link databases to follow for each resolved KEGG ID.
-Defaults to pathway, module, reaction, enzyme, BRITE, drug, disease, and PubMed
-links. Use a smaller vector such as \code{c("pathway", "reaction", "enzyme")}
-for faster smoke tests.}
+Defaults to pathway, module, reaction, enzyme, BRITE, drug, disease, and
+PubMed links. Use a smaller vector such as `c("pathway", "reaction",
+"enzyme")` for faster smoke tests.}
 
-\item{resolve_link_metadata}{Logical. If \code{TRUE}, linked KEGG IDs are
-fetched with \code{get} so output tables include names, definitions, and
-equations when KEGG provides them.}
+\item{resolve_link_metadata}{Logical. If `TRUE`, linked KEGG IDs are fetched
+with `get` so output tables include names, definitions, and equations when
+KEGG provides them.}
 
 \item{max_link_metadata}{Maximum number of linked target records to resolve.
 This prevents broad queries from turning into very large metadata requests.}
@@ -61,13 +61,13 @@ This prevents broad queries from turning into very large metadata requests.}
 for tests and advanced users. It should return text from the requested URL.}
 }
 \value{
-A list with tidy data frames: \code{matches}, \code{records},
-\code{identifiers}, \code{pathways}, \code{reactions}, \code{enzymes},
-\code{modules}, \code{links}, \code{link_metadata}, \code{classifications}, and
-\code{provenance}. The returned object has class \code{"uaf_kegg_profile"}.
+A list with tidy data frames: `matches`, `records`, `identifiers`,
+`pathways`, `reactions`, `enzymes`, `modules`, `links`, `link_metadata`,
+`classifications`, and `provenance`. The returned object has class
+`"uaf_kegg_profile"`.
 }
 \description{
-\code{keggProfile()} resolves query chemicals and/or supplied KEGG IDs against
+`keggProfile()` resolves query chemicals and/or supplied KEGG IDs against
 KEGG, retrieves flat-file entries, follows KEGG cross-reference links, and
 returns tidy tables that are useful for grouping compounds by pathway,
 reaction, enzyme, module, identifier, and metabolic context.
@@ -78,4 +78,5 @@ kegg = keggProfile(c("aspirin", "glucose"))
 kegg$pathways
 kegg$classifications
 }
+
 }

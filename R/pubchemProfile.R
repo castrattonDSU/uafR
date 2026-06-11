@@ -37,7 +37,11 @@
 #' `spectra`, `safety`, `experimental`, `bioactivity`,
 #' `bioassay_details`, and `provenance`. Annotation-derived tables include raw
 #' `Value`, normalized `CleanValue`, parsed `ValueNumeric`, and normalized
-#' `UnitClean` columns when those fields can be extracted. The `bioactivity`
+#' `UnitClean` columns when those fields can be extracted. The `identity` table
+#' includes the exact `QueriedName` sent to PubChem and marks conservative
+#' deterministic alias matches, such as Greek-letter transliterations and
+#' trailing-punctuation cleanup, with `MatchStatus = "resolved_alias"`. The
+#' `bioactivity`
 #' table stores one PubChem BioAssay summary row per assay with activity
 #' outcome, assay name/type, target identifiers, and numeric activity values
 #' when PubChem reports them. The `bioassay_details` table stores bounded
@@ -268,18 +272,58 @@ print.uaf_pubchem_profile = function(x, ...) {
 
 .pubchem_resolve_cids = function(compounds, fetch) {
   rows = lapply(compounds, function(compound) {
-    url = paste0(.pubchem_base_url(), "/pug/compound/name/",
-                 .pubchem_encode_path(compound), "/cids/JSON")
-    json = fetch(url)
-    cid = tryCatch(json$IdentifierList$CID[[1]], error = function(error) NA)
-    cid = .uaf_first_non_empty_text(cid)
+    aliases = .pubchem_query_aliases(compound)
+    cid = NA_character_
+    url = NA_character_
+    queried_name = NA_character_
+    for (alias in aliases) {
+      url = paste0(.pubchem_base_url(), "/pug/compound/name/",
+                   .pubchem_encode_path(alias), "/cids/JSON")
+      json = fetch(url)
+      cid = tryCatch(json$IdentifierList$CID[[1]], error = function(error) NA)
+      cid = .uaf_first_non_empty_text(cid)
+      queried_name = alias
+      if (!is.na(cid)) break
+    }
     data.frame(Query = compound,
                CID = suppressWarnings(as.integer(cid)),
-               MatchStatus = ifelse(is.na(cid), "not_found", "resolved"),
+               MatchStatus = ifelse(is.na(cid), "not_found",
+                                    ifelse(identical(queried_name, compound),
+                                           "resolved", "resolved_alias")),
+               QueriedName = queried_name,
                SourceURL = url,
                stringsAsFactors = FALSE)
   })
   do.call(rbind, rows)
+}
+
+.pubchem_query_aliases = function(compound) {
+  compound = .uaf_squish_text(compound)
+  if (is.na(compound) || compound == "") return(character())
+  aliases = c(compound)
+  no_terminal_punctuation = gsub("[,;:.]+$", "", compound, perl = TRUE)
+  aliases = c(aliases, no_terminal_punctuation)
+  aliases = c(aliases, .pubchem_transliterate_name(no_terminal_punctuation))
+  aliases = c(aliases, .pubchem_transliterate_name(compound))
+  aliases = c(aliases, gsub("[<>]", "", aliases, perl = TRUE))
+  unique(.uaf_non_empty(.uaf_squish_text(aliases)))
+}
+
+.pubchem_transliterate_name = function(x) {
+  x = .uaf_squish_text(x)
+  plus_minus = intToUtf8(0x00b1)
+  x = gsub(plus_minus, "+/-", x, fixed = TRUE)
+  greek = stats::setNames(
+    c("alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta",
+      "theta", "lambda", "mu", "pi", "sigma", "omega"),
+    vapply(c(0x03b1, 0x03b2, 0x03b3, 0x03b4, 0x03b5, 0x03b6,
+             0x03b7, 0x03b8, 0x03bb, 0x03bc, 0x03c0, 0x03c3,
+             0x03c9), intToUtf8, character(1))
+  )
+  for (pattern in names(greek)) {
+    x = gsub(pattern, greek[[pattern]], x, fixed = TRUE)
+  }
+  x
 }
 
 .pubchem_profile_properties = function(profile) {

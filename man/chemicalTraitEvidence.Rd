@@ -12,32 +12,31 @@ chemicalTraitEvidence(
 )
 }
 \arguments{
-\item{x}{A categorate result, a \code{ChemicalTraitOntology} data frame, or a
-\code{ChemicalTraits} data frame.}
+\item{x}{A categorate result, a `ChemicalTraitOntology` data frame, or a
+`ChemicalTraits` data frame.}
 
 \item{keys}{Optional vector of ontology keys, trait matrix keys, source trait
 keys, external IDs, or terms to keep. Use values such as
-\code{"safety__ghs_hazard_code__h319"},
-\code{"hazard__hazard_code__h319"}, \code{"H319"}, or \code{"map00590"}.}
+`"safety__ghs_hazard_code__h319"`, `"hazard__hazard_code__h319"`,
+`"H319"`, or `"map00590"`.}
 
-\item{type}{Evidence source. \code{"auto"} uses \code{ChemicalTraitOntology}
-when available and otherwise falls back to \code{ChemicalTraits}.
-\code{"ontology"} returns ontology-key evidence. \code{"trait"} returns
-source-trait evidence.}
+\item{type}{Evidence source. `"auto"` uses `ChemicalTraitOntology` when
+available and otherwise falls back to `ChemicalTraits`. `"ontology"` returns
+ontology-key evidence. `"trait"` returns source-trait evidence.}
 
 \item{min_confidence}{Minimum confidence score for included evidence rows.
-Accepts a numeric score or \code{"low"}, \code{"medium"}, or \code{"high"}.}
+Accepts a numeric score or `"low"`, `"medium"`, or `"high"`.}
 }
 \value{
-A data frame with analysis keys, source traits, source evidence, external
-identifiers, extraction rules, and confidence metadata.
+A data frame with analysis keys, source traits, source evidence,
+external identifiers, extraction rules, and confidence metadata.
 }
 \description{
-\code{chemicalTraitEvidence()} returns an audit table for
-\code{ChemicalTraits}, \code{ChemicalTraitOntology}, or a categorate result. It
-is designed to explain where matrix or ontology keys came from: source trait
-keys, source databases, evidence IDs, evidence text/URLs, extraction rules,
-confidence scores, and external identifiers when available.
+`chemicalTraitEvidence()` returns an audit table for `ChemicalTraits`,
+`ChemicalTraitOntology`, or a categorate result. It is designed to explain
+where matrix or ontology keys came from: source trait keys, source databases,
+evidence IDs, evidence text/URLs, extraction rules, confidence scores, and
+external identifiers when available.
 }
 \examples{
 \dontrun{
@@ -47,4 +46,5 @@ chemicalTraitEvidence(result,
                       keys = "hazard__hazard_code__h319",
                       type = "trait")
 }
+
 }

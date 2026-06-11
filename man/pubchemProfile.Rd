@@ -59,7 +59,11 @@ A list with tidy data frames: `identity`, `properties`, `synonyms`,
 `spectra`, `safety`, `experimental`, `bioactivity`,
 `bioassay_details`, and `provenance`. Annotation-derived tables include raw
 `Value`, normalized `CleanValue`, parsed `ValueNumeric`, and normalized
-`UnitClean` columns when those fields can be extracted. The `bioactivity`
+`UnitClean` columns when those fields can be extracted. The `identity` table
+includes the exact `QueriedName` sent to PubChem and marks conservative
+deterministic alias matches, such as Greek-letter transliterations and
+trailing-punctuation cleanup, with `MatchStatus = "resolved_alias"`. The
+`bioactivity`
 table stores one PubChem BioAssay summary row per assay with activity
 outcome, assay name/type, target identifiers, and numeric activity values
 when PubChem reports them. The `bioassay_details` table stores bounded

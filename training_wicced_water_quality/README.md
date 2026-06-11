@@ -4,6 +4,9 @@ This folder contains a separate 8-week undergraduate training manual focused on
 Project WiCCED, water quality, uafR, reproducible R workflows, and meaningful
 machine-learning practice.
 
+Students receiving the zipped bundle should begin with
+`STUDENT_START_HERE.md`.
+
 Build from this folder:
 
 ```sh

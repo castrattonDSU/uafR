@@ -193,3 +193,46 @@ test_that("pubchemProfile can skip PUG-View annotations for property-only workfl
   expect_equal(nrow(profile$annotations), 0)
   expect_equal(nrow(profile$source_annotations), 0)
 })
+
+test_that("pubchemProfile retries conservative name aliases for PubChem identity", {
+  requested = character()
+  alias_request = function(url) {
+    requested <<- c(requested, utils::URLdecode(url))
+    if (grepl("/pug/compound/name/beta-pinene/cids/JSON$", utils::URLdecode(url))) {
+      return(list(IdentifierList = list(CID = list(14896))))
+    }
+    if (grepl("/property/", url)) {
+      return(list(PropertyTable = list(Properties = list(list(
+        CID = 14896,
+        Title = "beta-Pinene",
+        MolecularFormula = "C10H16",
+        MolecularWeight = "136.238",
+        IUPACName = "6,6-dimethyl-2-methylidenebicyclo[3.1.1]heptane",
+        InChIKey = "WTARULDDTDQWMU-UHFFFAOYSA-N",
+        SMILES = "CC1(C2CCC(=C)C1C2)C"
+      )))))
+    }
+    if (grepl("/synonyms/JSON$", url)) {
+      return(list(InformationList = list(Information = list(list(
+        CID = 14896,
+        Synonym = list("beta-pinene")
+      )))))
+    }
+    list()
+  }
+  compound = paste0(intToUtf8(0x03b2), "-pinene")
+
+  profile = pubchemProfile(compound,
+                           profile = "minimal",
+                           cache = FALSE,
+                           throttle = 0,
+                           include_annotations = FALSE,
+                           request_fun = alias_request)
+
+  expect_equal(profile$identity$CID, 14896)
+  expect_equal(profile$identity$MatchStatus, "resolved_alias")
+  expect_equal(profile$identity$QueriedName, "beta-pinene")
+  expect_true(any(grepl("/name/beta-pinene/cids/JSON", requested,
+                        fixed = TRUE)))
+  expect_equal(profile$properties$SMILES, "CC1(C2CCC(=C)C1C2)C")
+})

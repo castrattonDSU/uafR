@@ -20,7 +20,6 @@ A data frame with 15 rows and 7 columns:
 standards_model_data
 }
 \description{
-Contains summary data that was used for linear model figures/analyses of
-standards data.
+Contains summary data that was used for linear model figures/analyses of standards data
 }
 \keyword{datasets}

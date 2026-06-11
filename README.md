@@ -132,6 +132,78 @@ annotations after NCBI taxonomy resolution. NPASS species-source rows should be
 supplied through curated intake or `provider_results` until a small stable
 species-query endpoint is added.
 
+For LOTUS specifically, use a local index for serious plant panels. The LOTUS
+simple web API is useful for small smoke tests, but common species can return
+very large unpaged payloads. uafR therefore supports `lotus_index`, a flat CSV,
+TSV, JSON, JSONL, NDJSON, RDS, or data-frame index produced from LOTUS MongoDB,
+Wikidata, SDF metadata, or another LOTUS export. `standardizeLotusIndex()`
+normalizes flexible column names such as `allTaxa`, `traditional_name`,
+`lotus_id`, `inchikey`, `smiles`, `molecular_formula`, `doi`, and `pmid`.
+`queryLotusIndex()` returns the same `PlantCompoundOccurrences` schema used by
+the full resolver. When `lotus_index` is supplied, `resolvePlantPhytochemistry()`
+uses the local index instead of the live LOTUS API.
+
+Build the compact index once, then reuse it across projects:
+
+``` r
+lotus_build = buildLotusIndex(
+  input = "lotus_flat_export.jsonl",
+  out_file = "lotus_compact_index.csv",
+  overwrite = TRUE
+)
+
+lotus_build$BuildSummary
+```
+
+The same step can be run from Terminal:
+
+``` sh
+Rscript tools/build_lotus_index.R \
+  --input lotus_flat_export.jsonl \
+  --out-file lotus_compact_index.csv \
+  --overwrite
+```
+
+The official LOTUS SMILES and SDF downloads are useful for structure work, but
+they do not carry the source-backed species occurrence records needed for
+species-first phytochemistry. For plant runs, use the official MongoDB ZIP
+download and flatten the `lotusUniqueNaturalProduct.bson` collection into a
+taxon-compound CSV first. The repository includes a Python standard-library
+helper for this step, so MongoDB command-line tools are not required:
+
+``` sh
+mkdir -p lotus_cache/downloads lotus_cache/exports
+
+curl -L \
+  -o lotus_cache/downloads/LOTUSlatest.zip \
+  https://lotus.naturalproducts.net/download/mongo
+
+PYTHONDONTWRITEBYTECODE=1 python3 tools/flatten_lotus_mongo_dump.py \
+  --input lotus_cache/downloads/LOTUSlatest.zip \
+  --out-file lotus_cache/exports/LOTUS_mongo_flat.csv \
+  --compact-index-file lotus_cache/exports/LOTUS_compact_index.csv \
+  --lookup-dir lotus_cache/exports/LOTUS_lookup_index \
+  --overwrite
+```
+
+`LOTUS_mongo_flat.csv` is the auditable one-row-per-compound/taxon/reference
+export. `LOTUS_compact_index.csv` is the smaller, analysis-ready index to pass
+to uafR for small panels or ad hoc inspection. `LOTUS_lookup_index/` is the
+production path for larger plant panels because uafR can read only the shards
+needed for the submitted species, genus, and family keys instead of scanning
+the complete CSV. Build products under `lotus_cache/` are ignored by package
+builds and should be treated as local data cache files, not source files.
+
+If the compact CSV already exists, build only the lookup directory without
+rewriting the flat export:
+
+``` sh
+PYTHONDONTWRITEBYTECODE=1 python3 tools/flatten_lotus_mongo_dump.py \
+  --from-compact-index lotus_cache/exports/LOTUS_compact_index.csv \
+  --lookup-dir lotus_cache/exports/LOTUS_lookup_index \
+  --overwrite
+```
+
 This workflow is designed for plant, ecology, remediation, metabolomics,
 chemical ecology, natural-products, and environmental chemistry projects. It
 does not produce complete metabolomes. Absence of public records is not absence
@@ -151,6 +223,7 @@ phyto = resolvePlantPhytochemistry(
   plants = plants,
   sources = c("lotus", "pubmed", "pubtator"),
   taxon_fallback = c("species", "genus"),
+  lotus_index = "lotus_cache/exports/LOTUS_lookup_index",
   enrich_compounds = TRUE,
   chemical_library = library_data,
   detail = "research",
@@ -162,8 +235,15 @@ phyto = resolvePlantPhytochemistry(
   resume_enrichment = TRUE
 )
 
+lotus_occurrences = queryLotusIndex(
+  plants,
+  lotus_index = "lotus_cache/exports/LOTUS_lookup_index",
+  taxon_fallback = c("species", "genus")
+)
+
 phyto$SpeciesChemistrySummary
 phyto$PlantCompoundOccurrences
+phyto$PlantContextEvidence
 validatePlantPhytochemistryResult(phyto)$Summary
 
 # Direct species database records and curated rows are analysis-ready by
@@ -213,6 +293,171 @@ Use the full export for audit/provenance and the analysis-ready preset for
 downstream matrices or figures where candidate co-mentions and taxon fallbacks
 should be excluded.
 
+Use the comparability layer before clustering, ordination, scoring, or group
+comparisons. `metabolite` is a broad biological term, while `volatile`
+describes an analytical or physicochemical fraction; those should not be
+compared as if they were the same axis. uafR therefore records biological
+domain, biosynthetic family, analytical behavior, comparison scope, confidence,
+source-backed classification fields, and caveats in `ChemistryComparability`.
+The classifier prioritizes normalized source fields from `ChemicalClasses`,
+`LOTUSProfile`, `PubChemClassifications`, `ChemicalTraitOntology`,
+`ChemicalTerms`, `KEGGClassifications`, `KEGGPathways`, and `DerivedGroups`
+before it falls back to compound-name patterns.
+Biological-context evidence is tracked separately in `PlantContextEvidence` so
+plant-part, tissue, and method filters can be audited instead of being hidden
+inside a matrix. Provider-level coverage and review burden are summarized in
+`ProviderContextAudit`, which helps identify whether context gaps come from a
+specific source, candidate-only literature evidence, or sparse provider records.
+
+``` r
+# Inspect how each plant-compound row was assigned to a comparison scope.
+phyto$ChemistryComparability[, c(
+  "species", "compound_name", "metabolism_domain",
+  "biosynthetic_family", "chemical_behavior",
+  "comparison_scope", "comparison_group",
+  "comparability_confidence", "comparability_basis",
+  "classification_source_table", "classification_source_value"
+)]
+
+# Inspect provider-level biological-context coverage before trusting a
+# context-specific matrix.
+phyto$ProviderContextAudit[, c(
+  "source_database", "occurrence_count", "context_known_fraction",
+  "review_required_context_fraction", "audit_status",
+  "recommended_action"
+)]
+
+# Add source-backed context from local literature/source text. Rows must match
+# occurrence evidence by PMID or DOI; context is not filled unless the source
+# text contains plant-part, tissue, or method terms linked to the species/genus
+# or compound in a chemical-source context.
+source_text = data.frame(
+  pmid = "12345678",
+  doi = "10.1000/example",
+  title = "Phytochemical constituents from Salix nigra leaves",
+  abstract = paste(
+    "Salicin was identified from leaves of Salix nigra.",
+    "The extract was analyzed by LC-MS."
+  )
+)
+
+phyto = enrichPlantContextEvidence(
+  phyto,
+  context_sources = source_text
+)
+
+# Optional live PubMed context fetches are explicit, cached, capped, and
+# prioritized toward source records with useful context text or broad
+# species/compound coverage.
+phyto = enrichPlantContextEvidence(
+  phyto,
+  fetch_pubmed = TRUE,
+  cache = TRUE,
+  cache_dir = "uafR_plant_cache/context",
+  max_sources = 50
+)
+
+# Compare specialized plant chemistry separately from primary metabolism.
+specialized_matrix = plantComparableChemistryMatrix(
+  phyto,
+  comparison_scope = "specialized_metabolites",
+  feature = "comparison_group",
+  mode = "binary"
+)
+
+# Compare volatile specialized chemistry only within the volatile fraction.
+volatile_matrix = plantComparableChemistryMatrix(
+  phyto,
+  comparison_scope = "volatile_specialized_metabolites",
+  feature = "comparison_group",
+  mode = "binary"
+)
+
+# Compare leaf volatile chemistry only when plant-part or method context is
+# known. This prevents root exudate, whole-plant, and unspecified-extract rows
+# from being mixed into a leaf-focused matrix.
+leaf_volatile_matrix = plantComparableChemistryMatrix(
+  phyto,
+  comparison_scope = "volatile_specialized_metabolites",
+  feature = "comparison_group",
+  plant_part_group = "leaf",
+  require_context = TRUE,
+  mode = "binary"
+)
+
+# Primary metabolites are a different comparison scope.
+primary_matrix = plantComparableChemistryMatrix(
+  phyto,
+  comparison_scope = "primary_metabolites",
+  feature = "comparison_group",
+  mode = "binary"
+)
+```
+
+Unknown or broad rows stay in the audit table but are excluded from comparable
+matrices by default. This is intentional: a missing class is not evidence that a
+compound belongs in a broad mixed analysis.
+
+Before scaling to hundreds of plants, run a small provider pilot and inspect
+the output. The pilot workflow writes the same batch audit tables plus a compact
+species summary, a QA report, a review-needed table, and context-aware
+comparable matrices for specialized, volatile-specialized, leaf-associated,
+root/exudate-associated, and primary-metabolism chemistry.
+
+``` r
+plants = plantPhytochemistryPilotPanel()$species
+
+pilot = runPlantPhytochemistryPilot(
+  plants = plants,
+  sources = c("lotus", "knapsack", "npass", "pubchem", "pubmed", "pubtator"),
+  out_dir = "plant_phytochemistry_pilot",
+  cache_dir = "uafR_plant_cache",
+  species_chunk_size = 10,
+  compound_resolution_profile = "identity",
+  max_pubmed_records = 25,
+  max_provider_records = 100,
+  request_timeout = 30,
+  overwrite = TRUE
+)
+
+pilot$PilotSummary
+pilot$PilotQAReport
+pilot$ProviderContextAudit
+pilot$PilotMatrices$matrix_volatile_specialized_metabolites
+pilot$PilotMatrices$matrix_root_exudate_associated_chemistry
+```
+
+The command-line wrapper accepts a CSV plant list:
+
+``` sh
+Rscript tools/run_plant_phytochemistry_pilot.R \
+  --plant-csv plants.csv \
+  --species-col species \
+  --out-dir plant_phytochemistry_pilot \
+  --cache-dir uafR_plant_cache \
+  --lotus-index lotus_compact_index.csv \
+  --sources lotus,knapsack,npass,pubchem,pubmed,pubtator \
+  --compound-resolution-profile identity \
+  --max-pubmed-records 25 \
+  --max-provider-records 100 \
+  --request-timeout 30 \
+  --overwrite
+```
+
+The wrapper can also use the built-in 15-species panel:
+
+``` sh
+Rscript tools/run_plant_phytochemistry_pilot.R \
+  --default-panel \
+  --out-dir plant_phytochemistry_pilot \
+  --compound-resolution-profile identity \
+  --overwrite
+```
+
+Start with `compound_resolution_profile = "identity"` for a provider/data-depth
+pilot. Move to `"research"` only after the occurrence evidence, context
+coverage, provider context audit, and review burden look reasonable.
+
 For quick species-first discovery without a library, omit `chemical_library`.
 This produces PubChem-only enrichment and skips FMCS library matching:
 
@@ -230,6 +475,78 @@ phyto = resolvePlantPhytochemistry(
 names(phyto$SpeciesChemistryMatrix)
 phyto$CompoundResolution
 ```
+
+For larger plant lists, use the staged batch workflow. It discovers
+plant-compound evidence first, writes resumable checkpoints, filters to
+analysis-ready direct or curated records by default, and then performs a fast
+PubChem identity-only resolution pass. Richer `detail = "research"` enrichment
+should be run later on a reviewed subset of compounds.
+The identity pass preserves chemically meaningful alpha/beta/gamma and
+plus/minus prefixes in compound keys, and reports deterministic PubChem alias
+matches with `MatchStatus = "resolved_alias"` in the identity audit table.
+When `lotus_index` is supplied, the identity pass first recovers source-backed
+LOTUS SMILES, InChIKeys, formulas, and CIDs by LOTUS record ID. PubChem name
+lookup is then used only for remaining gaps. A separate
+`CompoundIdentityReview` table flags source-ambiguous structures and rows where
+the source provides a structure but the displayed label looks like a class,
+mixture, plant product, or other non-discrete compound name.
+
+``` r
+plants = c("Salix nigra", "Camellia sinensis", "Zea mays")
+
+phyto_batch = runPlantPhytochemistryBatch(
+  plants = plants,
+  sources = c("lotus", "knapsack", "pubmed", "pubtator"),
+  out_dir = "plant_phytochemistry_batch",
+  cache_dir = "uafR_plant_cache",
+  species_chunk_size = 25,
+  compound_resolution_profile = "identity",
+  max_pubmed_records = 25,
+  max_provider_records = 100,
+  request_timeout = 30,
+  compound_batch_size = 100,
+  resume = TRUE,
+  overwrite = TRUE
+)
+
+phyto_batch$BatchRunManifest
+phyto_batch$SpeciesChemistrySummary
+phyto_batch$CompoundResolution
+phyto_batch$CompoundIdentityReview
+```
+
+Completed identity review worksheets can be reapplied to the result object so
+manual structure decisions are reproducible:
+
+``` r
+identity_review = phyto_batch$CompoundIdentityReview
+
+# Example: only fill these fields after checking the LOTUS source record,
+# PubChem record, DOI, or another source-backed structure record.
+identity_review$review_decision[1] = "update_identity"
+identity_review$reviewed_by[1] = "researcher name"
+identity_review$review_note[1] = "Source record supports this structure."
+identity_review$proposed_compound_name[1] = "reviewed compound name"
+identity_review$proposed_smiles[1] = "source-backed SMILES"
+identity_review$proposed_inchikey[1] = "source-backed InChIKey"
+identity_review$proposed_molecular_formula[1] = "source-backed formula"
+identity_review$proposed_resolution_source[1] = "manual_identity_review"
+
+phyto_batch_reviewed = applyPlantCompoundIdentityReview(
+  phyto_batch,
+  identity_review,
+  reviewer = "researcher name"
+)
+```
+
+The batch output directory includes `all_occurrences.csv`,
+`analysis_ready_occurrences.csv`, `review_required_occurrences.csv`,
+`compound_identity_resolution.csv`, `compound_identity_review.csv`,
+`species_chemistry_summary.csv`, `species_chemistry_matrix.csv`,
+`chemistry_comparability.csv`,
+`comparable_chemistry_matrix.csv`, `provider_diagnostics.csv`,
+`context_coverage_report.csv`, `batch_chunk_manifest.csv`, and
+`run_manifest.json`.
 
 For projects that already have local curation, use the curated intake fallback:
 
@@ -553,7 +870,24 @@ Linked KEGG IDs are resolved into names and definitions by default, so tables
 such as `kegg_profile$reactions` include reaction names, definitions, and
 equations when KEGG exposes them.
 
-For package checks, live PubChem/NCI integration tests are opt-in. Set `UAFR_RUN_LIVE_TESTS=true` before running tests when you want to exercise live web calls.
+### Package release checks
+
+Use the release-check wrapper before sharing a source archive, building a
+student bundle, or opening a pull request:
+
+``` sh
+Rscript tools/check_package_release.R
+```
+
+The script builds a source tarball outside the repository and runs
+`R CMD check --no-manual` against the tarball. That is the production check
+path. Running `R CMD check .` directly on the live checkout can report local
+artifacts such as `.git`, `.DS_Store`, `.Rhistory`, or generated check
+directories that are not included in the source package.
+
+Live PubChem/NCI integration tests are opt-in. Set `UAFR_RUN_LIVE_TESTS=true`
+before running tests, or pass `--run-live-tests` to
+`tools/check_package_release.R`, when you want to exercise live web calls.
 
 ## Combined Mass Spectrometry + Cheminformatics Workflow
 

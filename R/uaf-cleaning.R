@@ -92,7 +92,7 @@
 }
 
 .uaf_yes_no = function(x) {
-  ifelse(isTRUE(x), "Yes", "No")
+  ifelse(!is.na(x) & x, "Yes", "No")
 }
 
 .uaf_extract_cid = function(cid_result) {
