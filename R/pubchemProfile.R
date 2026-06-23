@@ -216,39 +216,265 @@ print.uaf_pubchem_profile = function(x, ...) {
       return(jsonlite::fromJSON(txt, simplifyVector = FALSE))
     }
 
-    result = tryCatch({
+    attempts = if (is.null(request_fun)) {
+      .pubchem_env_integer("UAFR_PUBCHEM_MAX_ATTEMPTS", 8L)
+    } else {
+      1L
+    }
+    effective_throttle = if (is.null(request_fun)) {
+      max(throttle, .pubchem_env_number("UAFR_PUBCHEM_MIN_DELAY", 1))
+    } else {
+      throttle
+    }
+    last_error = NA_character_
+    last_status = NA_integer_
+    for (attempt in seq_len(attempts)) {
       if (is.null(request_fun)) {
-        con = base::url(url, open = "rb")
-        on.exit(close(con), add = TRUE)
-        txt = paste(readLines(con, warn = FALSE, encoding = "UTF-8"),
-                    collapse = "\n")
-        if (isTRUE(cache)) {
-          dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-          writeLines(txt, cache_file, useBytes = TRUE)
+        .pubchem_rate_wait(effective_throttle)
+      }
+      fetched = tryCatch({
+        if (is.null(request_fun)) {
+          .pubchem_http_get(url)
+        } else {
+          request_result = request_fun(url)
+          if (is.character(request_result)) {
+            list(ok = TRUE,
+                 status_code = 200L,
+                 text = paste(request_result, collapse = "\n"),
+                 headers = list())
+          } else {
+            return(request_result)
+          }
         }
-        if (!is.na(throttle) && throttle > 0) Sys.sleep(throttle)
-        jsonlite::fromJSON(txt, simplifyVector = FALSE)
-      } else {
-        request_result = request_fun(url)
-        if (is.character(request_result)) {
-          txt = paste(request_result, collapse = "\n")
+      }, error = function(error) {
+        last_error <<- conditionMessage(error)
+        last_status <<- .pubchem_status_from_error(last_error)
+        list(ok = FALSE,
+             status_code = last_status,
+             text = NA_character_,
+             headers = list(),
+             error = last_error)
+      })
+
+      if (isTRUE(fetched$ok)) {
+        parsed = tryCatch(
+          jsonlite::fromJSON(fetched$text, simplifyVector = FALSE),
+          error = function(error) {
+            last_error <<- conditionMessage(error)
+            NULL
+          }
+        )
+        if (!is.null(parsed)) {
           if (isTRUE(cache)) {
             dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-            writeLines(txt, cache_file, useBytes = TRUE)
+            writeLines(fetched$text, cache_file, useBytes = TRUE)
           }
-          jsonlite::fromJSON(txt, simplifyVector = FALSE)
-        } else {
-          request_result
+          if (is.null(request_fun)) {
+            .pubchem_rate_record(fetched$headers, effective_throttle)
+          }
+          return(parsed)
         }
+      } else {
+        if (!is.null(fetched$error) && length(fetched$error) > 0 &&
+            !all(is.na(fetched$error))) {
+          last_error = fetched$error
+        }
+        last_status = fetched$status_code
       }
-    }, error = function(error) {
-      warning("PubChem request failed: ", conditionMessage(error),
-              "\nURL: ", url, call. = FALSE)
-      NULL
-    })
 
-    result
+      if (!.pubchem_should_retry(last_status) || attempt >= attempts) {
+        break
+      }
+      delay = .pubchem_retry_delay(
+        attempt = attempt,
+        status_code = last_status,
+        headers = fetched$headers,
+        throttle = effective_throttle
+      )
+      .pubchem_log_retry(url = url,
+                         attempt = attempt,
+                         attempts = attempts,
+                         status_code = last_status,
+                         delay = delay)
+      .pubchem_set_next_request_time(delay)
+      Sys.sleep(delay)
+    }
+
+    if (!is.na(last_status) && identical(as.integer(last_status), 404L)) {
+      return(NULL)
+    }
+    if (!is.na(last_status) && .pubchem_should_retry(last_status)) {
+      warning("PubChem request failed after ", attempts, " attempt(s)",
+              " with HTTP status ", last_status, ". This usually means ",
+              "PubChem is rate-limiting or temporarily busy; rerun later and ",
+              "keep cache enabled.\nURL: ", url, call. = FALSE)
+    } else {
+      warning("PubChem request failed after ", attempts, " attempt(s): ",
+              last_error, "\nURL: ", url, call. = FALSE)
+    }
+    NULL
   }
+}
+
+.pubchem_rate_state = new.env(parent = emptyenv())
+.pubchem_rate_state$next_request_time = as.POSIXct(0, origin = "1970-01-01")
+
+.pubchem_http_get = function(url) {
+  if (requireNamespace("curl", quietly = TRUE)) {
+    handle = curl::new_handle(
+      useragent = .pubchem_user_agent(),
+      timeout = .pubchem_env_number("UAFR_PUBCHEM_TIMEOUT", 60),
+      connecttimeout = .pubchem_env_number("UAFR_PUBCHEM_CONNECT_TIMEOUT", 20)
+    )
+    curl::handle_setheaders(handle,
+                            Accept = "application/json",
+                            `Accept-Encoding` = "gzip, deflate")
+    response = curl::curl_fetch_memory(url, handle = handle)
+    headers = curl::parse_headers_list(response$headers)
+    text = rawToChar(response$content)
+    return(list(ok = response$status_code >= 200 &&
+                  response$status_code < 300,
+                status_code = response$status_code,
+                text = text,
+                headers = headers,
+                error = if (response$status_code >= 200 &&
+                            response$status_code < 300) {
+                  NA_character_
+                } else {
+                  paste("HTTP status", response$status_code)
+                }))
+  }
+
+  con = base::url(url, open = "rb")
+  on.exit(close(con), add = TRUE)
+  text = paste(readLines(con, warn = FALSE, encoding = "UTF-8"),
+               collapse = "\n")
+  list(ok = TRUE,
+       status_code = 200L,
+       text = text,
+       headers = list(),
+       error = NA_character_)
+}
+
+.pubchem_user_agent = function() {
+  Sys.getenv("UAFR_PUBCHEM_USER_AGENT",
+             "uafR/0.2.0 (https://github.com/castrattonDSU/uafR)")
+}
+
+.pubchem_rate_wait = function(throttle) {
+  now = Sys.time()
+  next_time = .pubchem_rate_state$next_request_time
+  if (!inherits(next_time, "POSIXct")) {
+    next_time = as.POSIXct(0, origin = "1970-01-01")
+  }
+  wait = as.numeric(difftime(next_time, now, units = "secs"))
+  if (is.finite(wait) && wait > 0) Sys.sleep(wait)
+  throttle = max(throttle, 0, na.rm = TRUE)
+  .pubchem_rate_state$next_request_time = Sys.time() + throttle
+}
+
+.pubchem_rate_record = function(headers, throttle) {
+  control = .pubchem_header_value(headers, "x-throttling-control")
+  delay = throttle
+  if (!is.na(control)) {
+    control_lower = tolower(control)
+    if (grepl("black", control_lower, fixed = TRUE)) {
+      delay = max(delay, .pubchem_env_number("UAFR_PUBCHEM_BLACK_DELAY", 300))
+    } else if (grepl("red", control_lower, fixed = TRUE)) {
+      delay = max(delay, .pubchem_env_number("UAFR_PUBCHEM_RED_DELAY", 60))
+    } else if (grepl("yellow", control_lower, fixed = TRUE)) {
+      delay = max(delay, .pubchem_env_number("UAFR_PUBCHEM_YELLOW_DELAY", 10))
+    }
+  }
+  .pubchem_set_next_request_time(delay)
+}
+
+.pubchem_set_next_request_time = function(delay) {
+  delay = max(delay, 0, na.rm = TRUE)
+  target = Sys.time() + delay
+  current = .pubchem_rate_state$next_request_time
+  if (!inherits(current, "POSIXct") || target > current) {
+    .pubchem_rate_state$next_request_time = target
+  }
+}
+
+.pubchem_should_retry = function(status_code) {
+  if (length(status_code) != 1 || is.na(status_code)) return(TRUE)
+  as.integer(status_code) %in% c(408L, 425L, 429L, 500L, 502L, 503L, 504L)
+}
+
+.pubchem_retry_delay = function(attempt, status_code, headers, throttle) {
+  retry_after = suppressWarnings(as.numeric(
+    .pubchem_header_value(headers, "retry-after")
+  ))
+  if (length(retry_after) == 1 && is.finite(retry_after) &&
+      retry_after > 0) {
+    return(retry_after)
+  }
+  base = if (!is.na(status_code) &&
+             as.integer(status_code) %in% c(429L, 503L)) {
+    .pubchem_env_number("UAFR_PUBCHEM_BUSY_BACKOFF", 60)
+  } else {
+    .pubchem_env_number("UAFR_PUBCHEM_BASE_BACKOFF", 10)
+  }
+  max_delay = .pubchem_env_number("UAFR_PUBCHEM_MAX_BACKOFF", 900)
+  delay = min(max_delay, max(base, throttle) * 2^(attempt - 1))
+  jitter = stats::runif(1, min = 0, max = min(5, delay * 0.1))
+  delay + jitter
+}
+
+.pubchem_log_retry = function(url, attempt, attempts, status_code, delay) {
+  verbose = Sys.getenv("UAFR_PUBCHEM_VERBOSE", "TRUE")
+  if (!tolower(verbose) %in% c("true", "t", "1", "yes", "y")) {
+    return(invisible(FALSE))
+  }
+  status_label = if (length(status_code) == 1 && !is.na(status_code)) {
+    paste0("HTTP ", status_code)
+  } else {
+    "request error"
+  }
+  message("PubChem retry backoff: ", status_label,
+          "; attempt ", attempt, "/", attempts,
+          "; waiting ", round(delay, 1), " seconds before retrying ",
+          .pubchem_shorten_url(url))
+  invisible(TRUE)
+}
+
+.pubchem_shorten_url = function(url, width = 120) {
+  url = as.character(url)
+  if (nchar(url) <= width) return(url)
+  paste0(substr(url, 1, width - 3), "...")
+}
+
+.pubchem_header_value = function(headers, name) {
+  if (!is.list(headers) || length(headers) < 1) return(NA_character_)
+  names_lower = tolower(names(headers))
+  hit = which(names_lower == tolower(name))
+  if (length(hit) < 1) return(NA_character_)
+  as.character(headers[[hit[[1]]]])
+}
+
+.pubchem_status_from_error = function(message) {
+  if (is.na(message)) return(NA_integer_)
+  status = sub(".*HTTP status was ['\"]?([0-9]{3}).*", "\\1", message)
+  if (identical(status, message)) {
+    status = sub(".*HTTP status ([0-9]{3}).*", "\\1", message)
+  }
+  if (identical(status, message)) return(NA_integer_)
+  suppressWarnings(as.integer(status))
+}
+
+.pubchem_env_number = function(name, default) {
+  value = Sys.getenv(name, unset = NA_character_)
+  value = suppressWarnings(as.numeric(value))
+  if (length(value) != 1 || !is.finite(value)) return(default)
+  value
+}
+
+.pubchem_env_integer = function(name, default) {
+  value = .pubchem_env_number(name, default)
+  if (!is.finite(value)) return(default)
+  as.integer(value)
 }
 
 .pubchem_default_cache_dir = function() {
@@ -278,12 +504,25 @@ print.uaf_pubchem_profile = function(x, ...) {
     queried_name = NA_character_
     query_endpoint = NA_character_
     for (alias in aliases) {
-      endpoint = if (.uaf_is_inchikey(alias)) "inchikey" else "name"
+      cid_alias = .pubchem_cid_alias(alias)
+      endpoint = if (!is.na(cid_alias)) {
+        "cid"
+      } else if (.uaf_is_inchikey(alias)) {
+        "inchikey"
+      } else {
+        "name"
+      }
+      query_value = if (identical(endpoint, "cid")) cid_alias else alias
       url = paste0(.pubchem_base_url(), "/pug/compound/", endpoint, "/",
-                   .pubchem_encode_path(alias), "/cids/JSON")
-      json = fetch(url)
-      cid = tryCatch(json$IdentifierList$CID[[1]], error = function(error) NA)
-      cid = .uaf_first_non_empty_text(cid)
+                   .pubchem_encode_path(query_value), "/cids/JSON")
+      if (identical(endpoint, "cid")) {
+        cid = cid_alias
+      } else {
+        json = fetch(url)
+        cid = tryCatch(json$IdentifierList$CID[[1]],
+                       error = function(error) NA)
+        cid = .uaf_first_non_empty_text(cid)
+      }
       queried_name = alias
       query_endpoint = endpoint
       if (!is.na(cid)) break
@@ -293,6 +532,9 @@ print.uaf_pubchem_profile = function(x, ...) {
     } else if (identical(query_endpoint, "inchikey")) {
       ifelse(identical(queried_name, compound), "resolved_inchikey",
              "resolved_inchikey_alias")
+    } else if (identical(query_endpoint, "cid")) {
+      ifelse(identical(queried_name, compound), "resolved_cid",
+             "resolved_cid_alias")
     } else if (identical(queried_name, compound)) {
       "resolved"
     } else {
@@ -306,6 +548,14 @@ print.uaf_pubchem_profile = function(x, ...) {
                stringsAsFactors = FALSE)
   })
   do.call(rbind, rows)
+}
+
+.pubchem_cid_alias = function(x) {
+  x = .uaf_squish_text(x)
+  if (is.na(x) || x == "") return(NA_character_)
+  x = sub("^cid\\s*[:=]\\s*", "", x, ignore.case = TRUE, perl = TRUE)
+  if (!grepl("^[0-9]+$", x)) return(NA_character_)
+  x
 }
 
 .pubchem_query_aliases = function(compound) {
@@ -398,18 +648,16 @@ print.uaf_pubchem_profile = function(x, ...) {
   chunks = split(cids, ceiling(seq_along(cids) / 100))
   rows = list()
   for (chunk in chunks) {
-    cid_string = paste(chunk, collapse = ",")
-    prop_string = paste(properties, collapse = ",")
-    url = paste0(.pubchem_base_url(), "/pug/compound/cid/",
-                 cid_string, "/property/", prop_string, "/JSON")
-    json = fetch(url)
-    records = tryCatch(json$PropertyTable$Properties, error = function(error) NULL)
-    if (is.null(records)) next
-    for (record in records) {
+    fetched = .pubchem_fetch_property_chunk(chunk = chunk,
+                                            properties = properties,
+                                            fetch = fetch)
+    if (length(fetched) < 1) next
+    for (item in fetched) {
+      record = item$record
       row = as.list(stats::setNames(rep(NA_character_, length(cols)), cols))
       row$CID = suppressWarnings(as.integer(record$CID))
       row$Query = unname(cid_query[paste0(row$CID)])
-      row$SourceURL = url
+      row$SourceURL = item$url
       for (property in properties) {
         row[[property]] = .pubchem_scalar(record[[property]])
       }
@@ -420,6 +668,24 @@ print.uaf_pubchem_profile = function(x, ...) {
   out = do.call(rbind, rows)
   row.names(out) = NULL
   out
+}
+
+.pubchem_fetch_property_chunk = function(chunk, properties, fetch) {
+  prop_string = paste(properties, collapse = ",")
+  fetch_once = function(cids) {
+    cid_string = paste(cids, collapse = ",")
+    url = paste0(.pubchem_base_url(), "/pug/compound/cid/",
+                 cid_string, "/property/", prop_string, "/JSON")
+    json = fetch(url)
+    records = tryCatch(json$PropertyTable$Properties,
+                       error = function(error) NULL)
+    if (is.null(records)) return(list())
+    lapply(records, function(record) list(record = record, url = url))
+  }
+  out = fetch_once(chunk)
+  if (length(out) > 0 || length(chunk) <= 1) return(out)
+  out = unlist(lapply(chunk, fetch_once), recursive = FALSE)
+  if (length(out) < 1) list() else out
 }
 
 .pubchem_fetch_synonyms = function(cids, fetch, cid_query) {

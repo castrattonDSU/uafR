@@ -210,6 +210,91 @@ test_that("pubchemProfile resolves InChIKey queries through the InChIKey endpoin
   expect_equal(profile$properties$InChIKey, inchikey)
 })
 
+test_that("pubchemProfile accepts explicit PubChem CID query tokens", {
+  requested = character()
+  request_fun = function(url) {
+    requested <<- c(requested, url)
+    if (grepl("/pug/compound/name/", url) ||
+        grepl("/pug/compound/inchikey/", url)) {
+      stop("CID query should not use name or InChIKey endpoints")
+    }
+    if (grepl("/property/", url)) {
+      return(list(PropertyTable = list(Properties = list(list(
+        CID = 2244,
+        Title = "Aspirin",
+        MolecularFormula = "C9H8O4",
+        InChIKey = "BSYNRYMUTXBXSQ-UHFFFAOYSA-N",
+        CanonicalSMILES = "CC(=O)OC1=CC=CC=C1C(=O)O",
+        IsomericSMILES = "CC(=O)OC1=CC=CC=C1C(=O)O"
+      )))))
+    }
+    if (grepl("/synonyms/JSON$", url)) {
+      return(list(InformationList = list(Information = list(list(
+        CID = 2244,
+        Synonym = list("aspirin")
+      )))))
+    }
+    list()
+  }
+
+  profile = pubchemProfile(
+    "cid:2244",
+    profile = "minimal",
+    include_annotations = FALSE,
+    request_fun = request_fun
+  )
+
+  expect_equal(profile$identity$CID, 2244)
+  expect_equal(profile$identity$MatchStatus, "resolved_cid")
+  expect_match(profile$identity$SourceURL, "/compound/cid/2244/cids/JSON")
+  expect_equal(profile$properties$Title, "Aspirin")
+})
+
+test_that("pubchemProfile falls back to single-CID property requests", {
+  request_fun = function(url) {
+    if (grepl("/property/", url) &&
+        grepl("/cid/2244,2519/property/", url)) {
+      return(list())
+    }
+    if (grepl("/property/", url) &&
+        grepl("/cid/2244/property/", url)) {
+      return(list(PropertyTable = list(Properties = list(list(
+        CID = 2244,
+        Title = "Aspirin",
+        MolecularFormula = "C9H8O4",
+        InChIKey = "BSYNRYMUTXBXSQ-UHFFFAOYSA-N"
+      )))))
+    }
+    if (grepl("/property/", url) &&
+        grepl("/cid/2519/property/", url)) {
+      return(list(PropertyTable = list(Properties = list(list(
+        CID = 2519,
+        Title = "Caffeine",
+        MolecularFormula = "C8H10N4O2",
+        InChIKey = "RYYVLZVUVIJVGH-UHFFFAOYSA-N"
+      )))))
+    }
+    if (grepl("/synonyms/JSON$", url)) {
+      cid = if (grepl("/cid/2244/", url)) 2244 else 2519
+      return(list(InformationList = list(Information = list(list(
+        CID = cid,
+        Synonym = list(paste0("synonym-", cid))
+      )))))
+    }
+    list()
+  }
+
+  profile = pubchemProfile(
+    c("cid:2244", "cid:2519"),
+    profile = "minimal",
+    include_annotations = FALSE,
+    request_fun = request_fun
+  )
+
+  expect_equal(sort(profile$properties$CID), c(2244, 2519))
+  expect_true(all(c("Aspirin", "Caffeine") %in% profile$properties$Title))
+})
+
 test_that("pubchemProfile validates empty compound input", {
   expect_error(pubchemProfile(c("", NA), request_fun = fixture_pubchem_request),
                "at least one non-empty")

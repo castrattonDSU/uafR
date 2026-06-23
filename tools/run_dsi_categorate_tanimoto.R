@@ -57,13 +57,22 @@ usage = function() {
     "  --cache-dir lotus_cache/exports/dsi_categorate_tanimoto_20260611/cache \\\n",
     "  --write-all-plant-compound-pairs\n\n",
     "Optional categorate pass:\n",
-    "  --run-categorate --skip-tanimoto --categorate-query-mode inchikey \\\n",
-    "    --categorate-detail research --categorate-batch-size 50\n\n",
+    "  --run-categorate --skip-tanimoto --categorate-query-mode pubchem_cid \\\n",
+    "    --categorate-detail research --categorate-batch-size 50 \\\n",
+    "    --categorate-enrichment-only --categorate-min-property-ratio 0.9 \\\n",
+    "    --throttle 2 --categorate-batch-pause 60\n\n",
     "Notes:\n",
     "- The Tanimoto path uses PubChem Fingerprint2D when a CID can be resolved.\n",
     "- The all plant-compound pair file can be large; use it for final DSI runs.\n",
     "- The species-pair summary is compact and is the primary file to join ",
     "with phylogenetic similarity.\n",
+    "- Use --categorate-enrichment-only for large production runs. It writes ",
+    "the research enrichment tables without rerunning legacy FMCS/library ",
+    "matching for every batch.\n",
+    "- Cached categorate batches with too few property rows for resolved CIDs ",
+    "are treated as incomplete and rerun.\n",
+    "- For large live PubChem runs, use conservative throttle and batch pauses; ",
+    "PubChem may dynamically reject requests with HTTP 503 when busy.\n",
     sep = ""
   )
 }
@@ -659,9 +668,85 @@ write_plant_compound_pair_tanimoto = function(bits, membership, compounds,
   invisible(out_file)
 }
 
+empty_categorate_data_list = function() {
+  list(
+    reactives = data.frame(Chemical = character(),
+                           reactives = character(),
+                           stringsAsFactors = FALSE),
+    LOTUS = data.frame(Chemical = character(),
+                       LOTUS = character(),
+                       stringsAsFactors = FALSE),
+    KEGG = data.frame(Chemical = character(),
+                      KEGG = character(),
+                      stringsAsFactors = FALSE),
+    FEMA = data.frame(Chemical = character(),
+                      FEMA = character(),
+                      stringsAsFactors = FALSE),
+    FDA_SPL = data.frame(Chemical = character(),
+                         FDA_SPL = character(),
+                         stringsAsFactors = FALSE)
+  )
+}
+
+run_categorate_enrichment_only = function(queries, detail, cache_dir,
+                                          throttle) {
+  enrichment_fun = get(".categorate_research_enrichment",
+                       envir = asNamespace("uafR"))
+  result = enrichment_fun(
+    compounds = queries,
+    data_list = empty_categorate_data_list(),
+    detail = detail,
+    cache = TRUE,
+    cache_dir = file.path(cache_dir, "categorate"),
+    throttle = throttle,
+    assay_detail_limit = 50,
+    trait_matrix_profile = "core",
+    trait_matrix_mode = "binary",
+    trait_matrix_min_confidence = "medium",
+    trait_matrix_max_traits = Inf,
+    request_fun = NULL,
+    kegg_request_fun = NULL
+  )
+  result$EnrichmentMode = "categorate_research_enrichment_only"
+  result
+}
+
+categorate_batch_quality = function(result, min_property_ratio = 0.9) {
+  if (inherits(result, "error")) {
+    return(list(status = "error", resolved = NA_integer_,
+                properties = NA_integer_, property_ratio = NA_real_,
+                issue = conditionMessage(result)))
+  }
+  identity = result$PubChemIdentity
+  properties = result$PubChemProperties
+  resolved = if (is.data.frame(identity) && "CID" %in% names(identity)) {
+    sum(!is.na(identity$CID))
+  } else {
+    0L
+  }
+  property_count = if (is.data.frame(properties)) nrow(properties) else 0L
+  property_ratio = if (resolved > 0) property_count / resolved else 1
+  incomplete = resolved > 0 && property_ratio < min_property_ratio
+  list(
+    status = if (incomplete) "incomplete" else "ok",
+    resolved = resolved,
+    properties = property_count,
+    property_ratio = property_ratio,
+    issue = if (incomplete) {
+      paste0("Only ", property_count, " PubChem property rows for ",
+             resolved, " resolved CIDs.")
+    } else {
+      NA_character_
+    }
+  )
+}
+
 run_categorate_batches = function(compounds, out_dir, cache_dir,
                                   detail = "research", batch_size = 50,
-                                  throttle = 0.2, max_batches = Inf) {
+                                  throttle = 0.2, max_batches = Inf,
+                                  enrichment_only = FALSE,
+                                  min_property_ratio = 0.9,
+                                  batch_pause = 0) {
   if (!exists("categorate")) {
     stop("categorate() was not loaded.", call. = FALSE)
   }
@@ -684,33 +769,77 @@ run_categorate_batches = function(compounds, out_dir, cache_dir,
     batch_file = file.path(batch_dir, sprintf("categorate_batch_%04d.rds", i))
     if (file.exists(batch_file)) {
       result = readRDS(batch_file)
-      status = if (inherits(result, "error")) "cached_error" else "cached"
+      quality = categorate_batch_quality(
+        result,
+        min_property_ratio = min_property_ratio
+      )
+      status = if (inherits(result, "error")) {
+        "cached_error"
+      } else if (identical(quality$status, "incomplete")) {
+        "cached_incomplete"
+      } else {
+        "cached"
+      }
     } else {
       result = NULL
       status = "new"
     }
-    if (identical(status, "new") || identical(status, "cached_error")) {
+    if (identical(status, "new") ||
+        identical(status, "cached_error") ||
+        identical(status, "cached_incomplete")) {
       result = tryCatch(
-        categorate(
-          compounds = chunks[[i]],
-          chemical_library = library_data,
-          input_format = "wide",
-          detail = detail,
-          cache = TRUE,
-          cache_dir = file.path(cache_dir, "categorate"),
-          throttle = throttle,
-          trait_matrix_profile = "core",
-          trait_matrix_min_confidence = "medium"
-        ),
+        if (isTRUE(enrichment_only)) {
+          run_categorate_enrichment_only(
+            queries = chunks[[i]],
+            detail = detail,
+            cache_dir = cache_dir,
+            throttle = throttle
+          )
+        } else {
+          categorate(
+            compounds = chunks[[i]],
+            chemical_library = library_data,
+            input_format = "wide",
+            detail = detail,
+            cache = TRUE,
+            cache_dir = file.path(cache_dir, "categorate"),
+            throttle = throttle,
+            trait_matrix_profile = "core",
+            trait_matrix_min_confidence = "medium"
+          )
+        },
         error = function(error) error
       )
-      status = if (inherits(result, "error")) "error" else "completed"
+      quality = categorate_batch_quality(
+        result,
+        min_property_ratio = min_property_ratio
+      )
+      status = if (inherits(result, "error")) {
+        "error"
+      } else if (identical(quality$status, "incomplete")) {
+        "completed_incomplete"
+      } else {
+        "completed"
+      }
       saveRDS(result, batch_file)
+    } else {
+      quality = categorate_batch_quality(
+        result,
+        min_property_ratio = min_property_ratio
+      )
     }
     validation = if (!inherits(result, "error") &&
                      exists("validateCategorateResult")) {
-      tryCatch(validateCategorateResult(result)$ValidationSummary,
-               error = function(error) data.frame())
+      tryCatch({
+        validated = validateCategorateResult(result)
+        if (is.data.frame(validated$Summary)) {
+          validated$Summary
+        } else if (is.data.frame(validated$ValidationSummary)) {
+          validated$ValidationSummary
+        } else {
+          data.frame()
+        }
+      }, error = function(error) data.frame())
     } else {
       data.frame()
     }
@@ -719,6 +848,11 @@ run_categorate_batches = function(compounds, out_dir, cache_dir,
       batch_file = batch_file,
       query_count = length(chunks[[i]]),
       status = status,
+      enrichment_only = isTRUE(enrichment_only),
+      resolved_cids = quality$resolved,
+      property_rows = quality$properties,
+      property_ratio = round(quality$property_ratio, 4),
+      quality_issue = quality$issue,
       error = if (inherits(result, "error")) conditionMessage(result) else NA_character_,
       validation_status = if (is.data.frame(validation) &&
                               "Status" %in% names(validation) &&
@@ -730,6 +864,12 @@ run_categorate_batches = function(compounds, out_dir, cache_dir,
       stringsAsFactors = FALSE
     )
     message("categorate batch: ", i, "/", length(chunks), " (", status, ")")
+    if (i < length(chunks) &&
+        isTRUE(status %in% c("completed", "completed_incomplete", "error")) &&
+        is.finite(batch_pause) && batch_pause > 0) {
+      message("PubChem cooldown between batches: ", batch_pause, " seconds")
+      Sys.sleep(batch_pause)
+    }
   }
   out = do.call(rbind, rows)
   utils::write.csv(out, file.path(out_dir, "dsi_categorate_batch_summary.csv"),
@@ -738,7 +878,8 @@ run_categorate_batches = function(compounds, out_dir, cache_dir,
 }
 
 prepare_categorate_query_map = function(compounds, fp_ready,
-                                        mode = c("inchikey",
+                                        mode = c("pubchem_cid",
+                                                 "inchikey",
                                                  "pubchem_title",
                                                  "compound_name")) {
   mode = match.arg(mode)
@@ -764,7 +905,21 @@ prepare_categorate_query_map = function(compounds, fp_ready,
   } else {
     rep(NA_character_, nrow(map))
   }
-  if (identical(mode, "inchikey")) {
+  if (identical(mode, "pubchem_cid")) {
+    map$categorate_query = ifelse(
+      !is.na(map$pubchem_cid),
+      paste0("cid:", map$pubchem_cid),
+      NA_character_
+    )
+    map$categorate_query[is.na(map$categorate_query)] =
+      pubchem_inchikey[is.na(map$categorate_query)]
+    map$categorate_query[is.na(map$categorate_query)] =
+      clean_text(map$InChIKey)[is.na(map$categorate_query)]
+    map$categorate_query[is.na(map$categorate_query)] =
+      title[is.na(map$categorate_query)]
+    map$categorate_query[is.na(map$categorate_query)] =
+      map$compound_name[is.na(map$categorate_query)]
+  } else if (identical(mode, "inchikey")) {
     map$categorate_query = clean_text(map$InChIKey)
     map$categorate_query[is.na(map$categorate_query)] =
       pubchem_inchikey[is.na(map$categorate_query)]
@@ -784,11 +939,16 @@ prepare_categorate_query_map = function(compounds, fp_ready,
   map$categorate_query_mode = mode
   map$categorate_query_source = ifelse(
     !is.na(map$categorate_query) &
+      grepl("^cid:[0-9]+$", map$categorate_query, ignore.case = TRUE),
+    "pubchem_cid",
+    ifelse(
+    !is.na(map$categorate_query) &
       map$categorate_query == clean_text(map$InChIKey),
     "inchikey",
     ifelse(!is.na(map$categorate_query) &
              map$categorate_query == title,
            "pubchem_title", "compound_name")
+    )
   )
   keep = c("compound_id", "compound_name", "compound_name_clean",
            "categorate_query", "categorate_query_mode",
@@ -820,7 +980,7 @@ main = function() {
 
   result = read_plant_result(plant_result_rds)
   max_compounds = numeric_arg(parsed, "max_compounds", Inf)
-  throttle = numeric_arg(parsed, "throttle", 0.2)
+  throttle = numeric_arg(parsed, "throttle", 2)
   refresh = flag_arg(parsed, "refresh", FALSE)
 
   compounds = prepare_compounds(result, max_compounds = max_compounds)
@@ -919,7 +1079,7 @@ main = function() {
     categorate_map = prepare_categorate_query_map(
       compounds = compounds,
       fp_ready = fp_ready,
-      mode = optional_arg(parsed, "categorate_query_mode", "inchikey")
+      mode = optional_arg(parsed, "categorate_query_mode", "pubchem_cid")
     )
     utils::write.csv(categorate_map,
                      file.path(out_dir, "dsi_categorate_query_map.csv"),
@@ -931,7 +1091,11 @@ main = function() {
       detail = optional_arg(parsed, "categorate_detail", "research"),
       batch_size = integer_arg(parsed, "categorate_batch_size", 50),
       throttle = throttle,
-      max_batches = integer_arg(parsed, "categorate_max_batches", Inf)
+      max_batches = integer_arg(parsed, "categorate_max_batches", Inf),
+      enrichment_only = flag_arg(parsed, "categorate_enrichment_only", FALSE),
+      min_property_ratio =
+        numeric_arg(parsed, "categorate_min_property_ratio", 0.9),
+      batch_pause = numeric_arg(parsed, "categorate_batch_pause", 60)
     )
   }
 

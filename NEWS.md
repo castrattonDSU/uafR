@@ -38,6 +38,13 @@
   group pair summaries, and optional streamed cross-group compound-pair files
   for downstream analyses such as plant chemistry and phylogenetic similarity
   comparisons.
+- Hardened PubChem enrichment for larger DSI-style plant chemistry runs by
+  allowing explicit `cid:<PubChem CID>` query tokens in `pubchemProfile()`,
+  adding adaptive live-request spacing, respecting PubChem throttling headers
+  where available, using exponential backoff for `429`/`503` service-busy
+  responses, falling back from failed bulk property requests to single-CID
+  property requests, and adding quality-gated enrichment-only categorate
+  batching with cooldowns to `tools/run_dsi_categorate_tanimoto.R`.
 - Added a comparable-chemistry layer for plant workflows with
   `plantChemistryComparability()` and `plantComparableChemistryMatrix()` so
   primary metabolites, specialized metabolites, volatile-specialized chemistry,
