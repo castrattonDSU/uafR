@@ -889,6 +889,56 @@ Use `exportCategorateWorkbook()` to share results outside R. It writes a
 manifest plus clean CSV files by default, and can write an `.xlsx` workbook when
 `openxlsx` or `writexl` is installed.
 
+Large plant-chemistry projects often run `categorate()` enrichment in resumable
+batches. Use the batch-analysis helpers to audit those outputs before handing
+them to a downstream statistics or figure-making workspace:
+
+``` r
+batches = readCategorateBatchDirectory(
+  "dsi_categorate_research_pubchem_cid_20260611/categorate_batches"
+)
+
+batch_summary = summarizeCategorateBatches(batches)
+batch_summary[, c("BatchIndex", "Status", "ValidationStatus",
+                  "ResolvedCIDCount", "PubChemPropertyRatio")]
+
+combined = combineCategorateTables(
+  batches,
+  tables = c("ChemicalTraits", "PubChemProperties", "ChemicalTraitEvidence")
+)
+
+manifest = exportPlantChemistryAnalysisBundle(
+  categorate_batches = batches,
+  path = "plant_chemistry_analysis_bundle",
+  plant_membership = "dsi_species_compound_membership.csv",
+  species_pair_tanimoto = "dsi_species_pair_tanimoto_summary.csv",
+  resolved_compounds = "dsi_resolved_compounds_for_categorate.csv",
+  file_references = c(
+    plant_compound_pairs = "dsi_plant_compound_pair_tanimoto.csv.gz",
+    compound_pairs = "dsi_compound_pair_tanimoto.csv.gz",
+    chemical_traits_full = "combined_chemical_traits_if_exported_separately.csv.gz",
+    trait_evidence_full = "combined_trait_evidence_if_exported_separately.csv.gz"
+  ),
+  tables = c("ChemicalTraitSummary", "DerivedGroups", "PubChemProperties",
+             "SourceCoverage", "ValidationSummary", "ValidationIssues"),
+  format = "csv",
+  overwrite = TRUE
+)
+manifest
+```
+
+The exported `BatchSummary` should be checked first. Batches with `Status =
+"error"` should not be interpreted; batches with `Status = "incomplete"` need
+review because they have fewer PubChem property rows than resolved CIDs at the
+chosen threshold. Large compressed pairwise files can be recorded in
+`FileReferences` instead of copied into every bundle. For very large runs, keep
+row-level tables such as `ChemicalTraits` and `ChemicalTraitEvidence` as
+separate targeted exports unless the downstream analysis needs a full combined
+copy. Very wide sparse tables such as `ChemicalTraitMatrix` are useful for
+focused modeling, but they can be slow and awkward to move for thousands of
+compounds; keep the batch directory in `FileReferences` and extract a focused
+matrix profile when the analysis plan is settled.
+
 `keggProfile()` can also be used directly when the goal is KEGG-specific
 annotation. It resolves names or supplied KEGG IDs, parses KEGG flat-file
 records, follows KEGG links, and returns pathways, reactions, enzymes, modules,

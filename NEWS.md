@@ -45,6 +45,11 @@
   responses, falling back from failed bulk property requests to single-CID
   property requests, and adding quality-gated enrichment-only categorate
   batching with cooldowns to `tools/run_dsi_categorate_tanimoto.R`.
+- Added `readCategorateBatchDirectory()`, `summarizeCategorateBatches()`,
+  `combineCategorateTables()`, and `exportPlantChemistryAnalysisBundle()` to
+  turn resumable categorate batch directories into auditable, analysis-ready
+  CSV/XLSX bundles for plant chemistry, Tanimoto, and downstream modeling
+  workflows.
 - Added a comparable-chemistry layer for plant workflows with
   `plantChemistryComparability()` and `plantComparableChemistryMatrix()` so
   primary metabolites, specialized metabolites, volatile-specialized chemistry,
