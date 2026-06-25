@@ -56,6 +56,13 @@
   exports, source/validation summaries, species-level chemistry summaries,
   missing-species coverage tables, data dictionaries, README/methods text, and
   analysis-ready plant-pair support keys.
+- Added reusable plant chemistry project handoff tools:
+  `standardizePlantMetadata()`, `plantOccurrenceEvidenceGrade()`,
+  `plantComparableTanimotoSummary()`, `exportPlantChemistryFeatureSet()`, and
+  `runPlantChemistryProject()`. Finalized bundles now include evidence-grade
+  summaries, review-required occurrence tables, species feature matrices, and
+  optional comparable scope/group Tanimoto summaries for downstream modeling
+  and phylogeny/chemistry analyses.
 - Added a comparable-chemistry layer for plant workflows with
   `plantChemistryComparability()` and `plantComparableChemistryMatrix()` so
   primary metabolites, specialized metabolites, volatile-specialized chemistry,

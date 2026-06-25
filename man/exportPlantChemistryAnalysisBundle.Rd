@@ -11,6 +11,7 @@ exportPlantChemistryAnalysisBundle(
   species_pair_tanimoto = NULL,
   resolved_compounds = NULL,
   pubchem_fingerprints = NULL,
+  plant_compound_pair_tanimoto = NULL,
   file_references = NULL,
   plant_list = NULL,
   metadata = NULL,
@@ -22,6 +23,8 @@ exportPlantChemistryAnalysisBundle(
   overwrite = FALSE,
   max_cell_chars = 30000,
   finalize = TRUE,
+  include_feature_exports = TRUE,
+  include_comparable_tanimoto = FALSE,
   validate_export = TRUE
 )
 }
@@ -44,6 +47,10 @@ resolved compounds.}
 
 \item{pubchem_fingerprints}{Optional data frame or CSV path containing
 PubChem fingerprint records.}
+
+\item{plant_compound_pair_tanimoto}{Optional data frame or CSV/CSV.GZ path
+containing plant-compound pair Tanimoto rows. This can be large, so it is
+read only when comparable Tanimoto summaries are requested.}
 
 \item{file_references}{Optional character vector or data frame of large
 external files to record in the bundle manifest, such as compressed
@@ -77,6 +84,13 @@ rows to resolved PubChem CIDs.}
 
 \item{finalize}{Logical. If `TRUE` and `format = "csv"`, add enriched
 analysis-ready tables, bundle documentation, and validation summaries.}
+
+\item{include_feature_exports}{Logical. If `TRUE`, finalized CSV bundles
+include model-ready species feature matrices.}
+
+\item{include_comparable_tanimoto}{Logical. If `TRUE`, finalized CSV bundles
+include scope- and group-filtered Tanimoto summaries. Requires
+`plant_compound_pair_tanimoto`.}
 
 \item{validate_export}{Logical. If `TRUE`, run bundle CSV validation after
 finalization.}

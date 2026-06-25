@@ -217,6 +217,9 @@ combineCategorateTables = function(categorate_batches,
 #' resolved compounds.
 #' @param pubchem_fingerprints Optional data frame or CSV path containing
 #' PubChem fingerprint records.
+#' @param plant_compound_pair_tanimoto Optional data frame or CSV/CSV.GZ path
+#' containing plant-compound pair Tanimoto rows. This can be large, so it is
+#' read only when comparable Tanimoto summaries are requested.
 #' @param file_references Optional character vector or data frame of large
 #' external files to record in the bundle manifest, such as compressed
 #' compound-pair Tanimoto tables.
@@ -239,6 +242,11 @@ combineCategorateTables = function(categorate_batches,
 #' @param max_cell_chars Maximum characters retained in a single character cell.
 #' @param finalize Logical. If `TRUE` and `format = "csv"`, add enriched
 #' analysis-ready tables, bundle documentation, and validation summaries.
+#' @param include_feature_exports Logical. If `TRUE`, finalized CSV bundles
+#' include model-ready species feature matrices.
+#' @param include_comparable_tanimoto Logical. If `TRUE`, finalized CSV bundles
+#' include scope- and group-filtered Tanimoto summaries. Requires
+#' `plant_compound_pair_tanimoto`.
 #' @param validate_export Logical. If `TRUE`, run bundle CSV validation after
 #' finalization.
 #'
@@ -263,6 +271,7 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
                                               species_pair_tanimoto = NULL,
                                               resolved_compounds = NULL,
                                               pubchem_fingerprints = NULL,
+                                              plant_compound_pair_tanimoto = NULL,
                                               file_references = NULL,
                                               plant_list = NULL,
                                               metadata = NULL,
@@ -274,6 +283,8 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
                                               overwrite = FALSE,
                                               max_cell_chars = 30000,
                                               finalize = TRUE,
+                                              include_feature_exports = TRUE,
+                                              include_comparable_tanimoto = FALSE,
                                               validate_export = TRUE) {
   format = match.arg(format)
   if (missing(path) || length(.uaf_non_empty(path)) != 1) {
@@ -289,6 +300,7 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
       species_pair_tanimoto = species_pair_tanimoto,
       resolved_compounds = resolved_compounds,
       pubchem_fingerprints = pubchem_fingerprints,
+      plant_compound_pair_tanimoto = plant_compound_pair_tanimoto,
       file_references = file_references,
       plant_list = plant_list,
       metadata = metadata,
@@ -299,6 +311,8 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
       overwrite = overwrite,
       max_cell_chars = max_cell_chars,
       finalize = finalize,
+      include_feature_exports = include_feature_exports,
+      include_comparable_tanimoto = include_comparable_tanimoto,
       validate_export = validate_export
     ))
   }
@@ -380,8 +394,11 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
         path = resolved$path,
         plant_list = plant_list,
         metadata = metadata,
+        plant_compound_pair_tanimoto = plant_compound_pair_tanimoto,
         project_id = project_id,
         overwrite = TRUE,
+        include_feature_exports = include_feature_exports,
+        include_comparable_tanimoto = include_comparable_tanimoto,
         validate_export = validate_export,
         max_cell_chars = max_cell_chars
       )
@@ -658,6 +675,7 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
                                                   species_pair_tanimoto,
                                                   resolved_compounds,
                                                   pubchem_fingerprints,
+                                                  plant_compound_pair_tanimoto,
                                                   file_references,
                                                   plant_list,
                                                   metadata,
@@ -668,6 +686,8 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
                                                   overwrite,
                                                   max_cell_chars,
                                                   finalize,
+                                                  include_feature_exports,
+                                                  include_comparable_tanimoto,
                                                   validate_export) {
   file_input = .categorate_batch_file_input(categorate_batches)
   if (dir.exists(path) || file.exists(path)) {
@@ -782,8 +802,11 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
       path = path,
       plant_list = plant_list,
       metadata = metadata,
+      plant_compound_pair_tanimoto = plant_compound_pair_tanimoto,
       project_id = project_id,
       overwrite = TRUE,
+      include_feature_exports = include_feature_exports,
+      include_comparable_tanimoto = include_comparable_tanimoto,
       validate_export = validate_export,
       max_cell_chars = max_cell_chars
     )

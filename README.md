@@ -914,6 +914,7 @@ manifest = exportPlantChemistryAnalysisBundle(
   species_pair_tanimoto = "dsi_species_pair_tanimoto_summary.csv",
   resolved_compounds = "dsi_resolved_compounds_for_categorate.csv",
   pubchem_fingerprints = "dsi_pubchem_fingerprints.csv",
+  plant_compound_pair_tanimoto = "dsi_plant_compound_pair_tanimoto.csv.gz",
   file_references = c(
     plant_compound_pairs = "dsi_plant_compound_pair_tanimoto.csv.gz",
     compound_pairs = "dsi_compound_pair_tanimoto.csv.gz",
@@ -925,6 +926,7 @@ manifest = exportPlantChemistryAnalysisBundle(
   tables = c("ChemicalTraitSummary", "DerivedGroups", "PubChemProperties",
              "SourceCoverage", "ValidationSummary", "ValidationIssues"),
   format = "csv",
+  include_comparable_tanimoto = TRUE,
   overwrite = TRUE
 )
 manifest
@@ -953,7 +955,13 @@ For CSV bundles, `exportPlantChemistryAnalysisBundle()` finalizes the handoff by
 default. The finalized bundle includes `00_DataDictionary.csv`,
 `03b_PlantCompoundMembershipEnriched.csv`, `11b_SourceCoverageSummary.csv`,
 `12b_ValidationOverview.csv`, `14_PlantChemistrySummary.csv`,
-`15_PlantChemistryMissingSpecies.csv`, `README.md`, and `METHODS_TEXT.md`.
+`15_PlantChemistryMissingSpecies.csv`, `16_EvidenceGradeSummary.csv`,
+`17_ReviewRequiredOccurrences.csv`, model-ready feature matrices
+(`18_` through `21_`), `README.md`, and `METHODS_TEXT.md`. If
+`include_comparable_tanimoto = TRUE` and a plant-compound pair Tanimoto table is
+supplied, the bundle also includes scope- and group-filtered comparable
+Tanimoto summaries as `22_ComparableScopeTanimotoSummary.csv` and
+`23_ComparableGroupTanimotoSummary.csv`.
 The enriched membership table joins occurrence evidence to PubChem fingerprints,
 PubChem/categorate properties, natural-product context, source coverage, and the
 uafR comparable-chemistry fields (`comparison_scope`, `comparison_group`,
@@ -961,6 +969,38 @@ uafR comparable-chemistry fields (`comparison_scope`, `comparison_group`,
 `comparable_for_matrix`, and `comparison_caveat`). These fields are intended to
 help downstream projects compare like with like; they do not turn public
 database records into confirmed sample measurements.
+
+For reusable project handoffs, use `runPlantChemistryProject()` or the CLI
+wrapper. The runner accepts a plant list plus either curated plant-compound
+records, a saved plant phytochemistry result, cached categorate batches, or an
+explicit live-discovery request. It writes a project manifest and a finalized
+bundle without hardcoding project-specific paths:
+
+``` r
+project = runPlantChemistryProject(
+  plant_list = "project_species.csv",
+  metadata = "project_plant_metadata.csv",
+  plant_compounds = "curated_or_discovered_plant_compounds.csv",
+  output_dir = "plant_chemistry_project_run",
+  plant_compound_pair_tanimoto = "plant_compound_pair_tanimoto.csv.gz",
+  project_id = "plant_project",
+  overwrite = TRUE
+)
+
+project$Project
+validatePlantChemistryAnalysisBundle(project$Project$bundle_dir)
+```
+
+``` sh
+Rscript tools/run_plant_chemistry_project.R \
+  --plant-list project_species.csv \
+  --metadata project_plant_metadata.csv \
+  --plant-compounds curated_or_discovered_plant_compounds.csv \
+  --plant-compound-pair-tanimoto plant_compound_pair_tanimoto.csv.gz \
+  --out-dir plant_chemistry_project_run \
+  --project-id plant_project \
+  --overwrite true
+```
 
 Use `finalizePlantChemistryAnalysisBundle()` when a bundle has already been
 written and only needs the analysis-ready handoff files refreshed. Use
