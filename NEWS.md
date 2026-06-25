@@ -50,6 +50,12 @@
   turn resumable categorate batch directories into auditable, analysis-ready
   CSV/XLSX bundles for plant chemistry, Tanimoto, and downstream modeling
   workflows.
+- Hardened plant chemistry analysis bundles for publication handoff with
+  RFC4180-style CSV serialization, `finalizePlantChemistryAnalysisBundle()`,
+  `validatePlantChemistryAnalysisBundle()`, enriched plant-compound membership
+  exports, source/validation summaries, species-level chemistry summaries,
+  missing-species coverage tables, data dictionaries, README/methods text, and
+  analysis-ready plant-pair support keys.
 - Added a comparable-chemistry layer for plant workflows with
   `plantChemistryComparability()` and `plantComparableChemistryMatrix()` so
   primary metabolites, specialized metabolites, volatile-specialized chemistry,

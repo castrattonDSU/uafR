@@ -150,13 +150,31 @@ exportCategorateWorkbook = function(x,
         .pubchem_collapse(unlist(value, use.names = FALSE))
       }, character(1))
     }
+    if (is.factor(table[[col]])) {
+      table[[col]] = as.character(table[[col]])
+    }
+    if (inherits(table[[col]], "POSIXt")) {
+      table[[col]] = format(table[[col]], "%Y-%m-%dT%H:%M:%S%z")
+    }
     if (is.character(table[[col]])) {
+      table[[col]] = .categorate_export_clean_character(table[[col]])
       table[[col]] = .categorate_export_truncate(table[[col]],
                                                  max_cell_chars)
     }
   }
   row.names(table) = NULL
   table
+}
+
+.categorate_export_clean_character = function(x) {
+  x = enc2utf8(as.character(x))
+  keep = !is.na(x)
+  if (any(keep)) {
+    x[keep] = gsub("\r\n|\r|\n", " | ", x[keep], perl = TRUE)
+    x[keep] = gsub("[\001-\010\013\014\016-\037\177]", " ",
+                   x[keep], perl = TRUE)
+  }
+  x
 }
 
 .categorate_export_truncate = function(x, max_cell_chars) {
@@ -239,12 +257,30 @@ exportCategorateWorkbook = function(x,
     stop("Could not create output directory: ", path, call. = FALSE)
   }
   for (i in seq_along(tables)) {
-    utils::write.csv(tables[[i]],
-                     file = file.path(path, file_names[[i]]),
-                     row.names = FALSE,
-                     na = "")
+    .categorate_write_csv_file(tables[[i]], file.path(path, file_names[[i]]))
   }
   invisible(path)
+}
+
+.categorate_write_csv_file = function(table, file, append = FALSE,
+                                      cols = NULL,
+                                      max_cell_chars = 30000) {
+  if (is.null(cols)) cols = names(table)
+  for (col in setdiff(cols, names(table))) table[[col]] = NA
+  table = table[, cols, drop = FALSE]
+  table = .categorate_export_prepare_table(table, max_cell_chars)
+  dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
+  utils::write.table(table,
+                     file = file,
+                     sep = ",",
+                     row.names = FALSE,
+                     col.names = !isTRUE(append),
+                     append = isTRUE(append),
+                     quote = TRUE,
+                     na = "",
+                     qmethod = "double",
+                     fileEncoding = "UTF-8")
+  invisible(file)
 }
 
 .categorate_export_sheet_names = function(table_names) {

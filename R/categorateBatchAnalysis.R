@@ -220,6 +220,15 @@ combineCategorateTables = function(categorate_batches,
 #' @param file_references Optional character vector or data frame of large
 #' external files to record in the bundle manifest, such as compressed
 #' compound-pair Tanimoto tables.
+#' @param plant_list Optional character vector, data frame, or CSV path
+#' containing the full plant list used by the project. When supplied, the
+#' finalized bundle includes a missing-chemistry coverage table.
+#' @param metadata Optional plant metadata data frame or CSV path. If it
+#' contains `species`, `accepted_species_name`, `genus`, or `family`, those
+#' fields are used only for transparent taxonomy/status joins and are never
+#' fabricated.
+#' @param project_id Optional project label written to bundle documentation and
+#' provenance text.
 #' @param tables Categorate result table names to combine and export. If `NULL`,
 #' a curated analysis-ready set is used.
 #' @param format Export format: `"csv"`, `"xlsx"`, or `"auto"`.
@@ -228,6 +237,10 @@ combineCategorateTables = function(categorate_batches,
 #' rows to resolved PubChem CIDs.
 #' @param overwrite Logical. If `TRUE`, replace an existing output.
 #' @param max_cell_chars Maximum characters retained in a single character cell.
+#' @param finalize Logical. If `TRUE` and `format = "csv"`, add enriched
+#' analysis-ready tables, bundle documentation, and validation summaries.
+#' @param validate_export Logical. If `TRUE`, run bundle CSV validation after
+#' finalization.
 #'
 #' @return A manifest data frame describing exported tables.
 #'
@@ -251,12 +264,17 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
                                               resolved_compounds = NULL,
                                               pubchem_fingerprints = NULL,
                                               file_references = NULL,
+                                              plant_list = NULL,
+                                              metadata = NULL,
+                                              project_id = NULL,
                                               tables = NULL,
                                               format = c("auto", "xlsx", "csv"),
                                               include_empty = FALSE,
                                               min_property_ratio = 0.9,
                                               overwrite = FALSE,
-                                              max_cell_chars = 30000) {
+                                              max_cell_chars = 30000,
+                                              finalize = TRUE,
+                                              validate_export = TRUE) {
   format = match.arg(format)
   if (missing(path) || length(.uaf_non_empty(path)) != 1) {
     stop("`path` is required.", call. = FALSE)
@@ -272,11 +290,16 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
       resolved_compounds = resolved_compounds,
       pubchem_fingerprints = pubchem_fingerprints,
       file_references = file_references,
+      plant_list = plant_list,
+      metadata = metadata,
+      project_id = project_id,
       tables = tables,
       include_empty = include_empty,
       min_property_ratio = min_property_ratio,
       overwrite = overwrite,
-      max_cell_chars = max_cell_chars
+      max_cell_chars = max_cell_chars,
+      finalize = finalize,
+      validate_export = validate_export
     ))
   }
   batch_summary = summarizeCategorateBatches(
@@ -352,6 +375,17 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
   } else {
     .categorate_write_csv_bundle(full_tables, file_names, resolved$path,
                                  overwrite)
+    if (isTRUE(finalize)) {
+      manifest = finalizePlantChemistryAnalysisBundle(
+        path = resolved$path,
+        plant_list = plant_list,
+        metadata = metadata,
+        project_id = project_id,
+        overwrite = TRUE,
+        validate_export = validate_export,
+        max_cell_chars = max_cell_chars
+      )
+    }
   }
   row.names(manifest) = NULL
   manifest
@@ -625,11 +659,16 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
                                                   resolved_compounds,
                                                   pubchem_fingerprints,
                                                   file_references,
+                                                  plant_list,
+                                                  metadata,
+                                                  project_id,
                                                   tables,
                                                   include_empty,
                                                   min_property_ratio,
                                                   overwrite,
-                                                  max_cell_chars) {
+                                                  max_cell_chars,
+                                                  finalize,
+                                                  validate_export) {
   file_input = .categorate_batch_file_input(categorate_batches)
   if (dir.exists(path) || file.exists(path)) {
     if (!isTRUE(overwrite)) {
@@ -738,6 +777,17 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
     append = FALSE,
     cols = names(manifest)
   )
+  if (isTRUE(finalize)) {
+    manifest = finalizePlantChemistryAnalysisBundle(
+      path = path,
+      plant_list = plant_list,
+      metadata = metadata,
+      project_id = project_id,
+      overwrite = TRUE,
+      validate_export = validate_export,
+      max_cell_chars = max_cell_chars
+    )
+  }
   row.names(manifest) = NULL
   manifest
 }
@@ -840,15 +890,6 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
 }
 
 .categorate_stream_write_csv = function(table, file, append, cols) {
-  for (col in setdiff(cols, names(table))) table[[col]] = NA
-  table = table[, cols, drop = FALSE]
-  utils::write.table(table,
-                     file = file,
-                     sep = ",",
-                     row.names = FALSE,
-                     col.names = !isTRUE(append),
-                     append = isTRUE(append),
-                     quote = TRUE,
-                     na = "")
+  .categorate_write_csv_file(table, file, append = append, cols = cols)
   invisible(file)
 }

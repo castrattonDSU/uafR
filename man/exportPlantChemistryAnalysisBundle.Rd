@@ -12,12 +12,17 @@ exportPlantChemistryAnalysisBundle(
   resolved_compounds = NULL,
   pubchem_fingerprints = NULL,
   file_references = NULL,
+  plant_list = NULL,
+  metadata = NULL,
+  project_id = NULL,
   tables = NULL,
   format = c("auto", "xlsx", "csv"),
   include_empty = FALSE,
   min_property_ratio = 0.9,
   overwrite = FALSE,
-  max_cell_chars = 30000
+  max_cell_chars = 30000,
+  finalize = TRUE,
+  validate_export = TRUE
 )
 }
 \arguments{
@@ -44,6 +49,18 @@ PubChem fingerprint records.}
 external files to record in the bundle manifest, such as compressed
 compound-pair Tanimoto tables.}
 
+\item{plant_list}{Optional character vector, data frame, or CSV path
+containing the full plant list used by the project. When supplied, the
+finalized bundle includes a missing-chemistry coverage table.}
+
+\item{metadata}{Optional plant metadata data frame or CSV path. If it
+contains `species`, `accepted_species_name`, `genus`, or `family`, those
+fields are used only for transparent taxonomy/status joins and are never
+fabricated.}
+
+\item{project_id}{Optional project label written to bundle documentation and
+provenance text.}
+
 \item{tables}{Categorate result table names to combine and export. If `NULL`,
 a curated analysis-ready set is used.}
 
@@ -57,6 +74,12 @@ rows to resolved PubChem CIDs.}
 \item{overwrite}{Logical. If `TRUE`, replace an existing output.}
 
 \item{max_cell_chars}{Maximum characters retained in a single character cell.}
+
+\item{finalize}{Logical. If `TRUE` and `format = "csv"`, add enriched
+analysis-ready tables, bundle documentation, and validation summaries.}
+
+\item{validate_export}{Logical. If `TRUE`, run bundle CSV validation after
+finalization.}
 }
 \value{
 A manifest data frame describing exported tables.

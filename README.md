@@ -913,18 +913,28 @@ manifest = exportPlantChemistryAnalysisBundle(
   plant_membership = "dsi_species_compound_membership.csv",
   species_pair_tanimoto = "dsi_species_pair_tanimoto_summary.csv",
   resolved_compounds = "dsi_resolved_compounds_for_categorate.csv",
+  pubchem_fingerprints = "dsi_pubchem_fingerprints.csv",
   file_references = c(
     plant_compound_pairs = "dsi_plant_compound_pair_tanimoto.csv.gz",
     compound_pairs = "dsi_compound_pair_tanimoto.csv.gz",
     chemical_traits_full = "combined_chemical_traits_if_exported_separately.csv.gz",
     trait_evidence_full = "combined_trait_evidence_if_exported_separately.csv.gz"
   ),
+  plant_list = "project_species.csv",
+  project_id = "plant_project",
   tables = c("ChemicalTraitSummary", "DerivedGroups", "PubChemProperties",
              "SourceCoverage", "ValidationSummary", "ValidationIssues"),
   format = "csv",
   overwrite = TRUE
 )
 manifest
+
+validation = validatePlantChemistryAnalysisBundle(
+  "plant_chemistry_analysis_bundle",
+  use_python = TRUE,
+  use_pandas = TRUE
+)
+validation$Summary
 ```
 
 The exported `BatchSummary` should be checked first. Batches with `Status =
@@ -938,6 +948,26 @@ copy. Very wide sparse tables such as `ChemicalTraitMatrix` are useful for
 focused modeling, but they can be slow and awkward to move for thousands of
 compounds; keep the batch directory in `FileReferences` and extract a focused
 matrix profile when the analysis plan is settled.
+
+For CSV bundles, `exportPlantChemistryAnalysisBundle()` finalizes the handoff by
+default. The finalized bundle includes `00_DataDictionary.csv`,
+`03b_PlantCompoundMembershipEnriched.csv`, `11b_SourceCoverageSummary.csv`,
+`12b_ValidationOverview.csv`, `14_PlantChemistrySummary.csv`,
+`15_PlantChemistryMissingSpecies.csv`, `README.md`, and `METHODS_TEXT.md`.
+The enriched membership table joins occurrence evidence to PubChem fingerprints,
+PubChem/categorate properties, natural-product context, source coverage, and the
+uafR comparable-chemistry fields (`comparison_scope`, `comparison_group`,
+`comparison_subgroup`, `comparability_confidence`, `comparability_basis`,
+`comparable_for_matrix`, and `comparison_caveat`). These fields are intended to
+help downstream projects compare like with like; they do not turn public
+database records into confirmed sample measurements.
+
+Use `finalizePlantChemistryAnalysisBundle()` when a bundle has already been
+written and only needs the analysis-ready handoff files refreshed. Use
+`validatePlantChemistryAnalysisBundle()` before handing a bundle to another
+project. It checks manifest row/column counts, required columns, accidental row
+index columns, and CSV parser consistency. Optional Python and pandas checks can
+be enabled on machines where those tools are available.
 
 `keggProfile()` can also be used directly when the goal is KEGG-specific
 annotation. It resolves names or supplied KEGG IDs, parses KEGG flat-file

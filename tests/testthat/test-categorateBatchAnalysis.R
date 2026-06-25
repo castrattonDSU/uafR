@@ -33,6 +33,21 @@ categorate_batch_fixture = function(query, cid, property_cids = cid,
       AnalysisKey = "property__formula_present__yes",
       EvidenceText = "Fixture evidence"
     ),
+    DerivedGroups = data.frame_safe(
+      Query = query,
+      CID = cid,
+      natural_product_classes = c(
+        "phenolics, quoted \"class\" | newline normalized",
+        "terpenoids"
+      )[seq_along(query)],
+      metabolic_context = "specialized metabolite",
+      ecological_context = "fixture context",
+      lipophilicity_bin = "not_reported",
+      volatility_proxy = "not_reported",
+      oxygenated = TRUE,
+      nitrogenous = FALSE,
+      sulfur_containing = FALSE
+    ),
     SourceCoverage = data.frame_safe(
       Query = query,
       Source = "PubChemProperties",
@@ -154,7 +169,8 @@ test_that("plant chemistry analysis bundle exports combined batch tables", {
   )
 
   expect_true(dir.exists(out_dir))
-  expect_equal(manifest$Table[[1]], "ExportManifest")
+  expect_true("ExportManifest" %in% manifest$Table)
+  expect_true("DataDictionary" %in% manifest$Table)
   expect_true(all(c("BatchSummary", "PlantCompoundMembership",
                     "PlantPairTanimotoSummary", "FileReferences",
                     "ChemicalTraits", "PubChemProperties") %in%
@@ -183,4 +199,61 @@ test_that("plant chemistry analysis bundle exports combined batch tables", {
   expect_equal(exported_summary$Status, c("ok", "incomplete", "error"))
   expect_equal(exported_refs$Reference, "plant_compound_pairs")
   expect_false(exported_refs$Exists)
+
+  enriched_file = file.path(out_dir, "03b_PlantCompoundMembershipEnriched.csv")
+  species_file = file.path(out_dir, "14_PlantChemistrySummary.csv")
+  missing_file = file.path(out_dir, "15_PlantChemistryMissingSpecies.csv")
+  validation_file = file.path(out_dir, "12b_ValidationOverview.csv")
+
+  expect_true(file.exists(enriched_file))
+  expect_true(file.exists(species_file))
+  expect_true(file.exists(missing_file))
+  expect_true(file.exists(validation_file))
+
+  enriched = utils::read.csv(enriched_file, stringsAsFactors = FALSE,
+                             check.names = FALSE)
+  expect_true(all(c("taxonomy_family_status", "has_fingerprint",
+                    "comparison_scope", "comparison_group",
+                    "comparable_for_matrix") %in% names(enriched)))
+  validation = validatePlantChemistryAnalysisBundle(out_dir)
+  expect_equal(validation$Summary$ExportReadyStatus, "pass")
+})
+
+test_that("streamed bundle CSV writer preserves parseable quoted fields", {
+  batch_dir = write_categorate_batch_fixtures(tempfile("categorate_batches_"))
+  out_dir = tempfile("plant_chemistry_bundle_csv_")
+
+  manifest = exportPlantChemistryAnalysisBundle(
+    categorate_batches = batch_dir,
+    path = out_dir,
+    plant_membership = data.frame(
+      species = "Plant alpha",
+      compound_id = "cid_1",
+      compound_name = "compound one",
+      source_database = "fixture",
+      evidence_tier = "direct_species_database",
+      stringsAsFactors = FALSE
+    ),
+    tables = c("DerivedGroups"),
+    format = "csv",
+    overwrite = TRUE
+  )
+
+  derived_file = file.path(
+    out_dir,
+    manifest$FileName[manifest$Table == "DerivedGroups"]
+  )
+  fields = utils::count.fields(derived_file, sep = ",", quote = "\"",
+                               blank.lines.skip = FALSE)
+  expect_true(length(fields) > 1)
+  expect_true(all(fields == fields[[1]]))
+
+  derived = utils::read.csv(derived_file, stringsAsFactors = FALSE,
+                            check.names = FALSE)
+  expect_equal(nrow(derived), 4)
+  expect_true("natural_product_classes" %in% names(derived))
+  expect_equal(
+    validatePlantChemistryAnalysisBundle(out_dir)$Summary$ExportReadyStatus,
+    "pass"
+  )
 })
