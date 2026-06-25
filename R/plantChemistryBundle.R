@@ -137,6 +137,21 @@ finalizePlantChemistryAnalysisBundle = function(path,
     .bundle_write_table(path, "21_FeatureSpeciesMetadata.csv",
                         features$SpeciesMetadata,
                         overwrite = overwrite, max_cell_chars = max_cell_chars)
+    .bundle_write_table(path, "24_FeatureEvidenceGradeCountMatrix.csv",
+                        features$EvidenceGradeCountMatrix,
+                        overwrite = overwrite, max_cell_chars = max_cell_chars)
+    .bundle_write_table(path, "25_FeaturePlantPartCountMatrix.csv",
+                        features$PlantPartCountMatrix,
+                        overwrite = overwrite, max_cell_chars = max_cell_chars)
+    .bundle_write_table(path, "26_FeatureTissueCountMatrix.csv",
+                        features$TissueCountMatrix,
+                        overwrite = overwrite, max_cell_chars = max_cell_chars)
+    .bundle_write_table(path, "27_FeatureMethodCountMatrix.csv",
+                        features$MethodCountMatrix,
+                        overwrite = overwrite, max_cell_chars = max_cell_chars)
+    .bundle_write_table(path, "28_FeatureMatrixManifest.csv",
+                        features$Manifest,
+                        overwrite = overwrite, max_cell_chars = max_cell_chars)
   }
 
   missing = .bundle_missing_species(plant_list, enriched, metadata)
@@ -531,13 +546,22 @@ plantComparableTanimotoSummary = function(plant_pair_tanimoto = NULL,
 #' @param path Optional output directory. If supplied, CSV files and a manifest
 #' are written.
 #' @param overwrite Logical. If `TRUE`, replace an existing output directory.
+#' @param modes Matrix modes to export. Supported values are `"count"`,
+#' `"binary"`, `"fraction"`, and `"confidence"`. The default preserves the
+#' original count-matrix output.
+#' @param include_context Logical. If `TRUE`, include plant-part, tissue, and
+#' method matrices when those fields are present.
+#' @param include_evidence Logical. If `TRUE`, include evidence-grade matrices.
 #'
 #' @return Named list of feature tables and manifest.
 #'
 #' @export
 exportPlantChemistryFeatureSet = function(membership,
                                           path = NULL,
-                                          overwrite = FALSE) {
+                                          overwrite = FALSE,
+                                          modes = "count",
+                                          include_context = TRUE,
+                                          include_evidence = TRUE) {
   if (!is.data.frame(membership)) {
     stop("`membership` must be an enriched plant-compound membership table.",
          call. = FALSE)
@@ -545,8 +569,18 @@ exportPlantChemistryFeatureSet = function(membership,
   membership = as.data.frame(membership, stringsAsFactors = FALSE)
   for (col in c("species", "compound_id", "comparison_group",
                 "comparison_scope", "source_database",
-                "comparable_for_matrix")) {
+                "comparable_for_matrix", "plant_part_group",
+                "tissue_group", "method_group", "confidence")) {
     if (!col %in% names(membership)) membership[[col]] = NA_character_
+  }
+  modes = unique(tolower(.uaf_non_empty(modes)))
+  modes = modes[modes %in% c("count", "binary", "fraction", "confidence")]
+  if (length(modes) < 1) modes = "count"
+  evidence = plantOccurrenceEvidenceGrade(membership)
+  if (nrow(evidence) == nrow(membership)) {
+    membership$evidence_grade = evidence$evidence_grade
+  } else if (!"evidence_grade" %in% names(membership)) {
+    membership$evidence_grade = NA_character_
   }
   comparable = membership[
     .bundle_truthy(membership$comparable_for_matrix) &
@@ -556,31 +590,82 @@ exportPlantChemistryFeatureSet = function(membership,
       c("", "unknown"),
     , drop = FALSE
   ]
-  group_count = .feature_matrix(comparable, "comparison_group", "count")
-  scope_count = .feature_matrix(comparable, "comparison_scope", "count")
-  source_count = .feature_matrix(membership, "source_database", "count")
+  out = list()
+  manifest_rows = list()
+  add_matrix = function(name, table, field, mode, caveat) {
+    out[[name]] <<- table
+    manifest_rows[[length(manifest_rows) + 1L]] <<- data.frame(
+      Table = name,
+      FileName = paste0(.feature_file_name(name), ".csv"),
+      RowCount = nrow(table),
+      ColumnCount = ncol(table),
+      FeatureField = field,
+      Mode = mode,
+      EvidenceFilter = if (field %in% c("comparison_group",
+                                        "comparison_scope")) {
+        "comparable_for_matrix == Yes and non-unknown scope/group"
+      } else {
+        "all supplied membership rows"
+      },
+      Caveat = caveat,
+      stringsAsFactors = FALSE
+    )
+  }
+  mode_label = function(x) paste0(toupper(substr(x, 1, 1)), substr(x, 2, nchar(x)))
+  for (mode in modes) {
+    suffix = mode_label(mode)
+    add_matrix(paste0("ComparisonGroup", suffix, "Matrix"),
+               .feature_matrix(comparable, "comparison_group", mode),
+               "comparison_group", mode,
+               "Comparable chemistry group features are source-backed or explicitly classified; unknown chemistry is excluded.")
+    add_matrix(paste0("ComparisonScope", suffix, "Matrix"),
+               .feature_matrix(comparable, "comparison_scope", mode),
+               "comparison_scope", mode,
+               "Comparable chemistry scope features separate unlike chemistry before downstream modeling.")
+    add_matrix(paste0("SourceCoverage", suffix, "Matrix"),
+               .feature_matrix(membership, "source_database", mode),
+               "source_database", mode,
+               "Source coverage reflects public/source records, not biological completeness.")
+    if (isTRUE(include_evidence)) {
+      add_matrix(paste0("EvidenceGrade", suffix, "Matrix"),
+                 .feature_matrix(membership, "evidence_grade", mode),
+                 "evidence_grade", mode,
+                 "Evidence grades are conservative analysis tiers, not experimental confirmation.")
+    }
+    if (isTRUE(include_context)) {
+      add_matrix(paste0("PlantPart", suffix, "Matrix"),
+                 .feature_matrix(membership, "plant_part_group", mode),
+                 "plant_part_group", mode,
+                 "Plant-part context is included only when reported or extracted from sources.")
+      add_matrix(paste0("Tissue", suffix, "Matrix"),
+                 .feature_matrix(membership, "tissue_group", mode),
+                 "tissue_group", mode,
+                 "Tissue context is included only when reported or extracted from sources.")
+      add_matrix(paste0("Method", suffix, "Matrix"),
+                 .feature_matrix(membership, "method_group", mode),
+                 "method_group", mode,
+                 "Method context reflects source metadata and is often incomplete.")
+    }
+  }
+  group_count = out$ComparisonGroupCountMatrix
+  scope_count = out$ComparisonScopeCountMatrix
+  source_count = out$SourceCoverageCountMatrix
   metadata = .feature_species_metadata(membership)
-  manifest = data.frame(
-    Table = c("ComparisonGroupCountMatrix",
-              "ComparisonScopeCountMatrix", "SourceCoverageMatrix",
-              "SpeciesMetadata"),
-    FileName = c("comparison_group_count_matrix.csv",
-                 "comparison_scope_count_matrix.csv",
-                 "source_coverage_matrix.csv",
-                 "species_metadata.csv"),
-    RowCount = c(nrow(group_count), nrow(scope_count), nrow(source_count),
-                 nrow(metadata)),
-    ColumnCount = c(ncol(group_count), ncol(scope_count), ncol(source_count),
-                    ncol(metadata)),
+  out$SourceCoverageMatrix = source_count
+  out$SpeciesMetadata = metadata
+  manifest_rows[[length(manifest_rows) + 1L]] = data.frame(
+    Table = "SpeciesMetadata",
+    FileName = "species_metadata.csv",
+    RowCount = nrow(metadata),
+    ColumnCount = ncol(metadata),
+    FeatureField = "species_quality_metadata",
+    Mode = "metadata",
+    EvidenceFilter = "all supplied membership rows",
+    Caveat = "Quality metadata summarize evidence coverage and should not be interpreted as biological completeness.",
     stringsAsFactors = FALSE
   )
-  out = list(
-    ComparisonGroupCountMatrix = group_count,
-    ComparisonScopeCountMatrix = scope_count,
-    SourceCoverageMatrix = source_count,
-    SpeciesMetadata = metadata,
-    Manifest = manifest
-  )
+  manifest = .bundle_bind(manifest_rows)
+  out$Manifest = manifest
   if (!is.null(path)) {
     if ((dir.exists(path) || file.exists(path)) && !isTRUE(overwrite)) {
       stop("Feature-set output already exists. Use `overwrite = TRUE`: ",
@@ -1170,7 +1255,7 @@ runPlantChemistryProject = function(plant_list,
 }
 
 .feature_matrix = function(x, field, mode = c("count", "binary",
-                                              "fraction")) {
+                                              "fraction", "confidence")) {
   mode = match.arg(mode)
   cols = c("species_id", "species")
   if (!is.data.frame(x) || nrow(x) < 1 || !field %in% names(x)) {
@@ -1180,6 +1265,11 @@ runPlantChemistryProject = function(plant_list,
   x = x[.bundle_known(x$species) & .bundle_known(x[[field]]), , drop = FALSE]
   if (nrow(x) < 1) return(.bundle_empty(cols))
   x$value = .feature_key(field, x[[field]])
+  x$confidence_weight = if ("confidence" %in% names(x)) {
+    .plant_confidence_score(x$confidence)
+  } else {
+    rep(1, nrow(x))
+  }
   species = sort(unique(x$species))
   values = sort(unique(x$value))
   mat = matrix(0, nrow = length(species), ncol = length(values),
@@ -1190,7 +1280,14 @@ runPlantChemistryProject = function(plant_list,
     compound_total[[sp]] = length(unique(.uaf_non_empty(hit$compound_id)))
     for (value in values) {
       value_hit = hit[hit$value == value, , drop = FALSE]
-      mat[sp, value] = length(unique(.uaf_non_empty(value_hit$compound_id)))
+      if (identical(mode, "confidence")) {
+        compound_groups = split(value_hit$confidence_weight,
+                                value_hit$compound_id)
+        mat[sp, value] = round(sum(vapply(compound_groups, max, numeric(1)),
+                                   na.rm = TRUE), 6)
+      } else {
+        mat[sp, value] = length(unique(.uaf_non_empty(value_hit$compound_id)))
+      }
     }
   }
   if (identical(mode, "binary")) mat = ifelse(mat > 0, 1L, 0L)
@@ -1204,6 +1301,12 @@ runPlantChemistryProject = function(plant_list,
                    stringsAsFactors = FALSE)
   row.names(out) = NULL
   out
+}
+
+.feature_file_name = function(name) {
+  x = gsub("([a-z0-9])([A-Z])", "\\1_\\2", name)
+  x = gsub("[^A-Za-z0-9]+", "_", x)
+  tolower(gsub("^_+|_+$", "", x))
 }
 
 .feature_key = function(prefix, value) {
@@ -1970,6 +2073,10 @@ runPlantChemistryProject = function(plant_list,
                 setdiff(csv_files, "00_DataDictionary.csv"))
   csv_files = csv_files[file.exists(file.path(path, csv_files))]
   created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")
+  schema = uafRSchemaMetadata(
+    workflow_name = "finalizePlantChemistryAnalysisBundle",
+    workflow_parameters = list(project_id = project_id)
+  )
   rows = lapply(csv_files, function(file_name) {
     table = .bundle_table_from_file(file_name, existing)
     dat = tryCatch(utils::read.csv(file.path(path, file_name),
@@ -1986,6 +2093,11 @@ runPlantChemistryProject = function(plant_list,
       OutputPath = path,
       CreatedAt = created_at,
       ProjectID = .uaf_first_non_empty_text(project_id, NA_character_),
+      uafR_schema_version = schema$uafR_schema_version[[1]],
+      uafR_package_version = schema$uafR_package_version[[1]],
+      created_at = schema$created_at[[1]],
+      workflow_name = schema$workflow_name[[1]],
+      workflow_parameters = schema$workflow_parameters[[1]],
       stringsAsFactors = FALSE
     )
   })
@@ -2003,6 +2115,11 @@ runPlantChemistryProject = function(plant_list,
       OutputPath = path,
       CreatedAt = created_at,
       ProjectID = .uaf_first_non_empty_text(project_id, NA_character_),
+      uafR_schema_version = schema$uafR_schema_version[[1]],
+      uafR_package_version = schema$uafR_package_version[[1]],
+      created_at = schema$created_at[[1]],
+      workflow_name = schema$workflow_name[[1]],
+      workflow_parameters = schema$workflow_parameters[[1]],
       stringsAsFactors = FALSE
     )
   })
@@ -2054,6 +2171,15 @@ runPlantChemistryProject = function(plant_list,
       "ComparableScopeTanimotoSummary",
     "23_ComparableGroupTanimotoSummary.csv" =
       "ComparableGroupTanimotoSummary",
+    "24_FeatureEvidenceGradeCountMatrix.csv" =
+      "FeatureEvidenceGradeCountMatrix",
+    "25_FeaturePlantPartCountMatrix.csv" =
+      "FeaturePlantPartCountMatrix",
+    "26_FeatureTissueCountMatrix.csv" =
+      "FeatureTissueCountMatrix",
+    "27_FeatureMethodCountMatrix.csv" =
+      "FeatureMethodCountMatrix",
+    "28_FeatureMatrixManifest.csv" = "FeatureMatrixManifest",
     "07_ProjectPlantList.csv" = "ProjectPlantList",
     "07b_ProjectPlantMetadata.csv" = "ProjectPlantMetadata"
   )
@@ -2295,6 +2421,11 @@ runPlantChemistryProject = function(plant_list,
     FeatureComparisonScopeCountMatrix = c("species_id", "species"),
     FeatureSourceCoverageMatrix = c("species_id", "species"),
     FeatureSpeciesMetadata = c("species_id", "species", "compound_count"),
+    FeatureEvidenceGradeCountMatrix = c("species_id", "species"),
+    FeaturePlantPartCountMatrix = c("species_id", "species"),
+    FeatureTissueCountMatrix = c("species_id", "species"),
+    FeatureMethodCountMatrix = c("species_id", "species"),
+    FeatureMatrixManifest = c("Table", "FileName", "FeatureField", "Mode"),
     ComparableScopeTanimotoSummary = c("species_a", "species_b",
                                        "comparison_scope",
                                        "compound_pair_count",
@@ -2485,6 +2616,11 @@ runPlantChemistryProject = function(plant_list,
          FeatureComparisonScopeCountMatrix = "Species by comparable chemistry scope count matrix.",
          FeatureSourceCoverageMatrix = "Species by source database count matrix.",
          FeatureSpeciesMetadata = "Species-level quality, coverage, taxonomy, and evidence metadata.",
+         FeatureEvidenceGradeCountMatrix = "Species by conservative evidence-grade count matrix.",
+         FeaturePlantPartCountMatrix = "Species by source-backed plant-part context count matrix.",
+         FeatureTissueCountMatrix = "Species by source-backed tissue context count matrix.",
+         FeatureMethodCountMatrix = "Species by source-backed method context count matrix.",
+         FeatureMatrixManifest = "Lists model-ready feature matrices, modes, filters, and caveats.",
          ComparableScopeTanimotoSummary = "Plant-pair Tanimoto summary filtered to matching comparable chemistry scopes.",
          ComparableGroupTanimotoSummary = "Plant-pair Tanimoto summary filtered to matching comparable chemistry groups.",
          ProjectPlantList = "Plant list supplied to a project runner.",
@@ -2509,6 +2645,11 @@ runPlantChemistryProject = function(plant_list,
     FeatureComparisonScopeCountMatrix = c("species_id", "species"),
     FeatureSourceCoverageMatrix = c("species_id", "species"),
     FeatureSpeciesMetadata = c("species_id", "species", "compound_count"),
+    FeatureEvidenceGradeCountMatrix = c("species_id", "species"),
+    FeaturePlantPartCountMatrix = c("species_id", "species"),
+    FeatureTissueCountMatrix = c("species_id", "species"),
+    FeatureMethodCountMatrix = c("species_id", "species"),
+    FeatureMatrixManifest = c("Table", "FileName", "FeatureField", "Mode"),
     ComparableScopeTanimotoSummary = c("species_a", "species_b",
                                        "comparison_scope",
                                        "compound_pair_count"),

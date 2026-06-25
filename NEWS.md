@@ -63,6 +63,16 @@
   summaries, review-required occurrence tables, species feature matrices, and
   optional comparable scope/group Tanimoto summaries for downstream modeling
   and phylogeny/chemistry analyses.
+- Added production-hardening helpers for internal release readiness:
+  `uafRWorkflowGuide()`, `uafRApiStability()`, `uafRSchemaMetadata()`,
+  `uafRProviderContracts()`, `standardizeProviderDiagnostics()`,
+  `inspectUafRCache()`, `summarizeUafRCache()`,
+  `planPlantChemistryRun()`, `plantOccurrenceEvidenceDictionary()`,
+  `chemistryComparisonDictionary()`, chemistry-classification override
+  helpers, plant-evidence filter helpers, `uafRClaimGuidance()`, and
+  `estimateTanimotoOutput()`. Plant chemistry bundle manifests now include
+  schema/package metadata, and model-ready feature exports support count,
+  binary, fraction, and confidence-weighted matrices.
 - Added a comparable-chemistry layer for plant workflows with
   `plantChemistryComparability()` and `plantComparableChemistryMatrix()` so
   primary metabolites, specialized metabolites, volatile-specialized chemistry,

@@ -4,7 +4,14 @@
 \alias{exportPlantChemistryFeatureSet}
 \title{Export model-ready plant chemistry feature tables}
 \usage{
-exportPlantChemistryFeatureSet(membership, path = NULL, overwrite = FALSE)
+exportPlantChemistryFeatureSet(
+  membership,
+  path = NULL,
+  overwrite = FALSE,
+  modes = "count",
+  include_context = TRUE,
+  include_evidence = TRUE
+)
 }
 \arguments{
 \item{membership}{Enriched plant-compound membership table.}
@@ -13,6 +20,15 @@ exportPlantChemistryFeatureSet(membership, path = NULL, overwrite = FALSE)
 are written.}
 
 \item{overwrite}{Logical. If `TRUE`, replace an existing output directory.}
+
+\item{modes}{Matrix modes to export. Supported values are `"count"`,
+`"binary"`, `"fraction"`, and `"confidence"`. The default preserves the
+original count-matrix output.}
+
+\item{include_context}{Logical. If `TRUE`, include plant-part, tissue, and
+method matrices when those fields are present.}
+
+\item{include_evidence}{Logical. If `TRUE`, include evidence-grade matrices.}
 }
 \value{
 Named list of feature tables and manifest.

@@ -8,6 +8,46 @@
 
 An R package that automates GC-MS processing.
 
+## Production workflow guide
+
+uafR now includes package-level helpers for choosing workflows, checking API
+stability, planning large runs, and documenting scientific limits:
+
+``` r
+uafRWorkflowGuide()
+uafRApiStability()
+uafRProviderContracts()
+uafRClaimGuidance()
+```
+
+Stable APIs are intended for downstream scripts and training materials.
+Experimental APIs are usable but may still gain columns, diagnostics, or
+provider-specific hardening as large plant and database workflows mature.
+Project-specific scripts under `tools/` remain examples or wrappers and should
+not be treated as general package APIs unless they are promoted into exported
+functions.
+
+Large species-first projects should be planned before live queries are run:
+
+``` r
+plan = planPlantChemistryRun(
+  plants = "project_species.csv",
+  compounds = "resolved_compounds.csv",
+  sources = c("lotus", "pubmed", "pubtator"),
+  cache_dir = "uafR_plant_cache",
+  lotus_index = "lotus_cache/exports/LOTUS_lookup_index"
+)
+
+plan$Summary
+plan$ProviderPlan
+plan$OutputEstimates
+plan$Recommendations
+```
+
+Use `inspectUafRCache()` and `summarizeUafRCache()` to audit local cache
+coverage before repeating expensive PubChem, KEGG, PubMed, PubTator, or plant
+provider workflows. These planning helpers do not query live web services.
+
 ## Installation
 
 ### Student install from a private bundle
@@ -957,7 +997,8 @@ default. The finalized bundle includes `00_DataDictionary.csv`,
 `12b_ValidationOverview.csv`, `14_PlantChemistrySummary.csv`,
 `15_PlantChemistryMissingSpecies.csv`, `16_EvidenceGradeSummary.csv`,
 `17_ReviewRequiredOccurrences.csv`, model-ready feature matrices
-(`18_` through `21_`), `README.md`, and `METHODS_TEXT.md`. If
+(`18_` through `21_` plus evidence/context matrices as `24_` through `28_`),
+`README.md`, and `METHODS_TEXT.md`. If
 `include_comparable_tanimoto = TRUE` and a plant-compound pair Tanimoto table is
 supplied, the bundle also includes scope- and group-filtered comparable
 Tanimoto summaries as `22_ComparableScopeTanimotoSummary.csv` and
@@ -1008,6 +1049,38 @@ written and only needs the analysis-ready handoff files refreshed. Use
 project. It checks manifest row/column counts, required columns, accidental row
 index columns, and CSV parser consistency. Optional Python and pandas checks can
 be enabled on machines where those tools are available.
+
+For model-ready exports outside a full bundle, `exportPlantChemistryFeatureSet()`
+can write count, binary, fraction, and confidence-weighted matrices:
+
+``` r
+features = exportPlantChemistryFeatureSet(
+  membership = enriched_membership,
+  modes = c("count", "binary", "fraction", "confidence"),
+  path = "plant_feature_set",
+  overwrite = TRUE
+)
+
+features$Manifest
+features$SpeciesMetadata
+```
+
+Evidence and classification helpers support reproducible subsetting and
+review:
+
+``` r
+plantOccurrenceEvidenceDictionary()
+chemistryComparisonDictionary()
+
+direct = filterPlantEvidenceDirect(enriched_membership)
+comparable = filterPlantEvidenceComparable(enriched_membership)
+review = filterPlantEvidenceReviewRequired(enriched_membership)
+```
+
+Use `standardizeChemistryClassificationOverrides()` and
+`applyChemistryClassificationOverrides()` when a project needs source-backed or
+human-reviewed chemistry-scope corrections. Unknown chemistry is retained for
+audit but excluded from comparable matrices by default.
 
 `keggProfile()` can also be used directly when the goal is KEGG-specific
 annotation. It resolves names or supplied KEGG IDs, parses KEGG flat-file
