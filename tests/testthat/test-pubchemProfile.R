@@ -137,6 +137,37 @@ fixture_pubchem_request = function(url) {
   list(Record = list(Section = list()))
 }
 
+test_that("PUG-View information without a usable value has a stable row schema", {
+  information = list(list(
+    Name = "Unavailable annotation",
+    ReferenceNumber = 1,
+    Value = list(StringWithMarkup = list(list(String = "")))
+  ))
+  references = list(`1` = list(
+    Source = "Fixture source",
+    URL = "https://example.test/unavailable"
+  ))
+
+  rows = uafR:::.pubchem_parse_information(
+    information = information,
+    cid = 2244,
+    query = "aspirin",
+    heading = "Chemical and Physical Properties",
+    heading_path = "Chemical and Physical Properties > Fixture",
+    references = references,
+    pubchem_url = "https://pubchem.ncbi.nlm.nih.gov/compound/2244"
+  )
+
+  expect_length(rows, 1)
+  expect_s3_class(rows[[1]], "data.frame")
+  expect_equal(nrow(rows[[1]]), 1)
+  expect_true(all(c("Value", "MarkupText", "MarkupURL", "MarkupExtra") %in%
+                    names(rows[[1]])))
+  expect_true(all(is.na(rows[[1]][1, c(
+    "Value", "MarkupText", "MarkupURL", "MarkupExtra"
+  )])))
+})
+
 test_that("PubChem cache keys are collision-resistant and request-bound", {
   inchikeys = c(
     "DFYRUELUNQRZTB-UHFFFAOYSA-N",

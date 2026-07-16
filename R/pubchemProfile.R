@@ -1460,12 +1460,20 @@ print.uaf_pubchem_profile = function(x, ...) {
     reference = references[[paste0(ref_number)]]
     values = .pubchem_value_rows(info$Value)
     if (length(values) < 1) {
-      values = list(list(value = NA_character_, unit = NA_character_))
+      values = list(list(
+        value = NA_character_,
+        unit = NA_character_,
+        markup_text = NA_character_,
+        markup_url = NA_character_,
+        markup_extra = NA_character_
+      ))
     }
 
     for (value in values) {
-      measurement = .uaf_parse_measurement(value$value)
-      unit_clean = .uaf_first_non_empty_text(value$unit,
+      value_text = .pubchem_scalar(value$value)
+      value_unit = .pubchem_scalar(value$unit)
+      measurement = .uaf_parse_measurement(value_text)
+      unit_clean = .uaf_first_non_empty_text(value_unit,
                                              measurement$UnitClean[[1]])
       rows[[length(rows) + 1]] = data.frame(
         Query = query,
@@ -1473,14 +1481,14 @@ print.uaf_pubchem_profile = function(x, ...) {
         Heading = heading,
         HeadingPath = heading_path,
         Name = name,
-        Value = value$value,
-        CleanValue = .uaf_squish_text(value$value),
+        Value = value_text,
+        CleanValue = .uaf_squish_text(value_text),
         ValueNumeric = measurement$ValueNumeric[[1]],
-        Unit = value$unit,
+        Unit = value_unit,
         UnitClean = unit_clean,
-        MarkupText = value$markup_text,
-        MarkupURL = value$markup_url,
-        MarkupExtra = value$markup_extra,
+        MarkupText = .pubchem_scalar(value$markup_text),
+        MarkupURL = .pubchem_scalar(value$markup_url),
+        MarkupExtra = .pubchem_scalar(value$markup_extra),
         Source = .pubchem_reference_field(reference, "Source"),
         SourceURL = .pubchem_reference_field(reference, "URL"),
         PubChemURL = pubchem_url,

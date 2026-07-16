@@ -62,6 +62,9 @@
   payloads, and classify retriable HTTP 5xx, timeout, and backend failures as
   resumable service-busy conditions. The production pilot now pauses with exit
   status 75 before cache replay when discovery is incomplete.
+- Hardened PUG-View annotation parsing for information records with no usable
+  value or markup payload. These source records now retain a stable explicit
+  missing-value row instead of aborting multi-compound research enrichment.
 - Hardened plant biological-context extraction by parsing each unique source
   record once and retaining sentence-local method distinctions. PubChem
   taxonomy rows no longer interpret CIDs as PMIDs, copy broad collection
