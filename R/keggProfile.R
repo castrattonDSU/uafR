@@ -37,7 +37,7 @@
 #' for tests and advanced users. It should return text from the requested URL.
 #'
 #' @returns A list with tidy data frames: `matches`, `records`, `identifiers`,
-#' `pathways`, `reactions`, `enzymes`, `modules`, `links`, `link_metadata`,
+#' `search_candidates`, `pathways`, `reactions`, `enzymes`, `modules`, `links`, `link_metadata`,
 #' `classifications`, and `provenance`. The returned object has class
 #' `"uaf_kegg_profile"`.
 #'
@@ -89,6 +89,11 @@ keggProfile = function(compounds = NULL,
                                  fetch = fetch,
                                  retrieved_at = retrieved_at,
                                  max_matches_per_query = max_matches_per_query)
+  search_candidates = attr(matches, "SearchCandidates", exact = TRUE)
+  attr(matches, "SearchCandidates") = NULL
+  if (!is.data.frame(search_candidates)) {
+    search_candidates = .kegg_empty_search_candidates()
+  }
   all_ids = unique(c(matches$KEGG_ID, explicit_ids, pubchem_ids))
   all_ids = all_ids[!is.na(all_ids) & all_ids != ""]
   query_map = .kegg_query_map(ids = all_ids,
@@ -133,6 +138,7 @@ keggProfile = function(compounds = NULL,
 
   out = list(
     matches = matches,
+    search_candidates = search_candidates,
     records = records,
     identifiers = identifiers,
     pathways = pathways,
@@ -156,6 +162,8 @@ keggProfile = function(compounds = NULL,
 print.uaf_kegg_profile = function(x, ...) {
   cat("uaf KEGG profile\n")
   cat("  matches: ", nrow(x$matches), " rows\n", sep = "")
+  cat("  rejected search candidates: ",
+      sum(x$search_candidates$Accepted == "No"), " rows\n", sep = "")
   cat("  records: ", length(unique(x$records$KEGG_ID)), " KEGG IDs\n", sep = "")
   cat("  pathways: ", nrow(x$pathways), " rows\n", sep = "")
   cat("  reactions: ", nrow(x$reactions), " rows\n", sep = "")
@@ -184,34 +192,73 @@ print.uaf_kegg_profile = function(x, ...) {
     }
 
     result = tryCatch({
-      if (is.null(request_fun)) {
-        con = base::url(url, open = "rb")
-        on.exit(close(con), add = TRUE)
-        txt = paste(readLines(con, warn = FALSE, encoding = "UTF-8"),
-                    collapse = "\n")
-        if (isTRUE(cache)) {
-          dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-          writeLines(txt, cache_file, useBytes = TRUE)
-        }
-        if (!is.na(throttle) && throttle > 0) Sys.sleep(throttle)
-        txt
+      request_result = if (is.null(request_fun)) {
+        .kegg_request_text(url)
       } else {
-        request_result = request_fun(url)
-        txt = paste(as.character(request_result), collapse = "\n")
-        if (isTRUE(cache)) {
-          dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-          writeLines(txt, cache_file, useBytes = TRUE)
-        }
-        txt
+        request_fun(url)
       }
+      paste(as.character(request_result), collapse = "\n")
     }, error = function(error) {
-      warning("KEGG request failed: ", conditionMessage(error),
-              "\nURL: ", url, call. = FALSE)
-      NULL
+      status = .kegg_http_status(conditionMessage(error))
+      if (!is.na(status) && status == 404L) return("")
+      stop(error)
     })
+
+    if (isTRUE(cache)) {
+      dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
+      .pubchem_atomic_write_text(result, cache_file)
+    }
+    if (!is.na(throttle) && throttle > 0) Sys.sleep(throttle)
 
     result
   }
+}
+
+.kegg_request_text = function(url, timeout = 60) {
+  timeout = suppressWarnings(as.numeric(timeout[[1L]]))
+  if (!is.finite(timeout) || timeout <= 0) timeout = 60
+  if (requireNamespace("curl", quietly = TRUE)) {
+    handle = curl::new_handle(
+      followlocation = TRUE, failonerror = FALSE, timeout = timeout,
+      connecttimeout = min(timeout, 20)
+    )
+    curl::handle_setheaders(handle, `User-Agent` = "uafR KEGG client")
+    response = curl::curl_fetch_memory(url, handle = handle)
+    status = suppressWarnings(as.integer(response$status_code))
+    if (!is.na(status) && status >= 400L) {
+      stop("HTTP ", status, " returned for ",
+           .plant_redact_secrets(url), call. = FALSE)
+    }
+    return(rawToChar(response$content))
+  }
+  warning_message = NA_character_
+  tryCatch(
+    withCallingHandlers({
+      old_timeout = getOption("timeout")
+      options(timeout = max(timeout, old_timeout %||% 60))
+      on.exit(options(timeout = old_timeout), add = TRUE)
+      con = base::url(url, open = "rb")
+      on.exit(close(con), add = TRUE)
+      paste(readLines(con, warn = FALSE, encoding = "UTF-8"),
+            collapse = "\n")
+    }, warning = function(warning) {
+      warning_message <<- conditionMessage(warning)
+      invokeRestart("muffleWarning")
+    }),
+    error = function(error) {
+      message = paste(.uaf_non_empty(c(conditionMessage(error),
+                                       warning_message)), collapse = "; ")
+      stop(.plant_redact_secrets(message), call. = FALSE)
+    }
+  )
+}
+
+.kegg_http_status = function(message) {
+  message = paste(as.character(message), collapse = " ")
+  hit = regmatches(message, regexpr("(?i)HTTP(?: status(?: was)?)?[^0-9]*[45][0-9]{2}",
+                                    message, perl = TRUE))
+  if (length(hit) < 1L || is.na(hit) || !nzchar(hit)) return(NA_integer_)
+  suppressWarnings(as.integer(sub(".*?([45][0-9]{2}).*", "\\1", hit)))
 }
 
 .kegg_default_cache_dir = function() {
@@ -233,13 +280,17 @@ print.uaf_kegg_profile = function(x, ...) {
                                 max_matches_per_query) {
   cols = c("Query", "KEGG_ID", "Database", "MatchName", "MatchStatus",
            "MatchScore", "MatchRank", "SourceURL", "RetrievedAt")
-  if (length(compound_queries) < 1) return(.uaf_empty_table(cols))
+  if (length(compound_queries) < 1) {
+    out = .uaf_empty_table(cols)
+    attr(out, "SearchCandidates") = .kegg_empty_search_candidates()
+    return(out)
+  }
 
   rows = list()
   for (query in compound_queries) {
     for (database in c("compound", "drug")) {
       url = paste0(.kegg_base_url(), "/find/", database, "/",
-                   utils::URLencode(query, reserved = TRUE))
+                   .kegg_encode_find_query(query))
       txt = fetch(url)
       parsed = .kegg_parse_find(txt = txt,
                                 query = query,
@@ -250,11 +301,58 @@ print.uaf_kegg_profile = function(x, ...) {
     }
   }
 
-  if (length(rows) < 1) return(.uaf_empty_table(cols))
+  if (length(rows) < 1) {
+    out = .uaf_empty_table(cols)
+    attr(out, "SearchCandidates") = .kegg_empty_search_candidates()
+    return(out)
+  }
   out = do.call(rbind, rows)
   row.names(out) = NULL
   out = unique(out)
-  .kegg_limit_matches(out, max_matches_per_query)
+  out$Accepted = ifelse(out$MatchScore == 0, "Yes", "No")
+  out$RejectionReason = ifelse(
+    out$MatchScore == 0, NA_character_, "broad_name_match_not_exact"
+  )
+  out$MatchStatus[out$MatchScore == 0] = "exact_name_match"
+  candidates = .plant_bind_tables(list(out),
+                                  .kegg_search_candidate_cols())
+  accepted = out[out$Accepted == "Yes", cols, drop = FALSE]
+  accepted = .kegg_limit_matches(accepted, max_matches_per_query)
+  if (nrow(accepted) > 0L) {
+    accepted_key = paste(accepted$Query, accepted$KEGG_ID,
+                         accepted$Database, sep = "\r")
+    candidate_key = paste(candidates$Query, candidates$KEGG_ID,
+                          candidates$Database, sep = "\r")
+    candidates$MatchRank = accepted$MatchRank[
+      match(candidate_key, accepted_key)
+    ]
+  }
+  attr(accepted, "SearchCandidates") = candidates
+  accepted
+}
+
+.kegg_search_candidate_cols = function() {
+  c("Query", "KEGG_ID", "Database", "MatchName", "MatchStatus",
+    "MatchScore", "MatchRank", "SourceURL", "RetrievedAt", "Accepted",
+    "RejectionReason")
+}
+
+.kegg_empty_search_candidates = function() {
+  .uaf_empty_table(.kegg_search_candidate_cols())
+}
+
+.kegg_encode_find_query = function(query) {
+  query = .uaf_squish_text(query)
+  if (is.na(query) || !nzchar(query)) return("")
+  # KEGG documents `+` as the keyword separator for FIND. Commas embedded in
+  # chemical names cause HTTP 400 responses when sent literally or as `%2C`,
+  # so convert comma/semicolon separators to independent AND terms while
+  # retaining the original query for result scoring and provenance.
+  query = gsub("[,;]+", " ", query, perl = TRUE)
+  terms = strsplit(.uaf_squish_text(query), " ", fixed = TRUE)[[1L]]
+  terms = terms[nzchar(terms)]
+  paste(vapply(terms, utils::URLencode, character(1), reserved = TRUE),
+        collapse = "+")
 }
 
 .kegg_parse_find = function(txt, query, database, url, retrieved_at) {

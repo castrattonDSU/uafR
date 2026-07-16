@@ -1,0 +1,6 @@
+species_a,compound_id_a,compound_name_a,species_b,compound_id_b,compound_name_b,tanimoto
+Salix nigra,cid_439503,salicin,Zea mays,cid_445858,ferulic acid,0.42
+Salix nigra,cid_5280343,quercetin,Camellia sinensis,cid_65064,epigallocatechin gallate,0.61
+Camellia sinensis,cid_2519,caffeine,Brassica juncea,cid_23682211,sinigrin,0.18
+Mentha piperita,cid_1254,menthol,Mentha piperita,cid_22311,limonene,0.55
+Mentha piperita,cid_22311,limonene,Zea mays,cid_445858,ferulic acid,0.23

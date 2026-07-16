@@ -14,6 +14,7 @@ pubchemProfile(
   throttle = 0.2,
   assay_detail_limit = 50,
   include_annotations = TRUE,
+  query_overrides = NULL,
   request_fun = NULL
 )
 }
@@ -48,6 +49,12 @@ prioritized. Set to `0` to skip assay-description requests.}
 \item{include_annotations}{Logical. If `TRUE`, fetch PubChem PUG-View
 annotation sections selected by `profile`, `sections`, and `sources`. Set to
 `FALSE` when only identity and property fields are needed.}
+
+\item{query_overrides}{Optional named character vector or two-column data
+frame mapping each displayed compound name to a source-backed PubChem query,
+such as `"cid:2519"` or a full InChIKey. The displayed `Query` remains the
+compound name. Overrides do not fabricate identity and should come from a
+reviewed source record.}
 
 \item{request_fun}{Optional function used to retrieve a URL. This is intended
 for tests and advanced users. It should return either JSON text or a parsed

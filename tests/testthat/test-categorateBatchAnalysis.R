@@ -137,6 +137,29 @@ test_that("categorate batch combiner binds successful batches with provenance", 
                c(1L, 2L))
 })
 
+test_that("external file references are portable and checksum-aware", {
+  artifact = tempfile("uafr_external_artifact_", fileext = ".csv")
+  writeLines(c("a,b", "1,2"), artifact, useBytes = TRUE)
+
+  refs = .categorate_analysis_file_references(
+    c(pairwise_tanimoto = artifact,
+      missing_artifact = file.path(tempdir(), "missing_pairwise.csv.gz"))
+  )
+
+  expect_equal(refs$Reference,
+               c("pairwise_tanimoto", "missing_artifact"))
+  expect_equal(refs$Path,
+               c(basename(artifact), "missing_pairwise.csv.gz"))
+  expect_true(all(refs$PathType == "external_reference_basename"))
+  expect_equal(refs$OriginalPathWasAbsolute, c("Yes", "Yes"))
+  expect_equal(refs$ReferenceStatus,
+               c("available_at_export", "missing_at_export"))
+  expect_equal(refs$ChecksumStatus, c("computed", "missing_at_export"))
+  expect_equal(refs$ArtifactChecksum[[1]], unname(tools::md5sum(artifact)))
+  expect_true(is.na(refs$ArtifactChecksum[[2]]))
+  expect_false(any(grepl("^/", refs$Path)))
+})
+
 test_that("plant chemistry analysis bundle exports combined batch tables", {
   batch_dir = write_categorate_batch_fixtures(tempfile("categorate_batches_"))
   membership = data.frame(
@@ -199,6 +222,11 @@ test_that("plant chemistry analysis bundle exports combined batch tables", {
   expect_equal(exported_summary$Status, c("ok", "incomplete", "error"))
   expect_equal(exported_refs$Reference, "plant_compound_pairs")
   expect_false(exported_refs$Exists)
+  expect_equal(exported_refs$Path,
+               "large_plant_compound_pair_tanimoto.csv.gz")
+  expect_equal(exported_refs$PathType, "external_reference_basename")
+  expect_equal(exported_refs$ChecksumStatus, "missing_at_export")
+  expect_equal(exported_refs$ReferenceStatus, "missing_at_export")
 
   enriched_file = file.path(out_dir, "03b_PlantCompoundMembershipEnriched.csv")
   species_file = file.path(out_dir, "14_PlantChemistrySummary.csv")
@@ -217,6 +245,7 @@ test_that("plant chemistry analysis bundle exports combined batch tables", {
                     "comparable_for_matrix") %in% names(enriched)))
   validation = validatePlantChemistryAnalysisBundle(out_dir)
   expect_equal(validation$Summary$ExportReadyStatus, "pass")
+  expect_equal(validation$Summary$ArtifactFailCount, 0)
 })
 
 test_that("streamed bundle CSV writer preserves parseable quoted fields", {

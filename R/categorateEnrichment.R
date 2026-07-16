@@ -10,7 +10,10 @@
                                            trait_matrix_min_confidence = 0,
                                            trait_matrix_max_traits = Inf,
                                            request_fun,
-                                           kegg_request_fun) {
+                                           kegg_request_fun,
+                                           pubchem_query_overrides = NULL,
+                                           kegg_throttle = NULL,
+                                           strict_sources = FALSE) {
   compounds = .uaf_clean_compounds(compounds)
   pubchem_profile = ifelse(detail == "full", "full", "safety")
   pubchem_sections = if (detail == "full") {
@@ -37,8 +40,10 @@
                    cache_dir = pubchem_cache_dir,
                    throttle = throttle,
                    assay_detail_limit = assay_detail_limit,
+                   query_overrides = pubchem_query_overrides,
                    request_fun = request_fun),
     error = function(error) {
+      if (isTRUE(strict_sources)) stop(error)
       warning("PubChem enrichment failed: ", conditionMessage(error),
               call. = FALSE)
       .categorate_empty_pubchem_profile(compounds, pubchem_profile)
@@ -53,9 +58,11 @@
                 pubchem_profile = pubchem,
                 cache = cache,
                 cache_dir = kegg_cache_dir,
-                throttle = max(throttle, 0.35),
+                throttle = max(.uaf_first_numeric(kegg_throttle, throttle),
+                               0.35),
                 request_fun = kegg_request_fun),
     error = function(error) {
+      if (isTRUE(strict_sources)) stop(error)
       warning("KEGG enrichment failed: ", conditionMessage(error),
               call. = FALSE)
       .categorate_empty_kegg_profile()
@@ -127,6 +134,7 @@
     ChemicalPathwayRoles = normalized$ChemicalPathwayRoles,
     KEGGReactionParticipants = normalized$KEGGReactionParticipants,
     KEGGMatches = kegg$matches,
+    KEGGSearchCandidates = kegg$search_candidates,
     KEGGRecords = kegg$records,
     KEGGIdentifiers = kegg$identifiers,
     KEGGPathways = kegg$pathways,
@@ -148,6 +156,12 @@
     ValidationIssues = validation$Issues,
     ValidationSummary = validation$Summary
   ))
+}
+
+.uaf_first_numeric = function(..., default = NA_real_) {
+  values = suppressWarnings(as.numeric(unlist(list(...), use.names = FALSE)))
+  values = values[is.finite(values)]
+  if (length(values) < 1) default else values[[1]]
 }
 
 .categorate_kegg_ids = function(kegg_table) {
@@ -195,6 +209,7 @@
     matches = .uaf_empty_table(c("Query", "KEGG_ID", "Database", "MatchName",
                                  "MatchStatus", "MatchScore", "MatchRank",
                                  "SourceURL", "RetrievedAt")),
+    search_candidates = .kegg_empty_search_candidates(),
     records = .uaf_empty_table(c("Query", "KEGG_ID", "Database", "Field",
                                  "Value", "CleanValue", "ValueNumeric",
                                  "UnitClean", "EvidenceURL", "RetrievedAt")),

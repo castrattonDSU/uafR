@@ -62,7 +62,7 @@ for tests and advanced users. It should return text from the requested URL.}
 }
 \value{
 A list with tidy data frames: `matches`, `records`, `identifiers`,
-`pathways`, `reactions`, `enzymes`, `modules`, `links`, `link_metadata`,
+`search_candidates`, `pathways`, `reactions`, `enzymes`, `modules`, `links`, `link_metadata`,
 `classifications`, and `provenance`. The returned object has class
 `"uaf_kegg_profile"`.
 }

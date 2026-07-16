@@ -11,7 +11,10 @@ planPlantChemistryRun(
   cache_dir = NULL,
   lotus_index = NULL,
   expected_compounds_per_plant = 25,
-  write_full_pairwise = FALSE
+  write_full_pairwise = FALSE,
+  species_chunk_size = 25,
+  compound_batch_size = 25,
+  max_pubmed_records = 25
 )
 }
 \arguments{
@@ -31,10 +34,17 @@ compound table is supplied.}
 
 \item{write_full_pairwise}{Logical. If `TRUE`, estimate full pairwise file
 burden.}
+
+\item{species_chunk_size}{Planned species discovery chunk size.}
+
+\item{compound_batch_size}{Planned compound identity/enrichment batch size.}
+
+\item{max_pubmed_records}{Planned maximum PubMed records per species.}
 }
 \value{
-List with `Summary`, `ProviderPlan`, `CacheSummary`,
-`OutputEstimates`, and `Recommendations`.
+List with `Summary`, `PlantQueries`, `InputNameAudit`,
+`ProviderPlan`, `CacheSummary`, `OutputEstimates`, `ReadinessChecks`,
+`RunConfiguration`, and `Recommendations`.
 }
 \description{
 Estimates run size, request burden, cache availability, pairwise output

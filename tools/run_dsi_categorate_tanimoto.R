@@ -150,9 +150,10 @@ safe_col = function(x, col, default = NA_character_) {
 
 hash_text = function(x) {
   x = paste0(x, collapse = "\n")
-  ints = utf8ToInt(x)
-  val = sum((ints * seq_along(ints)) %% .Machine$integer.max)
-  paste0(nchar(x), "_", sprintf("%08x", as.integer(val %% .Machine$integer.max)))
+  temp_file = tempfile("uafr_url_")
+  on.exit(unlink(temp_file, force = TRUE), add = TRUE)
+  writeBin(charToRaw(enc2utf8(x)), temp_file)
+  paste0("v2_", unname(tools::md5sum(temp_file)[[1]]))
 }
 
 sanitize_id = function(x) {
@@ -294,8 +295,15 @@ prepare_membership = function(result, compounds) {
 fetch_json_cached = function(url, cache_dir, throttle = 0.2,
                              refresh = FALSE) {
   dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-  cache_file = file.path(cache_dir, paste0(hash_text(url), ".json"))
-  if (file.exists(cache_file) && !isTRUE(refresh)) {
+  cache_stem = file.path(cache_dir, hash_text(url))
+  cache_file = paste0(cache_stem, ".json")
+  cache_url_file = paste0(cache_stem, ".url")
+  cache_bound_to_request = file.exists(cache_file) &&
+    file.exists(cache_url_file) && identical(
+      paste(readLines(cache_url_file, warn = FALSE), collapse = "\n"),
+      enc2utf8(url)
+    )
+  if (cache_bound_to_request && !isTRUE(refresh)) {
     txt = paste(readLines(cache_file, warn = FALSE), collapse = "\n")
     return(jsonlite::fromJSON(txt, simplifyVector = FALSE))
   }
@@ -310,7 +318,18 @@ fetch_json_cached = function(url, cache_dir, throttle = 0.2,
   if (inherits(txt, "uaf_fetch_error")) {
     return(list(.error = as.character(txt), .url = url))
   }
-  writeLines(txt, cache_file, useBytes = TRUE)
+  temp_json = tempfile(paste0(basename(cache_file), "."),
+                       tmpdir = dirname(cache_file))
+  temp_url = tempfile(paste0(basename(cache_url_file), "."),
+                      tmpdir = dirname(cache_url_file))
+  on.exit(unlink(c(temp_json, temp_url), force = TRUE), add = TRUE)
+  writeLines(txt, temp_json, useBytes = TRUE)
+  writeLines(enc2utf8(url), temp_url, useBytes = TRUE)
+  if (!file.rename(temp_json, cache_file) ||
+      !file.rename(temp_url, cache_url_file)) {
+    stop("Could not atomically write a PubChem cache response.",
+         call. = FALSE)
+  }
   jsonlite::fromJSON(txt, simplifyVector = FALSE)
 }
 
@@ -1019,11 +1038,70 @@ main = function() {
                                                  "compound_name_clean",
                                                  "compound_name"),
                     all.x = TRUE, suffixes = c("", "_source"))
+  input_inchikey = toupper(clean_text(fp_joined$InChIKey_source))
+  pubchem_inchikey = toupper(clean_text(fp_joined$InChIKey))
+  has_input_inchikey = !is.na(input_inchikey)
+  has_pubchem_inchikey = !is.na(pubchem_inchikey)
+  fp_joined$identity_match_status = ifelse(
+    has_input_inchikey & has_pubchem_inchikey &
+      input_inchikey == pubchem_inchikey,
+    "verified_input_inchikey",
+    ifelse(
+      has_input_inchikey & has_pubchem_inchikey &
+        input_inchikey != pubchem_inchikey,
+      "input_pubchem_inchikey_mismatch",
+      ifelse(has_pubchem_inchikey,
+             "pubchem_inchikey_available_unverified_input",
+             "pubchem_inchikey_missing")
+    )
+  )
+  fp_joined$canonical_compound_id = make_compound_id(
+    pubchem_inchikey, fp_joined$pubchem_cid, fp_joined$compound_name_clean
+  )
+  fp_joined$fingerprint_usable =
+    !is.na(fp_joined$Fingerprint2D) & fp_joined$Fingerprint2D != "" &
+    !is.na(fp_joined$canonical_compound_id) &
+    fp_joined$identity_match_status != "input_pubchem_inchikey_mismatch" &
+    !(has_input_inchikey & !has_pubchem_inchikey)
+  for (key in unique(clean_text(
+    fp_joined$canonical_compound_id[fp_joined$fingerprint_usable %in% TRUE]
+  ))) {
+    idx = which(fp_joined$fingerprint_usable %in% TRUE &
+                  fp_joined$canonical_compound_id == key)
+    if (length(unique(clean_text(fp_joined$pubchem_cid[idx]))) > 1L ||
+        length(unique(clean_text(fp_joined$Fingerprint2D[idx]))) > 1L) {
+      fp_joined$fingerprint_usable[idx] = FALSE
+      fp_joined$identity_match_status[idx] = "canonical_identity_conflict"
+    }
+  }
   utils::write.csv(fp_joined, file.path(out_dir, "dsi_pubchem_fingerprints.csv"),
                    row.names = FALSE, na = "")
+  utils::write.csv(
+    fp_joined[, intersect(c(
+      "compound_id", "canonical_compound_id", "compound_name",
+      "pubchem_cid", "InChIKey_source", "InChIKey",
+      "cid_resolution_status", "identity_match_status",
+      "fingerprint_status", "fingerprint_usable"
+    ), names(fp_joined)), drop = FALSE],
+    file.path(out_dir, "dsi_pubchem_identity_integrity_audit.csv"),
+    row.names = FALSE, na = ""
+  )
 
-  fp_ready = fp_joined[!is.na(fp_joined$Fingerprint2D) &
-                         fp_joined$Fingerprint2D != "", , drop = FALSE]
+  fp_ready = fp_joined[fp_joined$fingerprint_usable %in% TRUE, , drop = FALSE]
+  identity_map = fp_ready[, c("compound_id", "canonical_compound_id"),
+                          drop = FALSE]
+  membership$input_compound_id = membership$compound_id
+  map_index = match(membership$input_compound_id, identity_map$compound_id)
+  membership$compound_id = identity_map$canonical_compound_id[map_index]
+  membership = membership[!is.na(membership$compound_id), , drop = FALSE]
+  membership = membership[!duplicated(membership[, c("species", "compound_id")]),
+                          , drop = FALSE]
+  fp_ready$input_compound_id = fp_ready$compound_id
+  fp_ready$compound_id = fp_ready$canonical_compound_id
+  fp_ready = fp_ready[!duplicated(fp_ready$compound_id), , drop = FALSE]
+  utils::write.csv(membership, file.path(out_dir,
+                                         "dsi_species_compound_membership.csv"),
+                   row.names = FALSE, na = "")
   compound_pair_file = file.path(out_dir, "dsi_compound_pair_tanimoto.csv.gz")
   plant_pair_file = NA_character_
   species_summary_file = file.path(out_dir,
@@ -1108,6 +1186,10 @@ main = function() {
     species_compound_memberships = nrow(membership),
     pubchem_cids_resolved = sum(!is.na(cid_table$pubchem_cid)),
     pubchem_fingerprints_resolved = nrow(fp_ready),
+    pubchem_identity_mismatch_count = sum(
+      fp_joined$identity_match_status == "input_pubchem_inchikey_mismatch",
+      na.rm = TRUE
+    ),
     species_pair_rows = nrow(species_summary),
     compound_pair_tanimoto_file = compound_pair_file,
     plant_compound_pair_tanimoto_file = plant_pair_file,

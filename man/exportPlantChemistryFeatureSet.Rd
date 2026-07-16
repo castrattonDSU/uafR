@@ -10,7 +10,9 @@ exportPlantChemistryFeatureSet(
   overwrite = FALSE,
   modes = "count",
   include_context = TRUE,
-  include_evidence = TRUE
+  include_evidence = TRUE,
+  species_universe = NULL,
+  plant_metadata = NULL
 )
 }
 \arguments{
@@ -29,6 +31,14 @@ original count-matrix output.}
 method matrices when those fields are present.}
 
 \item{include_evidence}{Logical. If `TRUE`, include evidence-grade matrices.}
+
+\item{species_universe}{Optional character vector or data frame defining the
+complete species set and row order for every feature matrix. Species present
+in `membership` but absent from this input are appended. The default uses all
+species in `membership`.}
+
+\item{plant_metadata}{Optional plant metadata table used to populate
+taxonomy fields for species with no membership rows.}
 }
 \value{
 Named list of feature tables and manifest.

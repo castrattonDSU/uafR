@@ -375,7 +375,10 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
     RowCount = c(NA_integer_, vapply(export_tables, nrow, integer(1))),
     ColumnCount = c(NA_integer_, vapply(export_tables, ncol, integer(1))),
     Format = resolved$format,
-    OutputPath = resolved$path,
+    OutputPath = if (resolved$format == "csv") "." else
+      basename(resolved$path),
+    PathType = if (resolved$format == "csv") "bundle_relative" else
+      "workbook_relative",
     CreatedAt = created_at,
     stringsAsFactors = FALSE
   )
@@ -402,6 +405,9 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
         validate_export = validate_export,
         max_cell_chars = max_cell_chars
       )
+    } else {
+      manifest = .bundle_refresh_manifest(resolved$path,
+                                          project_id = project_id)
     }
   }
   row.names(manifest) = NULL
@@ -622,22 +628,75 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
 
 .categorate_analysis_file_references = function(x) {
   if (is.null(x)) return(NULL)
-  if (is.data.frame(x)) return(x)
+  if (is.data.frame(x)) {
+    if (!"Path" %in% names(x)) return(x)
+    reference = if ("Reference" %in% names(x)) x$Reference else
+      basename(as.character(x$Path))
+    paths = as.character(x$Path)
+    return(.categorate_analysis_reference_rows(paths, reference))
+  }
   original_names = names(x)
   paths = .uaf_non_empty(x)
   if (length(paths) < 1) return(NULL)
   names_in = original_names[match(paths, as.character(x))]
-  data.frame(
-    Reference = if (!is.null(names_in) && length(names_in) == length(paths)) {
-      ifelse(names_in == "", basename(paths), names_in)
+  reference = if (!is.null(names_in) && length(names_in) == length(paths)) {
+    ifelse(names_in == "", basename(paths), names_in)
+  } else {
+    basename(paths)
+  }
+  .categorate_analysis_reference_rows(paths, reference)
+}
+
+.categorate_analysis_reference_rows = function(paths, reference) {
+  max_bytes = suppressWarnings(as.numeric(Sys.getenv(
+    "UAFR_EXTERNAL_HASH_MAX_BYTES", as.character(100 * 1024^2)
+  )))
+  if (is.na(max_bytes) || max_bytes < 0) max_bytes = 100 * 1024^2
+  rows = lapply(seq_along(paths), function(i) {
+    source_path = as.character(paths[[i]])
+    exists = file.exists(source_path)
+    is_file = exists && !isTRUE(file.info(source_path)$isdir)
+    size = if (is_file) as.numeric(file.info(source_path)$size) else NA_real_
+    checksum_status = if (!exists) {
+      "missing_at_export"
+    } else if (!is_file) {
+      "not_regular_file"
+    } else if (!is.na(size) && size > max_bytes) {
+      "not_computed_size_limit"
     } else {
-      basename(paths)
-    },
-    Path = normalizePath(paths, winslash = "/", mustWork = FALSE),
-    Exists = file.exists(paths),
-    SizeBytes = ifelse(file.exists(paths), file.info(paths)$size, NA_real_),
-    stringsAsFactors = FALSE
-  )
+      "computed"
+    }
+    checksum = if (identical(checksum_status, "computed")) {
+      tryCatch(unname(tools::md5sum(source_path)[[1]]),
+               error = function(error) NA_character_)
+    } else {
+      NA_character_
+    }
+    if (identical(checksum_status, "computed") && !.bundle_known(checksum)) {
+      checksum_status = "error"
+    }
+    data.frame(
+      Reference = as.character(reference[[i]]),
+      Path = basename(source_path),
+      PathType = "external_reference_basename",
+      OriginalPathWasAbsolute = .bundle_yes_no(
+        grepl("^(/|[A-Za-z]:[/\\\\]|\\\\\\\\|~[/\\\\])", source_path)
+      ),
+      Exists = exists,
+      SizeBytes = size,
+      ChecksumAlgorithm = if (is_file) "MD5" else NA_character_,
+      ArtifactChecksum = checksum,
+      ChecksumStatus = checksum_status,
+      ReferenceStatus = if (exists) "available_at_export" else
+        "missing_at_export",
+      PortabilityNote = paste(
+        "Only the source basename is retained. Resolve this external",
+        "artifact explicitly after moving the bundle."
+      ),
+      stringsAsFactors = FALSE
+    )
+  })
+  .bundle_bind(rows)
 }
 
 .categorate_batch_can_stream = function(x) {
@@ -785,7 +844,8 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
     RowCount = c(NA_integer_, as.integer(row_counts)),
     ColumnCount = c(NA_integer_, as.integer(col_counts)),
     Format = "csv",
-    OutputPath = path,
+    OutputPath = ".",
+    PathType = "bundle_relative",
     CreatedAt = created_at,
     stringsAsFactors = FALSE
   )
@@ -810,6 +870,8 @@ exportPlantChemistryAnalysisBundle = function(categorate_batches,
       validate_export = validate_export,
       max_cell_chars = max_cell_chars
     )
+  } else {
+    manifest = .bundle_refresh_manifest(path, project_id = project_id)
   }
   row.names(manifest) = NULL
   manifest

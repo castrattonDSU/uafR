@@ -100,6 +100,20 @@ uafRApiStability = function() {
              "Large-run batch workflow is active and cache/resume behavior may expand."),
     .api_row("runPlantChemistryProject", "Plant chemistry", "stable",
              "Curated/cached project-bundle handoff workflow is supported."),
+    .api_row("writePlantChemistryRetryQueue", "Large-run recovery", "stable",
+             "Retry queue schema for failed plant/project batches is supported."),
+    .api_row("validatePlantChemistryRunManifest", "Large-run recovery", "stable",
+             "Run manifest validation outputs are supported."),
+    .api_row("rerunFailedPlantQueries", "Large-run recovery", "experimental",
+             "Generic retry runner contract is supported; project-specific runners may evolve."),
+    .api_row("standardizeCompoundIdentityAudit", "Identity review", "stable",
+             "Compound identity audit table schema is supported."),
+    .api_row("validateCompoundIdentityAudit", "Identity review", "stable",
+             "Identity audit validation outputs are supported."),
+    .api_row("exportCompoundIdentityReviewTemplate", "Identity review", "stable",
+             "CSV review template schema is supported."),
+    .api_row("applyCompoundIdentityReview", "Identity review", "stable",
+             "Review replay wrapper preserves original plant identity review behavior."),
     .api_row("chemicalTanimotoSimilarity", "Tanimoto", "stable",
              "Compound/group Tanimoto output names are supported."),
     .api_row("plantChemicalTanimotoSimilarity", "Tanimoto", "stable",
@@ -162,6 +176,19 @@ uafRProviderContracts = function(providers = NULL) {
                     "public API", "public web/API", "public database",
                     "public API", "public API", "PubChem source annotation",
                     "PubChem source annotation", "PubChem source annotation"),
+    source_url = c(
+      "https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest",
+      "https://www.kegg.jp/kegg/rest/keggapi.html",
+      "https://lotus.naturalproducts.net/",
+      "https://lotus.naturalproducts.net/",
+      "https://www.knapsackfamily.com/KNApSAcK/",
+      "https://bidd.group/NPASS/",
+      "https://www.ncbi.nlm.nih.gov/books/NBK25501/",
+      "https://www.ncbi.nlm.nih.gov/research/pubtator3/api",
+      "https://www.fda.gov/industry/fda-data-standards-advisory-board/structured-product-labeling-resources",
+      "https://www.femaflavor.org/",
+      "https://www.nlm.nih.gov/mesh/meshhome.html"
+    ),
     query_method = c(
       "PUG-REST and PUG-View by name/CID/InChIKey",
       "KEGG REST find/get/link",
@@ -208,6 +235,26 @@ uafRProviderContracts = function(providers = NULL) {
       "SourceCoverage and PubChem source annotation rows",
       "SourceCoverage and PubChem source annotation rows"
     ),
+    fields_extracted = c(
+      "CID; names; formula; SMILES; InChIKey; properties; annotations; references",
+      "KEGG IDs; names; definitions; equations; pathways; reactions; enzymes; modules; links",
+      "taxon names; compound names/IDs; structures; source records; references; available context",
+      "matched taxon fields; compound names/IDs; source records; available context",
+      "species/metabolite names and IDs; source record fields when available",
+      "species source; natural-product IDs; composition/activity context when available",
+      "PMID; DOI; title; abstract; publication metadata",
+      "PMID/PMC; species mentions; chemical mentions; normalized entity IDs when available",
+      "source annotation headings; text; record links through PubChem",
+      "source annotation headings; text; record links through PubChem",
+      "source annotation headings; text; record links through PubChem"
+    ),
+    terms_review_status = rep(
+      "not_asserted_check_current_provider_terms", 11
+    ),
+    redistribution_default = rep(
+      "do_not_redistribute_provider_database_copies_without_terms_review", 11
+    ),
+    contract_reviewed_on = rep("2026-07-14", 11),
     stability = c("stable", "stable", "stable", "experimental",
                   "experimental", "experimental", "stable", "experimental",
                   "stable", "stable", "stable"),
@@ -352,9 +399,13 @@ summarizeUafRCache = function(cache_dir, recursive = TRUE) {
 #' compound table is supplied.
 #' @param write_full_pairwise Logical. If `TRUE`, estimate full pairwise file
 #' burden.
+#' @param species_chunk_size Planned species discovery chunk size.
+#' @param compound_batch_size Planned compound identity/enrichment batch size.
+#' @param max_pubmed_records Planned maximum PubMed records per species.
 #'
-#' @return List with `Summary`, `ProviderPlan`, `CacheSummary`,
-#' `OutputEstimates`, and `Recommendations`.
+#' @return List with `Summary`, `PlantQueries`, `InputNameAudit`,
+#' `ProviderPlan`, `CacheSummary`, `OutputEstimates`, `ReadinessChecks`,
+#' `RunConfiguration`, and `Recommendations`.
 #'
 #' @export
 planPlantChemistryRun = function(plants,
@@ -363,24 +414,50 @@ planPlantChemistryRun = function(plants,
                                  cache_dir = NULL,
                                  lotus_index = NULL,
                                  expected_compounds_per_plant = 25,
-                                 write_full_pairwise = FALSE) {
-  plant_table = .uaf_plan_plants(plants)
+                                 write_full_pairwise = FALSE,
+                                 species_chunk_size = 25,
+                                 compound_batch_size = 25,
+                                 max_pubmed_records = 25) {
+  name_audit = .uaf_plan_plant_name_audit(plants)
+  plant_table = .uaf_plan_plants(name_audit)
+  species_count = nrow(plant_table)
+  parsed_species_count = sum(plant_table$query_status == "parsed_species")
+  review_required_name_count = sum(plant_table$review_required)
+  blank_input_count = sum(name_audit$query_status == "blank_input")
+  duplicate_input_count = sum(name_audit$duplicate_input)
+  species_chunk_size = .uaf_plan_positive_integer(species_chunk_size, 25L)
+  compound_batch_size = .uaf_plan_positive_integer(compound_batch_size, 25L)
+  max_pubmed_records = .uaf_plan_positive_integer(max_pubmed_records, 25L)
+  expected_compounds_per_plant = .uaf_plan_positive_integer(
+    expected_compounds_per_plant, 25L
+  )
   compound_count = .uaf_plan_compound_count(compounds)
+  compounds_supplied = compound_count > 0
   if (compound_count < 1) {
-    compound_count = max(1L, nrow(plant_table) *
-                           as.integer(expected_compounds_per_plant))
+    compound_count = max(1L, species_count * expected_compounds_per_plant)
   }
   sources = tolower(.uaf_non_empty(sources))
+  lotus_available = .uaf_plan_lotus_available(lotus_index)
+  network_requests = vapply(sources, function(provider) {
+    if (provider == "lotus" && lotus_available) return(0L)
+    if (provider == "npass") return(0L)
+    if (provider == "pubmed") return(as.integer(species_count * 2L))
+    as.integer(species_count)
+  }, integer(1))
   provider_plan = data.frame(
     provider = sources,
     enabled = "Yes",
-    estimated_queries = nrow(plant_table),
-    recommended_mode = ifelse(sources == "lotus" &
-                                !is.null(lotus_index) &
-                                nzchar(.uaf_first_non_empty_text(lotus_index)),
-                              "local_index", "cached_live_or_mocked"),
-    recommended_throttle_seconds = ifelse(sources %in%
-                                            c("pubmed", "pubtator"), 0.34, 0.5),
+    estimated_species_queries = species_count,
+    estimated_network_request_lower_bound = network_requests,
+    recommended_stage = .uaf_plan_provider_stage(sources, lotus_available),
+    recommended_mode = .uaf_plan_provider_mode(
+      sources, lotus_available, species_count
+    ),
+    recommended_throttle_seconds = .uaf_plan_provider_throttle(
+      sources, lotus_available
+    ),
+    max_records_per_species = ifelse(sources == "pubmed",
+                                     max_pubmed_records, NA_integer_),
     caveat = "Provider coverage is incomplete; no-hit results are not biological absence.",
     stringsAsFactors = FALSE
   )
@@ -392,42 +469,368 @@ planPlantChemistryRun = function(plants,
                     "cache_dir"))
   }
   compound_pairs = if (compound_count >= 2) choose(compound_count, 2) else 0
-  membership_rows = nrow(plant_table) * expected_compounds_per_plant
-  plant_compound_pairs = if (membership_rows >= 2) choose(membership_rows, 2) else 0
+  membership_rows = species_count * expected_compounds_per_plant
+  plant_pairs = if (species_count >= 2) choose(species_count, 2) else 0
+  plant_compound_pairs = plant_pairs * expected_compounds_per_plant^2
+  discovery_chunks = if (species_count > 0) {
+    ceiling(species_count / species_chunk_size)
+  } else 0L
+  compound_batches = if (compound_count > 0) {
+    ceiling(compound_count / compound_batch_size)
+  } else 0L
   estimates = data.frame(
-    species_count = nrow(plant_table),
+    species_count = species_count,
+    planned_discovery_chunk_count = discovery_chunks,
+    planned_species_chunk_size = species_chunk_size,
     estimated_unique_compounds = compound_count,
+    compound_count_basis = ifelse(
+      compounds_supplied, "supplied_compound_input",
+      "upper_bound_from_species_times_expected_compounds"
+    ),
+    planned_compound_batch_count = compound_batches,
+    planned_compound_batch_size = compound_batch_size,
     estimated_membership_rows = membership_rows,
+    estimated_species_pair_rows = plant_pairs,
     estimated_compound_pair_rows = compound_pairs,
+    estimated_cross_plant_compound_pair_rows = plant_compound_pairs,
     estimated_plant_compound_pair_rows = plant_compound_pairs,
+    estimated_network_request_lower_bound = sum(network_requests),
     write_full_pairwise = .uaf_yes_no(write_full_pairwise),
     approximate_compound_pair_csv_gb =
       round((compound_pairs * 220) / 1024^3, 3),
+    approximate_cross_plant_compound_pair_csv_gb =
+      round((plant_compound_pairs * 260) / 1024^3, 3),
     approximate_plant_compound_pair_csv_gb =
       round((plant_compound_pairs * 260) / 1024^3, 3),
     stringsAsFactors = FALSE
   )
-  rec = .uaf_run_recommendations(nrow(plant_table), compound_count,
-                                 plant_compound_pairs, write_full_pairwise)
+  readiness = .uaf_plan_readiness_checks(
+    species_count = species_count,
+    sources = sources,
+    cache_dir = cache_dir,
+    lotus_available = lotus_available,
+    write_full_pairwise = write_full_pairwise,
+    species_chunk_size = species_chunk_size,
+    compound_batch_size = compound_batch_size,
+    parsed_species_count = parsed_species_count,
+    review_required_name_count = review_required_name_count,
+    blank_input_count = blank_input_count,
+    duplicate_input_count = duplicate_input_count
+  )
+  readiness_status = if (any(readiness$status == "fail")) {
+    "not_ready"
+  } else if (any(readiness$status == "warn")) {
+    "staged_run_required"
+  } else {
+    "ready"
+  }
+  run_configuration = .uaf_plan_run_configuration(
+    species_chunk_size, compound_batch_size, max_pubmed_records,
+    species_count
+  )
+  rec = .uaf_run_recommendations(species_count, compound_count,
+                                 plant_compound_pairs, write_full_pairwise,
+                                 lotus_available, sources)
   summary = data.frame(
-    species_count = nrow(plant_table),
+    input_name_count = nrow(name_audit),
+    species_count = species_count,
+    parsed_species_count = parsed_species_count,
+    review_required_name_count = review_required_name_count,
+    blank_input_count = blank_input_count,
+    duplicate_input_count = duplicate_input_count,
     source_count = length(sources),
-    estimated_provider_queries = nrow(plant_table) * length(sources),
+    planned_discovery_chunk_count = discovery_chunks,
+    planned_compound_batch_count = compound_batches,
+    estimated_provider_queries = species_count * length(sources),
+    estimated_network_request_lower_bound = sum(network_requests),
     cache_dir_supplied = .uaf_yes_no(!is.null(cache_dir)),
-    lotus_index_supplied = .uaf_yes_no(!is.null(lotus_index) &&
-                                         nzchar(.uaf_first_non_empty_text(lotus_index))),
+    lotus_index_supplied = .uaf_yes_no(lotus_available),
+    readiness_status = readiness_status,
     runtime_tier = rec$runtime_tier,
     risk_level = rec$risk_level,
     stringsAsFactors = FALSE
   )
   out = list(Summary = summary,
              PlantQueries = plant_table,
+             InputNameAudit = name_audit,
              ProviderPlan = provider_plan,
              CacheSummary = cache_summary,
              OutputEstimates = estimates,
+             ReadinessChecks = readiness,
+             RunConfiguration = run_configuration,
              Recommendations = rec$table)
   class(out) = c("uaf_plant_run_plan", "list")
   out
+}
+
+#' Validate a plant chemistry run manifest
+#'
+#' @description
+#' Standardizes and validates a batch/run manifest from large plant chemistry
+#' projects. The function is offline-only: it checks table shape, status values,
+#' and output-file existence when paths are supplied, but it never reruns failed
+#' queries or contacts providers.
+#'
+#' @param manifest Data frame, CSV path, JSON path, or list containing a manifest
+#' table.
+#' @param base_dir Optional directory used to resolve relative output paths.
+#'
+#' @return A list with `Summary`, `TableQuality`, `Issues`, `RetryQueue`, and
+#' standardized `Manifest` tables.
+#'
+#' @export
+validatePlantChemistryRunManifest = function(manifest, base_dir = NULL) {
+  dat = .uaf_standardize_run_manifest(manifest)
+  if (nrow(dat) < 1) {
+    issues = data.frame(
+      issue_type = "empty_manifest",
+      severity = "fail",
+      batch_index = NA_integer_,
+      message = "The run manifest has no rows.",
+      stringsAsFactors = FALSE
+    )
+    return(list(
+      Summary = data.frame(batch_count = 0L, completed_count = 0L,
+                           failed_count = 0L, retry_count = 0L,
+                           missing_output_count = 0L,
+                           validation_status = "fail",
+                           stringsAsFactors = FALSE),
+      TableQuality = .uaf_run_manifest_quality(dat),
+      Issues = issues,
+      RetryQueue = .uaf_empty_df(.uaf_retry_queue_cols()),
+      Manifest = dat
+    ))
+  }
+  status = tolower(.uaf_first_non_empty_vec(dat$status, "unknown"))
+  completed = status %in% c("complete", "completed", "success", "succeeded",
+                            "ok", "pass")
+  failed = .uaf_manifest_retry_status(status)
+  output_path = .uaf_manifest_output_path(dat, base_dir)
+  has_output_col = length(.uaf_non_empty(dat$output_file)) > 0 ||
+    length(.uaf_non_empty(dat$output_path)) > 0
+  output_missing = completed & has_output_col & !file.exists(output_path)
+
+  issue_rows = list()
+  if (any(!status %in% .uaf_allowed_manifest_statuses())) {
+    bad = which(!status %in% .uaf_allowed_manifest_statuses())
+    issue_rows[[length(issue_rows) + 1L]] = data.frame(
+      issue_type = "unknown_status",
+      severity = "warn",
+      batch_index = dat$batch_index[bad],
+      message = paste0("Unknown batch status: ", dat$status[bad]),
+      stringsAsFactors = FALSE
+    )
+  }
+  if (any(output_missing)) {
+    bad = which(output_missing)
+    issue_rows[[length(issue_rows) + 1L]] = data.frame(
+      issue_type = "completed_output_missing",
+      severity = "fail",
+      batch_index = dat$batch_index[bad],
+      message = paste0("Completed batch output was not found: ",
+                       output_path[bad]),
+      stringsAsFactors = FALSE
+    )
+  }
+  issues = if (length(issue_rows) > 0) {
+    do.call(rbind, issue_rows)
+  } else {
+    data.frame(issue_type = character(), severity = character(),
+               batch_index = integer(), message = character(),
+               stringsAsFactors = FALSE)
+  }
+  retry_queue = writePlantChemistryRetryQueue(dat)
+  validation_status = if (any(issues$severity == "fail")) {
+    "fail"
+  } else if (any(issues$severity == "warn") || nrow(retry_queue) > 0) {
+    "warn"
+  } else {
+    "pass"
+  }
+  list(
+    Summary = data.frame(
+      batch_count = nrow(dat),
+      completed_count = sum(completed),
+      failed_count = sum(failed),
+      retry_count = nrow(retry_queue),
+      missing_output_count = sum(output_missing),
+      validation_status = validation_status,
+      stringsAsFactors = FALSE
+    ),
+    TableQuality = .uaf_run_manifest_quality(dat),
+    Issues = issues,
+    RetryQueue = retry_queue,
+    Manifest = dat
+  )
+}
+
+#' Write a plant chemistry retry queue
+#'
+#' @description
+#' Extracts failed, incomplete, timed-out, rate-limited, or not-started batches
+#' from a large-run manifest into a reproducible retry queue. The queue can be
+#' inspected, edited, archived, or passed to `rerunFailedPlantQueries()`.
+#'
+#' @param manifest Data frame, CSV path, JSON path, or list containing a manifest
+#' table.
+#' @param path Optional CSV path to write.
+#' @param include_status Batch statuses to include in the retry queue.
+#' @param overwrite Logical. If `FALSE`, an existing `path` is not replaced.
+#'
+#' @return Retry queue data frame.
+#'
+#' @export
+writePlantChemistryRetryQueue = function(manifest,
+                                         path = NULL,
+                                         include_status = c(
+                                           "failed", "error", "timeout",
+                                           "timed_out", "rate_limited",
+                                           "incomplete", "planned",
+                                           "not_started", "running",
+                                           "started", "stopped", "retry"
+                                         ),
+                                         overwrite = FALSE) {
+  dat = .uaf_standardize_run_manifest(manifest)
+  include_status = tolower(.uaf_non_empty(include_status))
+  if (nrow(dat) < 1) {
+    queue = .uaf_empty_df(.uaf_retry_queue_cols())
+  } else {
+    status = tolower(.uaf_first_non_empty_vec(dat$status, "unknown"))
+    keep = status %in% include_status | .uaf_manifest_retry_status(status)
+    dat = dat[keep, , drop = FALSE]
+    if (nrow(dat) < 1) {
+      queue = .uaf_empty_df(.uaf_retry_queue_cols())
+    } else {
+      queue = data.frame(
+        retry_id = sprintf("retry_%04d", seq_len(nrow(dat))),
+        batch_index = dat$batch_index,
+        query_start = dat$query_start,
+        query_end = dat$query_end,
+        query_count = dat$query_count,
+        query_label = dat$query_label,
+        original_status = dat$status,
+        retry_reason = .uaf_retry_reason(dat$status, dat$error_message),
+        retry_attempt = suppressWarnings(as.integer(dat$retry_count)) + 1L,
+        output_file = dat$output_file,
+        output_path = dat$output_path,
+        error_message = dat$error_message,
+        recommended_action = .uaf_retry_action(dat$status,
+                                               dat$error_message),
+        created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"),
+        stringsAsFactors = FALSE
+      )
+      queue$retry_attempt[is.na(queue$retry_attempt)] = 1L
+    }
+  }
+  if (!is.null(path)) {
+    path = .uaf_first_non_empty_text(path)
+    if (is.na(path) || path == "") {
+      stop("`path` must be a non-empty CSV path.", call. = FALSE)
+    }
+    if (file.exists(path) && !isTRUE(overwrite)) {
+      stop("Retry queue already exists. Use `overwrite = TRUE`: ", path,
+           call. = FALSE)
+    }
+    dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+    utils::write.csv(queue, path, row.names = FALSE, na = "")
+  }
+  queue
+}
+
+#' Rerun failed plant chemistry query batches
+#'
+#' @description
+#' Provides a generic retry runner for queue rows produced by
+#' `writePlantChemistryRetryQueue()`. By default `dry_run = TRUE`, so the
+#' function only returns an execution plan. To actually rerun work, provide a
+#' `runner_fun` that accepts one retry-queue row as its first argument and set
+#' `dry_run = FALSE`.
+#'
+#' @param retry_queue Retry queue data frame, CSV path, or manifest-like object.
+#' @param runner_fun Optional function called for each retry row when
+#' `dry_run = FALSE`.
+#' @param dry_run Logical. If `TRUE`, do not execute retries.
+#' @param out_dir Optional directory for `retry_run_manifest.csv`.
+#' @param overwrite Logical. If `FALSE`, existing retry manifests are preserved.
+#' @param ... Additional arguments passed to `runner_fun`.
+#'
+#' @return List with `Plan`, `RetryQueue`, and `RetryRunManifest`.
+#'
+#' @export
+rerunFailedPlantQueries = function(retry_queue,
+                                   runner_fun = NULL,
+                                   dry_run = TRUE,
+                                   out_dir = NULL,
+                                   overwrite = FALSE,
+                                   ...) {
+  queue = .uaf_standardize_retry_queue(retry_queue)
+  plan = data.frame(
+    retry_row_count = nrow(queue),
+    dry_run = .uaf_yes_no(dry_run),
+    runner_supplied = .uaf_yes_no(is.function(runner_fun)),
+    status = if (nrow(queue) < 1) "nothing_to_retry" else
+      if (isTRUE(dry_run)) "planned" else "executed",
+    note = if (isTRUE(dry_run) || !is.function(runner_fun)) {
+      "No provider queries were run. Provide `runner_fun` and set `dry_run = FALSE` to execute retries."
+    } else {
+      "Retry rows were passed to the supplied runner function."
+    },
+    stringsAsFactors = FALSE
+  )
+  if (nrow(queue) < 1 || isTRUE(dry_run) || !is.function(runner_fun)) {
+    run_manifest = .uaf_empty_df(.uaf_retry_run_manifest_cols())
+  } else {
+    rows = lapply(seq_len(nrow(queue)), function(i) {
+      row = queue[i, , drop = FALSE]
+      started = Sys.time()
+      result_path = NA_character_
+      message = NA_character_
+      status = "completed"
+      result = tryCatch(
+        runner_fun(row, ...),
+        error = function(e) {
+          status <<- "failed"
+          message <<- conditionMessage(e)
+          NULL
+        }
+      )
+      if (!is.null(result)) {
+        if (is.character(result) && length(result) > 0) {
+          result_path = result[[1]]
+        } else if (is.list(result) && !is.null(result$output_path)) {
+          result_path = as.character(result$output_path[[1]])
+        }
+      }
+      finished = Sys.time()
+      data.frame(
+        retry_id = row$retry_id,
+        batch_index = row$batch_index,
+        status = status,
+        started_at = format(started, "%Y-%m-%dT%H:%M:%S%z"),
+        finished_at = format(finished, "%Y-%m-%dT%H:%M:%S%z"),
+        elapsed_seconds = round(as.numeric(difftime(finished, started,
+                                                    units = "secs")), 3),
+        output_path = result_path,
+        error_message = message,
+        stringsAsFactors = FALSE
+      )
+    })
+    run_manifest = do.call(rbind, rows)
+  }
+  if (!is.null(out_dir)) {
+    out_dir = .uaf_first_non_empty_text(out_dir)
+    if (is.na(out_dir) || out_dir == "") {
+      stop("`out_dir` must be a non-empty directory.", call. = FALSE)
+    }
+    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+    manifest_file = file.path(out_dir, "retry_run_manifest.csv")
+    if (file.exists(manifest_file) && !isTRUE(overwrite)) {
+      stop("Retry run manifest exists. Use `overwrite = TRUE`: ",
+           manifest_file, call. = FALSE)
+    }
+    utils::write.csv(run_manifest, manifest_file, row.names = FALSE, na = "")
+  }
+  list(Plan = plan, RetryQueue = queue, RetryRunManifest = run_manifest)
 }
 
 #' Evidence grade dictionary
@@ -534,39 +937,58 @@ filterPlantEvidenceReviewRequired = function(x) {
 #'
 #' @export
 chemistryComparisonDictionary = function() {
-  data.frame(
-    comparison_scope = c("primary_metabolites", "specialized_metabolites",
-                         "volatile_specialized", "lipids_fatty_acids",
-                         "hormones_signaling", "xenobiotic_or_contaminant",
-                         "unknown"),
-    comparison_group = c("primary_metabolism", "specialized_metabolism",
-                         "volatile_fraction", "lipid_metabolism",
-                         "plant_signaling", "external_or_contaminant",
-                         "unknown"),
-    comparison_subgroup = c("sugars_amino_acids_organic_acids",
-                            "phenolics_terpenoids_alkaloids_and_related",
-                            "volatile_terpenoids_aromatics_and_aliphatics",
-                            "fatty_acids_lipids_waxes",
-                            "hormones_and_signaling_molecules",
-                            "xenobiotic_or_environmental_compounds",
-                            "unclassified"),
-    metabolism_domain = c("primary", "specialized", "specialized",
-                          "primary_or_storage", "signaling", "external",
-                          "unknown"),
-    biosynthetic_family = c("central_metabolism", "mixed_specialized",
-                            "volatile_specialized", "lipid",
-                            "hormone_signal", "xenobiotic", "unknown"),
-    chemical_behavior = c("polar_metabolite", "specialized_metabolite",
-                          "volatile_or_semivolatile", "lipophilic",
-                          "bioactive_signal", "external_context",
-                          "unknown"),
-    classification_source = c(rep("uafR_default_dictionary", 7)),
-    classification_confidence = c("medium", "medium", "medium", "medium",
-                                  "medium", "low", "low"),
-    review_required = c("No", "No", "No", "No", "No", "Yes", "Yes"),
-    comparable_for_matrix = c("Yes", "Yes", "Yes", "Yes", "Yes", "No", "No"),
-    stringsAsFactors = FALSE
+  primary = c("carbohydrate", "amino_acid", "organic_acid",
+              "nucleoside_nucleotide")
+  specialized = c(
+    "terpenoid", "phenolic_phenylpropanoid", "flavonoid",
+    "alkaloid_nitrogenous", "organosulfur", "glucosinolate",
+    "benzoxazinoid", "cyanogenic_glycoside", "saponin",
+    "steroid_triterpenoid", "polyketide"
   )
+  rows = list()
+  add_rows = function(scope, family, domain, behavior,
+                      comparable = "Yes", review = "No",
+                      confidence = "medium") {
+    group = if (identical(scope, "volatile_specialized_metabolites")) {
+      paste0("volatile_", family)
+    } else {
+      family
+    }
+    rows[[length(rows) + 1L]] <<- data.frame(
+      comparison_scope = scope,
+      comparison_group = group,
+      comparison_subgroup = "source_specific_or_family",
+      metabolism_domain = domain,
+      biosynthetic_family = family,
+      chemical_behavior = behavior,
+      classification_source = "uafR_comparability_schema",
+      classification_confidence = confidence,
+      review_required = review,
+      comparable_for_matrix = comparable,
+      stringsAsFactors = FALSE
+    )
+  }
+  add_rows("primary_metabolites", primary, "primary_metabolism",
+           "nonvolatile_or_unspecified")
+  add_rows("specialized_metabolites", specialized,
+           "specialized_metabolism", "nonvolatile_or_unspecified")
+  add_rows("volatile_specialized_metabolites", specialized,
+           "specialized_metabolism", "volatile_semivolatile")
+  add_rows("lipids_fatty_acids", "fatty_acid_lipid", "lipid_metabolism",
+           "nonvolatile_or_unspecified")
+  add_rows("plant_hormone_signaling", "plant_hormone_signal",
+           "plant_hormone_signaling", "nonvolatile_or_unspecified")
+  add_rows("broad_or_uncertain", "broad_or_uncertain",
+           "broad_or_uncertain", "nonvolatile_or_unspecified",
+           comparable = "No", review = "Yes", confidence = "low")
+  add_rows("xenobiotic_or_contaminant", "unknown",
+           "xenobiotic_or_contaminant", "unknown",
+           comparable = "No", review = "Yes", confidence = "low")
+  add_rows("unknown", "unknown", "unknown", "unknown",
+           comparable = "No", review = "Yes", confidence = "low")
+  out = do.call(rbind, rows)
+  row.names(out) = NULL
+  out
 }
 
 #' Standardize chemistry classification overrides
@@ -595,6 +1017,19 @@ standardizeChemistryClassificationOverrides = function(x) {
            "classification_source", "classification_confidence",
            "review_required", "comparable_for_matrix", "override_note")
   for (col in cols) if (!col %in% names(x)) x[[col]] = NA_character_
+  for (col in c("comparison_scope", "comparison_group",
+                "metabolism_domain", "biosynthetic_family",
+                "chemical_behavior")) {
+    x[[col]] = .uaf_classification_alias(x[[col]], col)
+  }
+  x$classification_confidence = .uaf_classification_alias(
+    x$classification_confidence, "classification_confidence"
+  )
+  x$review_required = .uaf_classification_alias(x$review_required,
+                                                 "yes_no")
+  x$comparable_for_matrix = .uaf_classification_alias(
+    x$comparable_for_matrix, "yes_no"
+  )
   x$compound_name_clean = .uaf_first_non_empty_vec(
     x$compound_name_clean,
     if ("compound_name" %in% names(x)) .plant_clean_compound(x$compound_name) else
@@ -606,12 +1041,120 @@ standardizeChemistryClassificationOverrides = function(x) {
   x$classification_confidence = .uaf_first_non_empty_vec(
     x$classification_confidence, "high"
   )
-  x$review_required = .uaf_first_non_empty_vec(x$review_required, "No")
-  x$comparable_for_matrix = .uaf_first_non_empty_vec(
-    x$comparable_for_matrix,
-    ifelse(tolower(x$comparison_scope) == "unknown", "No", "Yes")
+  dictionary = chemistryComparisonDictionary()
+  scope_idx = match(x$comparison_scope, dictionary$comparison_scope)
+  default_review = dictionary$review_required[scope_idx]
+  default_comparable = dictionary$comparable_for_matrix[scope_idx]
+  x$review_required = .uaf_first_non_empty_vec(
+    x$review_required, default_review, "No"
   )
+  x$comparable_for_matrix = .uaf_first_non_empty_vec(
+    x$comparable_for_matrix, default_comparable,
+    ifelse(tolower(x$comparison_scope) %in%
+             c("unknown", "broad_or_uncertain",
+               "xenobiotic_or_contaminant"), "No", "Yes")
+  )
+  .uaf_validate_classification_overrides(x, dictionary)
   x[, cols, drop = FALSE]
+}
+
+.uaf_classification_alias = function(x, field) {
+  out = tolower(.uaf_squish_text(x))
+  out = gsub("[^a-z0-9]+", "_", out)
+  out = gsub("^_+|_+$", "", out)
+  out[out == ""] = NA_character_
+  aliases = switch(
+    field,
+    comparison_scope = c(
+      volatile_specialized = "volatile_specialized_metabolites",
+      hormones_signaling = "plant_hormone_signaling",
+      hormone_signaling = "plant_hormone_signaling"
+    ),
+    comparison_group = c(
+      terpenoids = "terpenoid",
+      phenolics = "phenolic_phenylpropanoid",
+      flavonoids = "flavonoid",
+      alkaloids = "alkaloid_nitrogenous",
+      amino_acids = "amino_acid",
+      organic_acids = "organic_acid",
+      carbohydrates = "carbohydrate",
+      fatty_acids = "fatty_acid_lipid",
+      volatile_terpenoids = "volatile_terpenoid"
+    ),
+    metabolism_domain = c(
+      primary = "primary_metabolism",
+      specialized = "specialized_metabolism",
+      signaling = "plant_hormone_signaling",
+      primary_or_storage = "lipid_metabolism",
+      external = "xenobiotic_or_contaminant"
+    ),
+    biosynthetic_family = c(
+      terpenoids = "terpenoid",
+      phenolics = "phenolic_phenylpropanoid",
+      flavonoids = "flavonoid",
+      alkaloids = "alkaloid_nitrogenous",
+      fatty_acids = "fatty_acid_lipid",
+      hormones = "plant_hormone_signal"
+    ),
+    chemical_behavior = c(
+      volatile_or_semivolatile = "volatile_semivolatile",
+      volatile = "volatile_semivolatile",
+      nonvolatile = "nonvolatile_or_unspecified"
+    ),
+    classification_confidence = c(),
+    yes_no = c(true = "yes", false = "no", y = "yes", n = "no",
+               `1` = "yes", `0` = "no"),
+    c()
+  )
+  hit = !is.na(out) & out %in% names(aliases)
+  out[hit] = unname(aliases[out[hit]])
+  if (identical(field, "yes_no")) {
+    out[out == "yes"] = "Yes"
+    out[out == "no"] = "No"
+  }
+  out
+}
+
+.uaf_validate_classification_overrides = function(x, dictionary) {
+  allowed = list(
+    comparison_scope = unique(dictionary$comparison_scope),
+    comparison_group = unique(dictionary$comparison_group),
+    metabolism_domain = unique(dictionary$metabolism_domain),
+    biosynthetic_family = unique(dictionary$biosynthetic_family),
+    chemical_behavior = unique(dictionary$chemical_behavior),
+    classification_confidence = .plant_confidence_values(),
+    review_required = .plant_yes_no_values(),
+    comparable_for_matrix = .plant_yes_no_values()
+  )
+  for (field in names(allowed)) {
+    value = x[[field]]
+    bad = .uaf_non_empty(value[!is.na(value) & !value %in% allowed[[field]]])
+    if (length(bad) > 0) {
+      stop("Invalid `", field, "` override value(s): ",
+           paste(unique(bad), collapse = ", "), ". Allowed values: ",
+           paste(allowed[[field]], collapse = ", "), ".", call. = FALSE)
+    }
+  }
+  complete = !is.na(x$comparison_scope) & !is.na(x$comparison_group)
+  if (any(complete)) {
+    supplied = paste(x$comparison_scope[complete],
+                     x$comparison_group[complete], sep = "\r")
+    valid = paste(dictionary$comparison_scope, dictionary$comparison_group,
+                  sep = "\r")
+    if (any(!supplied %in% valid)) {
+      bad = unique(gsub("\r", " / ", supplied[!supplied %in% valid],
+                        fixed = TRUE))
+      stop("Inconsistent comparison scope/group override pair(s): ",
+           paste(bad, collapse = ", "), ".", call. = FALSE)
+    }
+  }
+  noncomparable = x$comparison_scope %in%
+    c("unknown", "broad_or_uncertain", "xenobiotic_or_contaminant")
+  if (any(noncomparable & x$comparable_for_matrix == "Yes", na.rm = TRUE)) {
+    stop("Unknown, broad/uncertain, and xenobiotic/contaminant scopes cannot ",
+         "be marked comparable for a default matrix.", call. = FALSE)
+  }
+  invisible(TRUE)
 }
 
 #' Apply chemistry classification overrides
@@ -760,6 +1303,246 @@ estimateTanimotoOutput = function(compound_count, membership_count = NULL) {
   )
 }
 
+#' Standardize a compound identity audit table
+#'
+#' @description
+#' Converts uafR compound-resolution outputs into a stable audit schema for
+#' review, handoff, and reproducible downstream filtering. The audit table does
+#' not invent structures or identifiers; unresolved fields remain missing.
+#'
+#' @param x Plant phytochemistry result, `CompoundResolution` data frame, or
+#' compatible identity table.
+#' @param occurrences Optional occurrence table used to add query counts when
+#' the input lacks them.
+#'
+#' @return Compound identity audit data frame.
+#'
+#' @export
+standardizeCompoundIdentityAudit = function(x, occurrences = NULL) {
+  resolution = .uaf_identity_resolution_from_input(x)
+  if (nrow(resolution) < 1) {
+    return(.uaf_empty_df(.uaf_identity_audit_cols()))
+  }
+  if (!is.null(occurrences) && is.data.frame(occurrences) &&
+      !"query_count" %in% names(resolution)) {
+    occurrences = .plant_normalize_occurrences(occurrences)
+    counts = table(occurrences$compound_name_clean)
+    resolution$query_count = as.integer(counts[resolution$compound_name_clean])
+    resolution$query_count[is.na(resolution$query_count)] = 0L
+  }
+  rows = lapply(seq_len(nrow(resolution)), function(i) {
+    row = resolution[i, , drop = FALSE]
+    issue = .plant_identity_issue(row)
+    identity = .uaf_identity_values(row)
+    flags = .uaf_identity_risk_flags(row, issue)
+    review_required = issue$type != "resolved" ||
+      issue$type %in% .plant_identity_review_required_types()
+    data.frame(
+      query_name = row$compound_name,
+      query_name_clean = row$compound_name_clean,
+      resolved_name = row$compound_name,
+      cid = identity$cid,
+      inchikey = identity$inchikey,
+      inchikey_first_block = .uaf_inchikey_first_block(identity$inchikey),
+      smiles = identity$smiles,
+      molecular_formula = identity$formula,
+      resolution_method = .uaf_identity_resolution_method(row),
+      resolution_source = row$resolution_source,
+      resolution_confidence = .uaf_identity_confidence(row, issue),
+      alias_used = .uaf_identity_alias_used(row),
+      ambiguity_flag = .uaf_yes_no(flags$ambiguity_flag),
+      review_required = .uaf_yes_no(review_required),
+      recommended_action = issue$decision,
+      salt_hydrate_flag = .uaf_yes_no(flags$salt_hydrate),
+      stereochemistry_unspecified_flag =
+        .uaf_yes_no(flags$stereochemistry_unspecified),
+      mixture_common_name_flag = .uaf_yes_no(flags$mixture_common_name),
+      class_like_name_flag = .uaf_yes_no(flags$class_like_name),
+      plant_source_name_flag = .uaf_yes_no(flags$plant_source_name),
+      synonym_only_match_flag = .uaf_yes_no(flags$synonym_only_match),
+      alias_derived_match_flag = .uaf_yes_no(flags$alias_derived_match),
+      multiple_candidate_flag = .uaf_yes_no(flags$multiple_candidate),
+      identity_issue_type = issue$type,
+      review_reason = issue$reason,
+      notes = row$notes,
+      stringsAsFactors = FALSE
+    )
+  })
+  out = do.call(rbind, rows)
+  out = out[, .uaf_identity_audit_cols(), drop = FALSE]
+  row.names(out) = NULL
+  out
+}
+
+#' Validate a compound identity audit table
+#'
+#' @param x Identity audit table or object accepted by
+#' `standardizeCompoundIdentityAudit()`.
+#'
+#' @return List with `Summary`, `TableQuality`, `Issues`, and `Audit`.
+#'
+#' @export
+validateCompoundIdentityAudit = function(x) {
+  audit = standardizeCompoundIdentityAudit(x)
+  required = .uaf_identity_audit_cols()
+  present = required %in% names(audit)
+  quality = data.frame(
+    required_column = required,
+    present = .uaf_yes_no(present),
+    stringsAsFactors = FALSE
+  )
+  issues = list()
+  if (any(!present)) {
+    issues[[length(issues) + 1L]] = data.frame(
+      issue_type = "missing_required_column",
+      severity = "fail",
+      row_id = NA_integer_,
+      message = paste("Missing columns:",
+                      paste(required[!present], collapse = ", ")),
+      stringsAsFactors = FALSE
+    )
+  }
+  dup = duplicated(audit$query_name_clean) & .bundle_known(audit$query_name_clean)
+  if (any(dup)) {
+    issues[[length(issues) + 1L]] = data.frame(
+      issue_type = "duplicate_query_name_clean",
+      severity = "warn",
+      row_id = which(dup),
+      message = paste0("Duplicate cleaned query name: ",
+                       audit$query_name_clean[dup]),
+      stringsAsFactors = FALSE
+    )
+  }
+  review = .bundle_truthy(audit$review_required)
+  structure_resolved = .bundle_known(audit$smiles) |
+    .bundle_known(audit$inchikey) | .bundle_known(audit$cid)
+  issues_df = if (length(issues) > 0) {
+    do.call(rbind, issues)
+  } else {
+    data.frame(issue_type = character(), severity = character(),
+               row_id = integer(), message = character(),
+               stringsAsFactors = FALSE)
+  }
+  status = if (any(issues_df$severity == "fail")) "fail" else
+    if (any(issues_df$severity == "warn") || any(review)) "warn" else "pass"
+  list(
+    Summary = data.frame(
+      identity_count = nrow(audit),
+      structure_resolved_count = sum(structure_resolved),
+      review_required_count = sum(review),
+      ambiguity_flag_count = sum(.bundle_truthy(audit$ambiguity_flag)),
+      validation_status = status,
+      stringsAsFactors = FALSE
+    ),
+    TableQuality = quality,
+    Issues = issues_df,
+    Audit = audit
+  )
+}
+
+#' Export a compound identity review template
+#'
+#' @param x Plant phytochemistry result, `CompoundResolution`, or identity
+#' audit table.
+#' @param path Optional CSV path to write.
+#' @param include_resolved Logical. If `FALSE`, resolved/no-review rows are
+#' omitted.
+#' @param overwrite Logical. If `FALSE`, an existing `path` is not replaced.
+#'
+#' @return Review template data frame.
+#'
+#' @export
+exportCompoundIdentityReviewTemplate = function(x,
+                                                path = NULL,
+                                                include_resolved = FALSE,
+                                                overwrite = FALSE) {
+  if (inherits(x, "uaf_plant_phytochemistry") ||
+      (is.list(x) && is.data.frame(x$CompoundResolution)) ||
+      .uaf_is_compound_resolution_table(x)) {
+    template = plantCompoundIdentityReviewTable(x,
+                                                include_resolved =
+                                                  include_resolved)
+  } else {
+    audit = standardizeCompoundIdentityAudit(x)
+    keep = rep(TRUE, nrow(audit))
+    if (!isTRUE(include_resolved)) {
+      keep = .bundle_truthy(audit$review_required) |
+        !(.bundle_known(audit$smiles) | .bundle_known(audit$inchikey) |
+            .bundle_known(audit$cid))
+    }
+    audit = audit[keep, , drop = FALSE]
+    template = data.frame(
+      review_id = sprintf("compound_identity_%04d", seq_len(nrow(audit))),
+      review_decision = "needs_review",
+      reviewed_by = NA_character_,
+      reviewed_at = NA_character_,
+      review_note = NA_character_,
+      query_name = audit$query_name,
+      query_name_clean = audit$query_name_clean,
+      cid = audit$cid,
+      inchikey = audit$inchikey,
+      smiles = audit$smiles,
+      molecular_formula = audit$molecular_formula,
+      identity_issue_type = audit$identity_issue_type,
+      recommended_action = audit$recommended_action,
+      proposed_compound_name = NA_character_,
+      proposed_cid = NA_character_,
+      proposed_inchikey = NA_character_,
+      proposed_smiles = NA_character_,
+      proposed_molecular_formula = NA_character_,
+      proposed_resolution_source = NA_character_,
+      review_reason = audit$review_reason,
+      stringsAsFactors = FALSE
+    )
+  }
+  if (!is.null(path)) {
+    path = .uaf_first_non_empty_text(path)
+    if (is.na(path) || path == "") {
+      stop("`path` must be a non-empty CSV path.", call. = FALSE)
+    }
+    if (file.exists(path) && !isTRUE(overwrite)) {
+      stop("Review template already exists. Use `overwrite = TRUE`: ", path,
+           call. = FALSE)
+    }
+    dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+    utils::write.csv(template, path, row.names = FALSE, na = "")
+  }
+  template
+}
+
+#' Apply compound identity review decisions
+#'
+#' @description
+#' User-facing wrapper around `applyPlantCompoundIdentityReview()` for the
+#' production identity-review workflow.
+#'
+#' @param x Plant phytochemistry result, named list with `CompoundResolution`,
+#' or `CompoundResolution` table.
+#' @param review_table Completed review table.
+#' @param reviewer Optional reviewer name.
+#' @param require_identity Logical. Require explicit proposed identity fields
+#' for update/replace decisions.
+#'
+#' @return Updated object in the same shape as `x`.
+#'
+#' @export
+applyCompoundIdentityReview = function(x,
+                                       review_table,
+                                       reviewer = NA_character_,
+                                       require_identity = TRUE) {
+  applyPlantCompoundIdentityReview(
+    x = x,
+    review_table = review_table,
+    reviewer = reviewer,
+    require_identity = require_identity
+  )
+}
+
+.uaf_is_compound_resolution_table = function(x) {
+  is.data.frame(x) &&
+    all(.plant_compound_resolution_cols() %in% names(x))
+}
+
 .api_row = function(function_name, workflow, stability, contract) {
   data.frame(function_name = function_name,
              workflow = workflow,
@@ -768,7 +1551,7 @@ estimateTanimotoOutput = function(compound_count, membership_count = NULL) {
              stringsAsFactors = FALSE)
 }
 
-.uaf_schema_version = function() "2026-06-25"
+.uaf_schema_version = function() "1.0.0"
 
 .uaf_parameter_json = function(x) {
   if (is.null(x)) return(NA_character_)
@@ -847,7 +1630,7 @@ estimateTanimotoOutput = function(compound_count, membership_count = NULL) {
   out
 }
 
-.uaf_plan_plants = function(plants) {
+.uaf_plan_raw_species = function(plants) {
   if (is.character(plants) && length(plants) == 1 && file.exists(plants)) {
     plants = utils::read.csv(plants, stringsAsFactors = FALSE,
                              check.names = FALSE)
@@ -860,10 +1643,62 @@ estimateTanimotoOutput = function(compound_count, membership_count = NULL) {
   } else {
     species = plants
   }
-  species = unique(.uaf_non_empty(as.character(species)))
-  data.frame(species = species,
-             species_id = tolower(gsub("[^a-z0-9]+", "_", species)),
-             stringsAsFactors = FALSE)
+  as.character(species)
+}
+
+.uaf_plan_plant_name_audit = function(plants) {
+  input_name = .uaf_plan_raw_species(plants)
+  input_name_clean = .uaf_squish_text(input_name)
+  canonical_species = .plant_canonical_taxon_name(input_name_clean)
+  blank = is.na(canonical_species) | canonical_species == ""
+  species_level = rep(FALSE, length(canonical_species))
+  species_level[!blank] = .plant_is_binomial(canonical_species[!blank])
+  duplicate_input = rep(FALSE, length(canonical_species))
+  duplicate_input[!blank] = duplicated(canonical_species[!blank])
+  query_status = ifelse(
+    blank, "blank_input",
+    ifelse(!species_level, "name_needs_review",
+           ifelse(duplicate_input, "duplicate_input", "parsed_species"))
+  )
+  review_reason = ifelse(
+    blank, "Blank plant name; remove or replace before running.",
+    ifelse(
+      !species_level,
+      paste(
+        "Not a clear species-level binomial; supply an accepted species name",
+        "or document deliberate lower-rank use."
+      ),
+      ifelse(duplicate_input,
+             "Duplicate canonical plant name; only the first query is retained.",
+             NA_character_)
+    )
+  )
+  data.frame(
+    input_order = seq_along(input_name),
+    input_name = input_name,
+    canonical_species = canonical_species,
+    species_id = .plant_slug(canonical_species),
+    species_level_name = species_level,
+    duplicate_input = duplicate_input,
+    review_required = !blank & !species_level,
+    query_status = query_status,
+    review_reason = review_reason,
+    stringsAsFactors = FALSE
+  )
+}
+
+.uaf_plan_plants = function(name_audit) {
+  keep = name_audit$query_status != "blank_input" &
+    !duplicated(name_audit$canonical_species)
+  out = name_audit[keep, c("canonical_species", "species_id",
+                           "species_level_name", "review_required"),
+                   drop = FALSE]
+  names(out)[names(out) == "canonical_species"] = "species"
+  out$query_status = ifelse(out$species_level_name, "parsed_species",
+                            "name_needs_review")
+  out$species_level_name = NULL
+  row.names(out) = NULL
+  out
 }
 
 .uaf_plan_compound_count = function(compounds) {
@@ -885,9 +1720,213 @@ estimateTanimotoOutput = function(compound_count, membership_count = NULL) {
   length(unique(.uaf_non_empty(as.character(compounds))))
 }
 
+.uaf_plan_positive_integer = function(value, default) {
+  if (is.null(value) || length(value) < 1) return(as.integer(default))
+  value = suppressWarnings(as.numeric(value[[1]]))
+  if (!is.finite(value) || value < 1) return(as.integer(default))
+  as.integer(value)
+}
+
+.uaf_plan_lotus_available = function(lotus_index) {
+  if (is.data.frame(lotus_index)) return(nrow(lotus_index) > 0)
+  if (is.list(lotus_index) && !is.data.frame(lotus_index)) {
+    return(length(lotus_index) > 0)
+  }
+  path = .uaf_first_non_empty_text(lotus_index)
+  !is.na(path) && path != "" && (file.exists(path) || dir.exists(path))
+}
+
+.uaf_plan_provider_stage = function(providers, lotus_available) {
+  vapply(providers, function(provider) {
+    if (provider == "lotus" && lotus_available) return("1_local_discovery")
+    if (provider == "lotus") return("0_pilot_before_large_run")
+    if (provider %in% c("pubchem")) return("2_targeted_occurrence_review")
+    if (provider %in% c("pubmed", "pubtator")) {
+      return("3_targeted_literature_candidates")
+    }
+    if (provider %in% c("knapsack", "npass")) {
+      return("3_provider_specific_optional")
+    }
+    "3_optional_provider"
+  }, character(1))
+}
+
+.uaf_plan_provider_mode = function(providers, lotus_available,
+                                    species_count) {
+  vapply(providers, function(provider) {
+    if (provider == "lotus" && lotus_available) return("local_index")
+    if (provider == "lotus" && species_count >= 100) {
+      return("live_not_recommended_at_scale")
+    }
+    if (provider == "npass") return("prefetched_or_mocked_only")
+    if (provider %in% c("pubmed", "pubtator")) {
+      return("cached_targeted_live_stage")
+    }
+    "cached_pilot_then_stage"
+  }, character(1))
+}
+
+.uaf_plan_provider_throttle = function(providers, lotus_available) {
+  vapply(providers, function(provider) {
+    if (provider == "lotus" && lotus_available) return(0)
+    if (provider == "pubmed") return(0.34)
+    if (provider %in% c("pubtator", "pubchem")) return(0.5)
+    1
+  }, numeric(1))
+}
+
+.uaf_plan_readiness_checks = function(species_count, sources, cache_dir,
+                                       lotus_available, write_full_pairwise,
+                                       species_chunk_size,
+                                       compound_batch_size,
+                                       parsed_species_count,
+                                       review_required_name_count,
+                                       blank_input_count,
+                                       duplicate_input_count) {
+  large = species_count >= 100
+  very_large = species_count >= 500
+  live_sources = intersect(sources,
+                           c("lotus", "knapsack", "pubchem", "pubmed",
+                             "pubtator"))
+  lotus_required = "lotus" %in% sources && large
+  rows = list(
+    data.frame(
+      check = "non_empty_unique_species",
+      status = ifelse(
+        species_count < 1, "fail",
+        ifelse(blank_input_count > 0 || duplicate_input_count > 0,
+               "warn", "pass")
+      ),
+      observed = paste0(
+        species_count, " unique; ", blank_input_count, " blank; ",
+        duplicate_input_count, " duplicate"
+      ),
+      recommendation = "Resolve blank and duplicate plant names before running.",
+      stringsAsFactors = FALSE
+    ),
+    data.frame(
+      check = "species_level_name_resolution",
+      status = ifelse(review_required_name_count > 0, "fail", "pass"),
+      observed = paste0(
+        parsed_species_count, " parsed species; ",
+        review_required_name_count, " review required"
+      ),
+      recommendation = paste(
+        "Resolve genus-only, sp./spp., and otherwise ambiguous names before",
+        "a species-level run. Preserve deliberate lower-rank queries in a",
+        "separate, explicitly labeled analysis."
+      ),
+      stringsAsFactors = FALSE
+    ),
+    data.frame(
+      check = "local_lotus_for_large_panel",
+      status = ifelse(!lotus_required || lotus_available, "pass", "fail"),
+      observed = .uaf_yes_no(lotus_available),
+      recommendation = paste(
+        "Use a manifest-backed local LOTUS lookup index for 100+ species;",
+        "do not launch a large live LOTUS simple-search run."
+      ),
+      stringsAsFactors = FALSE
+    ),
+    data.frame(
+      check = "persistent_cache_directory",
+      status = ifelse(!large || !is.null(cache_dir), "pass", "fail"),
+      observed = .uaf_yes_no(!is.null(cache_dir)),
+      recommendation = "Supply a persistent cache_dir outside temporary storage.",
+      stringsAsFactors = FALSE
+    ),
+    data.frame(
+      check = "live_provider_staging",
+      status = ifelse(very_large && length(setdiff(live_sources, "lotus")) > 0,
+                      "warn", "pass"),
+      observed = paste(live_sources, collapse = "; "),
+      recommendation = paste(
+        "Run local LOTUS discovery first, then target literature and other live",
+        "providers to no-hit, priority, or review-required species."
+      ),
+      stringsAsFactors = FALSE
+    ),
+    data.frame(
+      check = "npass_live_availability",
+      status = ifelse("npass" %in% sources, "warn", "pass"),
+      observed = .uaf_yes_no("npass" %in% sources),
+      recommendation = paste(
+        "NPASS species discovery requires a documented local/prefetched source;",
+        "do not count it as a live provider."
+      ),
+      stringsAsFactors = FALSE
+    ),
+    data.frame(
+      check = "full_pairwise_output_disabled",
+      status = ifelse(large && isTRUE(write_full_pairwise), "fail", "pass"),
+      observed = .uaf_yes_no(write_full_pairwise),
+      recommendation = paste(
+        "Generate plant-pair summaries by default; write full compound-pair",
+        "files only after inspecting the size estimate."
+      ),
+      stringsAsFactors = FALSE
+    ),
+    data.frame(
+      check = "conservative_species_chunk_size",
+      status = ifelse(species_chunk_size <= 25, "pass", "warn"),
+      observed = as.character(species_chunk_size),
+      recommendation = "Use 10-25 species per discovery chunk for large runs.",
+      stringsAsFactors = FALSE
+    ),
+    data.frame(
+      check = "conservative_compound_batch_size",
+      status = ifelse(compound_batch_size <= 50, "pass", "warn"),
+      observed = as.character(compound_batch_size),
+      recommendation = "Use 20-50 compounds per PubChem identity batch.",
+      stringsAsFactors = FALSE
+    )
+  )
+  do.call(rbind, rows)
+}
+
+.uaf_plan_run_configuration = function(species_chunk_size,
+                                        compound_batch_size,
+                                        max_pubmed_records,
+                                        species_count) {
+  data.frame(
+    stage = c(
+      "0_preflight", "1_local_discovery", "2_evidence_review",
+      "3_identity_resolution", "4_targeted_literature",
+      "5_rich_enrichment", "6_similarity_and_export"
+    ),
+    setting = c(
+      "plan_and_validate_names", "species_chunk_size",
+      "direct_source_backed_filter", "compound_batch_size",
+      "max_pubmed_records", "reviewed_subset_only",
+      "summary_first"
+    ),
+    recommended_value = c(
+      paste0(species_count, " unique species"),
+      as.character(species_chunk_size),
+      "direct species + source-backed + review decisions",
+      as.character(compound_batch_size),
+      as.character(max_pubmed_records),
+      "research/full enrichment after identity audit",
+      "plant-pair and comparable-scope summaries"
+    ),
+    rationale = c(
+      "Freeze the input universe and preserve a run signature.",
+      "Limits failure scope and makes discovery restartable.",
+      "Prevents candidate co-mentions and fallback records from silently entering analysis.",
+      "Reduces PubChem service-busy risk and limits retry cost.",
+      "Controls literature volume; expand only for priority species.",
+      "Avoids expensive enrichment of unresolved or excluded compounds.",
+      "Avoids unnecessary full pairwise output explosion."
+    ),
+    stringsAsFactors = FALSE
+  )
+}
+
 .uaf_run_recommendations = function(species_count, compound_count,
                                     plant_compound_pairs,
-                                    write_full_pairwise) {
+                                    write_full_pairwise,
+                                    lotus_available = FALSE,
+                                    sources = character()) {
   runtime_tier = if (species_count >= 500 || compound_count >= 10000) {
     "very_large"
   } else if (species_count >= 100 || compound_count >= 1000) {
@@ -903,11 +1942,16 @@ estimateTanimotoOutput = function(compound_count, membership_count = NULL) {
     "manageable_with_cache"
   }
   recs = c(
-    "Use local LOTUS lookup indexes for medium and large plant panels.",
-    "Run live providers only with cache enabled and conservative throttling.",
-    "Run categorate/PubChem enrichment in resumable batches.",
-    "Write full plant-compound pair Tanimoto files only when explicitly needed.",
-    "Validate finalized bundles before downstream modeling."
+    if (species_count >= 100 && "lotus" %in% sources && !lotus_available) {
+      "Build or supply a local LOTUS lookup index before discovery."
+    },
+    "Freeze and validate the plant-name input before creating checkpoints.",
+    "Run local/direct species discovery first with compound resolution disabled.",
+    "Review fallback, candidate, context, and identity flags before enrichment.",
+    "Resolve structures in PubChem batches of 20-50 with persistent cache and resume enabled.",
+    "Run PubMed/PubTator and other live providers as targeted follow-up stages.",
+    "Write plant-pair summaries by default; full compound-pair files are opt-in.",
+    "Validate the completed run manifest and final analysis bundle before modeling."
   )
   list(runtime_tier = runtime_tier,
        risk_level = risk,
@@ -941,4 +1985,296 @@ estimateTanimotoOutput = function(compound_count, membership_count = NULL) {
   }
   row.names(out) = NULL
   out
+}
+
+.uaf_run_manifest_cols = function() {
+  c("batch_index", "query_start", "query_end", "query_count", "query_label",
+    "status", "started_at", "finished_at", "elapsed_seconds",
+    "cache_hit_count", "request_count", "retry_count", "error_message",
+    "output_file", "output_path")
+}
+
+.uaf_retry_queue_cols = function() {
+  c("retry_id", "batch_index", "query_start", "query_end", "query_count",
+    "query_label", "original_status", "retry_reason", "retry_attempt",
+    "output_file", "output_path", "error_message", "recommended_action",
+    "created_at")
+}
+
+.uaf_retry_run_manifest_cols = function() {
+  c("retry_id", "batch_index", "status", "started_at", "finished_at",
+    "elapsed_seconds", "output_path", "error_message")
+}
+
+.uaf_standardize_run_manifest = function(manifest) {
+  dat = .uaf_read_manifest_like(manifest)
+  cols = .uaf_run_manifest_cols()
+  if (!is.data.frame(dat) || nrow(dat) < 1) return(.uaf_empty_df(cols))
+  raw_names = names(dat)
+  norm_names = .plant_normalize_column_names(raw_names)
+  names(dat) = norm_names
+  alias = list(
+    batch_index = c("batch_index", "batch", "batch_id", "batch_number",
+                    "BatchIndex"),
+    query_start = c("query_start", "start_index", "first_query", "range_start"),
+    query_end = c("query_end", "end_index", "last_query", "range_end"),
+    query_count = c("query_count", "queries", "n_queries", "record_count"),
+    query_label = c("query_label", "query", "plant", "species", "batch_label"),
+    status = c("status", "batch_status", "run_status"),
+    started_at = c("started_at", "start_time", "started", "StartedAt"),
+    finished_at = c("finished_at", "end_time", "finished", "FinishedAt"),
+    elapsed_seconds = c("elapsed_seconds", "elapsed", "duration_seconds"),
+    cache_hit_count = c("cache_hit_count", "cache_hits"),
+    request_count = c("request_count", "requests", "query_request_count"),
+    retry_count = c("retry_count", "retries", "attempt", "attempt_count"),
+    error_message = c("error_message", "error", "message", "warning_message"),
+    output_file = c("output_file", "file", "result_file"),
+    output_path = c("output_path", "path", "result_path", "rds_path")
+  )
+  out = as.data.frame(
+    stats::setNames(rep(list(rep(NA_character_, nrow(dat))), length(cols)),
+                    cols),
+    stringsAsFactors = FALSE
+  )
+  for (col in cols) {
+    out[[col]] = .uaf_manifest_col(dat, alias[[col]], nrow(dat))
+  }
+  out$batch_index = .uaf_integer_or_sequence(out$batch_index, nrow(out))
+  for (col in c("query_start", "query_end", "query_count",
+                "cache_hit_count", "request_count", "retry_count")) {
+    out[[col]] = suppressWarnings(as.integer(out[[col]]))
+    out[[col]][is.na(out[[col]])] = 0L
+  }
+  out$elapsed_seconds = suppressWarnings(as.numeric(out$elapsed_seconds))
+  out$elapsed_seconds[is.na(out$elapsed_seconds)] = 0
+  out$status = tolower(.uaf_first_non_empty_vec(out$status, "unknown"))
+  out$.__raw_column_names = paste(raw_names, collapse = "; ")
+  out[, cols, drop = FALSE]
+}
+
+.uaf_read_manifest_like = function(x) {
+  if (is.character(x) && length(x) == 1 && file.exists(x)) {
+    if (grepl("[.]json$", x, ignore.case = TRUE)) {
+      obj = jsonlite::fromJSON(x, simplifyDataFrame = TRUE)
+      return(.uaf_read_manifest_like(obj))
+    }
+    return(utils::read.csv(x, stringsAsFactors = FALSE,
+                           check.names = FALSE))
+  }
+  if (is.data.frame(x)) return(x)
+  if (is.list(x)) {
+    candidates = c("RunManifest", "BatchManifest", "Manifest", "manifest",
+                   "Project", "Batches")
+    for (name in candidates) {
+      if (!is.null(x[[name]]) && is.data.frame(x[[name]])) return(x[[name]])
+    }
+    df_idx = which(vapply(x, is.data.frame, logical(1)))
+    if (length(df_idx) > 0) return(x[[df_idx[[1]]]])
+  }
+  .uaf_empty_df(character())
+}
+
+.uaf_manifest_col = function(dat, candidates, n) {
+  candidates = unique(.plant_normalize_column_names(candidates))
+  hit = candidates[candidates %in% names(dat)]
+  if (length(hit) > 0) return(as.character(dat[[hit[[1]]]]))
+  rep(NA_character_, n)
+}
+
+.uaf_integer_or_sequence = function(x, n) {
+  y = suppressWarnings(as.integer(x))
+  if (length(y) != n) y = rep(NA_integer_, n)
+  missing = is.na(y) | y < 1
+  y[missing] = seq_len(n)[missing]
+  y
+}
+
+.uaf_allowed_manifest_statuses = function() {
+  c("unknown", "planned", "not_started", "running", "started",
+    "complete", "completed", "success", "succeeded", "ok", "pass",
+    "failed", "error", "timeout", "timed_out", "rate_limited",
+    "incomplete", "stopped", "retry", "skipped")
+}
+
+.uaf_manifest_retry_status = function(status) {
+  status = tolower(.uaf_first_non_empty_vec(status, "unknown"))
+  status %in% c("failed", "error", "timeout", "timed_out", "rate_limited",
+                "incomplete", "planned", "not_started", "running",
+                "started", "stopped", "retry")
+}
+
+.uaf_manifest_output_path = function(dat, base_dir = NULL) {
+  path = .uaf_first_non_empty_vec(dat$output_path, dat$output_file)
+  if (!is.null(base_dir)) {
+    rel = !is.na(path) & path != "" & !grepl("^(/|[A-Za-z]:)", path)
+    path[rel] = file.path(base_dir, path[rel])
+  }
+  path
+}
+
+.uaf_run_manifest_quality = function(dat) {
+  cols = .uaf_run_manifest_cols()
+  data.frame(
+    required_column = cols,
+    present = .uaf_yes_no(cols %in% names(dat)),
+    non_empty_count = vapply(cols, function(col) {
+      if (!col %in% names(dat)) return(0L)
+      length(.uaf_non_empty(dat[[col]]))
+    }, integer(1)),
+    stringsAsFactors = FALSE
+  )
+}
+
+.uaf_retry_reason = function(status, error_message) {
+  status = tolower(.uaf_first_non_empty_vec(status, "unknown"))
+  error_message = .uaf_first_non_empty_vec(error_message, "")
+  ifelse(status %in% c("timeout", "timed_out"), "timeout",
+         ifelse(status == "rate_limited" |
+                  grepl("429|503|busy|rate", error_message,
+                        ignore.case = TRUE),
+                "rate_limit_or_service_busy",
+                ifelse(status %in% c("planned", "not_started", "running",
+                                     "started", "incomplete", "stopped"),
+                       "incomplete_or_not_started", "provider_or_batch_error")))
+}
+
+.uaf_retry_action = function(status, error_message) {
+  reason = .uaf_retry_reason(status, error_message)
+  ifelse(reason == "rate_limit_or_service_busy",
+         "Resume later with a longer throttle/cooldown and reuse the existing cache.",
+         ifelse(reason == "timeout",
+                "Retry the batch with cache enabled and a smaller batch size if it repeats.",
+                ifelse(reason == "incomplete_or_not_started",
+                       "Run only this queued batch and preserve successful prior outputs.",
+                       "Inspect the error message, fix inputs if needed, then rerun only this batch.")))
+}
+
+.uaf_standardize_retry_queue = function(x) {
+  dat = .uaf_read_manifest_like(x)
+  if (!is.data.frame(dat) || nrow(dat) < 1) {
+    return(.uaf_empty_df(.uaf_retry_queue_cols()))
+  }
+  names(dat) = .plant_normalize_column_names(names(dat))
+  if (!"retry_id" %in% names(dat)) {
+    dat = writePlantChemistryRetryQueue(dat)
+  }
+  cols = .uaf_retry_queue_cols()
+  for (col in cols) if (!col %in% names(dat)) dat[[col]] = NA_character_
+  dat[, cols, drop = FALSE]
+}
+
+.uaf_identity_audit_cols = function() {
+  c("query_name", "query_name_clean", "resolved_name", "cid", "inchikey",
+    "inchikey_first_block", "smiles", "molecular_formula",
+    "resolution_method", "resolution_source", "resolution_confidence",
+    "alias_used", "ambiguity_flag", "review_required",
+    "recommended_action", "salt_hydrate_flag",
+    "stereochemistry_unspecified_flag", "mixture_common_name_flag",
+    "class_like_name_flag", "plant_source_name_flag",
+    "synonym_only_match_flag", "alias_derived_match_flag",
+    "multiple_candidate_flag", "identity_issue_type", "review_reason",
+    "notes")
+}
+
+.uaf_identity_resolution_from_input = function(x) {
+  if (inherits(x, "uaf_plant_phytochemistry") &&
+      is.data.frame(x$CompoundResolution)) {
+    x = x$CompoundResolution
+  } else if (is.list(x) && !is.data.frame(x) &&
+             is.data.frame(x$CompoundResolution)) {
+    x = x$CompoundResolution
+  }
+  if (!is.data.frame(x)) return(.uaf_empty_table(.plant_compound_resolution_cols()))
+  raw = as.data.frame(x, stringsAsFactors = FALSE)
+  names(raw) = .uaf_restore_identity_names(.plant_normalize_column_names(names(raw)))
+  for (col in .plant_compound_resolution_cols()) {
+    if (!col %in% names(raw)) raw[[col]] = NA
+  }
+  raw$compound_name = .uaf_first_non_empty_vec(raw$compound_name,
+                                               raw$query_name,
+                                               raw$resolved_name)
+  raw$compound_name_clean = .uaf_first_non_empty_vec(
+    raw$compound_name_clean,
+    raw$query_name_clean,
+    .plant_clean_compound(raw$compound_name)
+  )
+  raw$query_count = suppressWarnings(as.integer(raw$query_count))
+  raw$query_count[is.na(raw$query_count)] = 1L
+  raw$resolved = .bundle_truthy(raw$resolved) |
+    .bundle_known(raw$CID) | .bundle_known(raw$InChIKey) |
+    .bundle_known(raw$SMILES) | .bundle_known(raw$MolecularFormula)
+  .plant_bind_tables(list(raw), .plant_compound_resolution_cols())
+}
+
+.uaf_restore_identity_names = function(x) {
+  map = c(cid = "CID", pubchem_cid = "CID", inchikey = "InChIKey",
+          inchi_key = "InChIKey", smiles = "SMILES",
+          canonical_smiles = "SMILES", isomeric_smiles = "SMILES",
+          molecularformula = "MolecularFormula",
+          molecular_formula = "MolecularFormula")
+  out = x
+  hit = out %in% names(map)
+  out[hit] = unname(map[out[hit]])
+  out
+}
+
+.uaf_identity_values = function(row) {
+  list(
+    cid = .uaf_first_non_empty_text(row$CID),
+    inchikey = .uaf_first_non_empty_text(row$InChIKey),
+    smiles = .uaf_first_non_empty_text(row$SMILES),
+    formula = .uaf_first_non_empty_text(row$MolecularFormula)
+  )
+}
+
+.uaf_inchikey_first_block = function(x) {
+  x = .uaf_first_non_empty_vec(x)
+  ifelse(is.na(x) | x == "", NA_character_, sub("-.*$", "", x))
+}
+
+.uaf_identity_resolution_method = function(row) {
+  source = tolower(.uaf_first_non_empty_text(row$resolution_source, ""))
+  if (source == "" || is.na(source)) return("unresolved")
+  if (grepl("lotus|source", source)) return("source_backed_structure")
+  if (grepl("pubchem|cid", source)) return("pubchem_lookup")
+  if (grepl("manual|review", source)) return("manual_review")
+  "other_source"
+}
+
+.uaf_identity_confidence = function(row, issue) {
+  if (!row$resolved %in% TRUE) return("low")
+  if (issue$type %in% .plant_identity_review_required_types()) return("low")
+  method = .uaf_identity_resolution_method(row)
+  if (method %in% c("source_backed_structure", "manual_review")) return("high")
+  if (method == "pubchem_lookup") return("medium")
+  "medium"
+}
+
+.uaf_identity_alias_used = function(row) {
+  notes = tolower(.uaf_first_non_empty_text(row$notes, ""))
+  .uaf_yes_no(grepl("alias|synonym|transliter", notes))
+}
+
+.uaf_identity_risk_flags = function(row, issue) {
+  text = tolower(paste(.uaf_first_non_empty_text(row$compound_name, ""),
+                       .uaf_first_non_empty_text(row$notes, "")))
+  issue_type = tolower(.uaf_first_non_empty_text(issue$type, ""))
+  list(
+    ambiguity_flag = issue$type != "resolved" ||
+      grepl("ambiguous|multiple|mixture|isomer", text),
+    salt_hydrate = grepl("salt|hydrate|hydrochloride|sodium|potassium",
+                         text),
+    stereochemistry_unspecified = .bundle_known(row$SMILES) &&
+      !grepl("@|/|\\\\", .uaf_first_non_empty_text(row$SMILES, "")) &&
+      grepl("stereo|isomer|alpha|beta|gamma|delta", text),
+    mixture_common_name = grepl("mixture|extract|fraction|isomers|derivatives",
+                                text) ||
+      grepl("mixture|isomer", issue_type),
+    class_like_name = grepl("class|family|broad_class", issue_type),
+    plant_source_name = grepl("source|product|material", issue_type),
+    synonym_only_match = grepl("synonym", text),
+    alias_derived_match = grepl("alias|transliter", text),
+    multiple_candidate = grepl("multiple|ambiguous", text) ||
+      grepl("ambiguous", issue_type)
+  )
 }

@@ -14,7 +14,8 @@ resolvePlantCompoundIdentities(
   progress = interactive(),
   pubchem_fun = NULL,
   compound_request_fun = NULL,
-  lotus_index = NULL
+  lotus_index = NULL,
+  source_only = FALSE
 )
 }
 \arguments{
@@ -43,6 +44,10 @@ or advanced cached workflows.}
 \item{lotus_index}{Optional local LOTUS index as a data frame, flat file, or
 manifest-backed lookup directory. When supplied, source-backed LOTUS SMILES,
 InChIKeys, formulas, and PubChem CIDs are used before PubChem name lookup.}
+
+\item{source_only}{Logical. If `TRUE`, resolve only exact identities available
+from `lotus_index` and do not make PubChem requests. Unresolved and ambiguous
+names remain explicit for later review or server-side resolution.}
 }
 \value{
 A `CompoundResolution` data frame. The underlying identity-only

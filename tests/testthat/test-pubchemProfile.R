@@ -137,6 +137,47 @@ fixture_pubchem_request = function(url) {
   list(Record = list(Section = list()))
 }
 
+test_that("PubChem cache keys are collision-resistant and request-bound", {
+  inchikeys = c(
+    "DFYRUELUNQRZTB-UHFFFAOYSA-N",
+    "OILXMJHPFNGGTO-ZAUYPBDWSA-N",
+    "VTZLLYJSIAQXFJ-UHFFFAOYSA-N"
+  )
+  urls = paste0(
+    "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/inchikey/",
+    inchikeys, "/cids/JSON"
+  )
+  hashes = vapply(urls, .pubchem_url_hash, character(1))
+  expect_length(unique(hashes), length(urls))
+  expect_true(all(grepl("^v2_[0-9a-f]{32}$", hashes)))
+
+  calls = new.env(parent = emptyenv())
+  calls$n = 0L
+  request_fun = function(url) {
+    calls$n = calls$n + 1L
+    cid = match(url, urls) + 100L
+    jsonlite::toJSON(list(IdentifierList = list(CID = list(cid))),
+                     auto_unbox = TRUE)
+  }
+  cache_dir = tempfile("pubchem-cache-v2-")
+  fetch = .pubchem_fetcher(cache = TRUE, cache_dir = cache_dir,
+                           throttle = 0, request_fun = request_fun)
+  first = lapply(urls, fetch)
+  second = lapply(urls, fetch)
+
+  expect_equal(calls$n, length(urls))
+  expect_equal(vapply(first, .tanimoto_json_cid, integer(1)), 101:103)
+  expect_equal(vapply(second, .tanimoto_json_cid, integer(1)), 101:103)
+  expect_equal(length(list.files(cache_dir, pattern = "[.]json$")), 3L)
+  expect_equal(length(list.files(cache_dir, pattern = "[.]url$")), 3L)
+  bindings = vapply(
+    paste0(file.path(cache_dir, hashes), ".url"),
+    function(path) paste(readLines(path, warn = FALSE), collapse = "\n"),
+    character(1)
+  )
+  expect_identical(unname(bindings), urls)
+})
+
 test_that("pubchemProfile returns structured profile tables from PubChem responses", {
   profile = pubchemProfile("aspirin",
                            profile = "full",
@@ -197,11 +238,13 @@ test_that("pubchemProfile resolves InChIKey queries through the InChIKey endpoin
     list()
   }
 
-  profile = pubchemProfile(
-    inchikey,
-    profile = "minimal",
-    include_annotations = FALSE,
-    request_fun = request_fun
+  expect_no_warning(
+    profile <- pubchemProfile(
+      inchikey,
+      profile = "minimal",
+      include_annotations = FALSE,
+      request_fun = request_fun
+    )
   )
 
   expect_equal(profile$identity$CID, 162905822)
@@ -237,11 +280,13 @@ test_that("pubchemProfile accepts explicit PubChem CID query tokens", {
     list()
   }
 
-  profile = pubchemProfile(
-    "cid:2244",
-    profile = "minimal",
-    include_annotations = FALSE,
-    request_fun = request_fun
+  expect_no_warning(
+    profile <- pubchemProfile(
+      "cid:2244",
+      profile = "minimal",
+      include_annotations = FALSE,
+      request_fun = request_fun
+    )
   )
 
   expect_equal(profile$identity$CID, 2244)
@@ -362,4 +407,65 @@ test_that("pubchemProfile retries conservative name aliases for PubChem identity
   expect_true(any(grepl("/name/beta-pinene/cids/JSON", requested,
                         fixed = TRUE)))
   expect_equal(profile$properties$SMILES, "CC1(C2CCC(=C)C1C2)C")
+})
+
+test_that("PubChem fetcher opens and resets its service-busy circuit breaker", {
+  old_verbose = Sys.getenv("UAFR_PUBCHEM_VERBOSE", unset = NA_character_)
+  on.exit({
+    if (is.na(old_verbose)) {
+      Sys.unsetenv("UAFR_PUBCHEM_VERBOSE")
+    } else {
+      Sys.setenv(UAFR_PUBCHEM_VERBOSE = old_verbose)
+    }
+  }, add = TRUE)
+  Sys.setenv(UAFR_PUBCHEM_VERBOSE = "false")
+
+  events = list()
+  always_busy = .pubchem_fetcher(
+    cache = FALSE,
+    cache_dir = tempfile("pubchem-busy-"),
+    throttle = 0,
+    request_fun = function(url) stop("HTTP status 503"),
+    service_busy_limit = 2,
+    event_fun = function(event) events[[length(events) + 1L]] <<- event,
+    max_attempts = 3
+  )
+  expect_error(always_busy("https://example.test/busy"),
+               class = "uaf_pubchem_service_busy")
+  event_names = vapply(events, `[[`, character(1), "event")
+  expect_equal(sum(event_names == "request_attempt"), 2L)
+  expect_true("service_busy_limit_reached" %in% event_names)
+
+  attempt = 0L
+  busy_then_success = .pubchem_fetcher(
+    cache = FALSE,
+    cache_dir = tempfile("pubchem-reset-"),
+    throttle = 0,
+    request_fun = function(url) {
+      attempt <<- attempt + 1L
+      if (attempt %% 2L == 1L) stop("HTTP status 503")
+      list(value = attempt)
+    },
+    service_busy_limit = 2,
+    max_attempts = 2
+  )
+  expect_equal(busy_then_success("https://example.test/one")$value, 2L)
+  expect_equal(busy_then_success("https://example.test/two")$value, 4L)
+})
+
+test_that("PubChem fetcher treats 404 as a no-hit rather than service failure", {
+  events = list()
+  fetch = .pubchem_fetcher(
+    cache = FALSE,
+    cache_dir = tempfile("pubchem-no-hit-"),
+    throttle = 0,
+    request_fun = function(url) stop("HTTP status 404"),
+    service_busy_limit = 1,
+    event_fun = function(event) events[[length(events) + 1L]] <<- event,
+    max_attempts = 1
+  )
+  expect_null(fetch("https://example.test/not-found"))
+  event_names = vapply(events, `[[`, character(1), "event")
+  expect_true("request_no_hit" %in% event_names)
+  expect_false("service_busy_limit_reached" %in% event_names)
 })

@@ -68,11 +68,11 @@ tanimoto_dir = optional_arg(
   file.path(repo_root, "lotus_cache", "exports",
             "dsi_categorate_tanimoto_20260611")
 )
-plant_list = optional_arg(
-  args,
-  "plant_list",
-  "/Users/chasestratton/Desktop/DSU_Hornets/Projects/DSI_Dataset/submissions/final_species_round2_2026.csv"
-)
+plant_list = optional_arg(args, "plant_list", Sys.getenv("DSI_PLANT_LIST", ""))
+if (!nzchar(plant_list)) {
+  stop("Supply `--plant-list path/to/species.csv` or set DSI_PLANT_LIST.",
+       call. = FALSE)
+}
 out_dir = optional_arg(
   args,
   "out_dir",

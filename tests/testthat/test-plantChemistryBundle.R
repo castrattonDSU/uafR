@@ -109,14 +109,65 @@ test_that("feature exports produce stable species matrices and metadata", {
     stringsAsFactors = FALSE
   )
 
-  out = exportPlantChemistryFeatureSet(membership)
+  out = exportPlantChemistryFeatureSet(
+    membership,
+    species_universe = c("Plant B", "Plant A", "Plant C")
+  )
 
   expect_true(all(c("species_id", "species") %in%
                     names(out$ComparisonGroupCountMatrix)))
   expect_equal(out$SpeciesMetadata$compound_count,
-               c(2L, 1L))
+               c(1L, 2L, 0L))
   expect_equal(out$SpeciesMetadata$species_id,
-               c("species__plant_a", "species__plant_b"))
+               c("species__plant_b", "species__plant_a",
+                 "species__plant_c"))
+  expect_true(all(vapply(out$Manifest$Table, function(table) {
+    identical(out[[table]]$species_id, out$SpeciesMetadata$species_id)
+  }, logical(1))))
+})
+
+test_that("bundle context and review diagnostics remain biologically honest", {
+  membership = data.frame(
+    species = c("Plant A", "Plant B"),
+    compound_id = c("c1", "c2"),
+    compound_name = c("unknown compound", "limonene"),
+    compound_name_clean = c("unknown_compound", "limonene"),
+    source_database = "LOTUS",
+    source_record_id = c("L1", "L2"),
+    evidence_tier = "direct_species_database",
+    matched_rank = "species",
+    method_group = c("database_record", "gc_ms"),
+    plant_part_group = "unknown",
+    tissue_group = "unknown",
+    identity_review_required = c("Yes", "No"),
+    identity_review_reason = c("Multiple candidate identities remain.", NA),
+    identity_recommended_action = c("Select or exclude the identity.", NA),
+    SMILES = c(NA, "CC=C(C)C"),
+    stringsAsFactors = FALSE
+  )
+  enriched = .bundle_enrich_membership(
+    membership, data.frame(), data.frame(), data.frame(), data.frame()
+  )
+  enriched$comparison_scope = c("unknown",
+                                "volatile_specialized_metabolites")
+  enriched$comparison_group = c("unknown", "volatile_terpenoid")
+  enriched$comparable_for_matrix = c("No", "Yes")
+  grades = plantOccurrenceEvidenceGrade(enriched)
+  review = .bundle_review_required_occurrences(enriched, grades)
+
+  expect_equal(enriched$biological_context_known, c("No", "No"))
+  expect_equal(enriched$context_known_record, c("No", "No"))
+  expect_equal(enriched$analytical_method_known, c("No", "Yes"))
+  expect_equal(enriched$source_provenance_record, c("Yes", "No"))
+  plant_a = review[review$species == "Plant A", , drop = FALSE]
+  expect_match(plant_a$review_category, "identity")
+  expect_match(plant_a$review_category, "structure")
+  expect_match(plant_a$review_category, "biological_context")
+  expect_match(plant_a$review_category, "comparability")
+  expect_match(plant_a$review_reason, "Multiple candidate identities")
+  expect_match(plant_a$review_reason, "No usable SMILES")
+  expect_match(plant_a$review_reason, "plant-part or tissue")
+  expect_match(plant_a$recommended_action, "Tanimoto")
 })
 
 test_that("offline plant chemistry project runner finalizes a reusable bundle", {
@@ -161,6 +212,18 @@ test_that("offline plant chemistry project runner finalizes a reusable bundle", 
                                     "22_ComparableScopeTanimotoSummary.csv")))
   validation = validatePlantChemistryAnalysisBundle(bundle_dir)
   expect_equal(validation$Summary$ExportReadyStatus, "pass")
+  expect_equal(validation$Summary$ManifestReferenceFailCount, 0)
+  expect_true(all(validation$ManifestReferences$SpeciesUniverseMatches ==
+                    "Yes"))
+  feature_metadata = utils::read.csv(
+    file.path(bundle_dir, "21_FeatureSpeciesMetadata.csv"),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  expect_equal(feature_metadata$species,
+               c("Plant A", "Plant B", "Plant C"))
+  expect_equal(feature_metadata$chemistry_record_status,
+               c("records_present", "records_present",
+                 "no_records_in_membership"))
   missing = utils::read.csv(file.path(bundle_dir,
                                       "15_PlantChemistryMissingSpecies.csv"),
                             stringsAsFactors = FALSE, check.names = FALSE)

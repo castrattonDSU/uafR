@@ -19,26 +19,31 @@ runPlantPhytochemistryBatch(
   max_unique_compounds = Inf,
   chemical_library = NULL,
   cache = TRUE,
-  throttle = 0.2,
+  throttle = 0.5,
   ncbi_email = Sys.getenv("NCBI_EMAIL", ""),
   ncbi_tool = Sys.getenv("NCBI_TOOL", "uafR"),
   ncbi_api_key = Sys.getenv("NCBI_API_KEY", ""),
   max_pubmed_records = 50,
   max_provider_records = max_pubmed_records,
   lotus_index = Sys.getenv("UAFR_LOTUS_INDEX", ""),
+  provider_indexes = NULL,
+  require_all_providers = FALSE,
   request_timeout = 30,
   provider_results = NULL,
+  discovery_fun = NULL,
   enrichment_fun = NULL,
   pubchem_fun = NULL,
   request_fun = NULL,
   pubtator_request_fun = NULL,
   compound_request_fun = NULL,
-  compound_batch_size = 100,
+  compound_batch_size = 50,
   resume = TRUE,
   progress = interactive(),
   overwrite = FALSE,
   strict = FALSE,
   stop_on_error = FALSE,
+  allow_large_live_run = FALSE,
+  service_busy_pause_threshold = 1,
   refresh = FALSE,
   ...
 )
@@ -101,10 +106,22 @@ path, or manifest-backed lookup directory. Passed to
 `resolvePlantPhytochemistry()` and used instead of the live LOTUS simple API
 when `"lotus"` is enabled.}
 
+\item{provider_indexes}{Optional named list of local provider indexes.
+`provider_indexes$lotus` and `provider_indexes$npass` are supported.
+`lotus_index` remains a backward-compatible alias.}
+
+\item{require_all_providers}{Logical. If `TRUE`, each requested provider must
+be configured and each completed discovery chunk must report a successful
+provider stage. Intended for audited production runs after pilot testing.}
+
 \item{request_timeout}{Maximum seconds allowed for an uncached provider
 request.}
 
 \item{provider_results}{Optional mocked or pre-fetched provider results.}
+
+\item{discovery_fun}{Optional replacement for
+`resolvePlantPhytochemistry()`. This is primarily intended for deterministic
+tests and fully local provider workflows.}
 
 \item{enrichment_fun}{Optional rich enrichment function for tests or cached
 workflows.}
@@ -132,18 +149,29 @@ resolution batch.}
 \item{stop_on_error}{Logical. If `TRUE`, stop on the first failed discovery
 chunk; otherwise record the failed chunk and continue.}
 
+\item{allow_large_live_run}{Logical. Large runs (100 or more species) require
+persistent checkpoints and, by default, local/injected discovery. Set this
+to `TRUE` only after a small live pilot and review of
+`planPlantChemistryRun()`.}
+
+\item{service_busy_pause_threshold}{Number of consecutive discovery chunks
+reporting rate-limit or service-busy errors before the run stops scheduling
+new chunks. Use `Inf` to disable this automatic pause.}
+
 \item{refresh}{Logical passed to provider adapters.}
 
 \item{...}{Additional arguments passed to rich compound enrichment.}
 }
 \value{
 A `uaf_plant_phytochemistry` result with additional
-`BatchRunManifest` and `BatchChunkManifest` tables.
+`BatchRunManifest`, `BatchChunkManifest`, `FailedQueries`, and `RetryQueue`
+tables.
 }
 \description{
 Runs species-first discovery in resumable species chunks, then optionally
 resolves compounds through a staged identity or enrichment pass. The default
-compound stage is `"identity"` because live provider pilots show that broad
-rich PubChem enrichment is the production bottleneck for hundreds of plant
-names.
+compound stage is `"identity"`, but panels of 100 or more species should
+first be run with `compound_resolution_profile = "none"` and a local LOTUS
+index. Identity and richer PubChem enrichment should follow only after the
+discovery manifest and occurrence evidence have been reviewed.
 }

@@ -1,12 +1,21 @@
 
-# uafR - A new standard for mass spectrometry data processing
+# uafR: reproducible chemical enrichment and plant chemistry workflows
 
 <!-- badges: start -->
 <!-- badges: end -->
 
 ## Objective
 
-An R package that automates GC-MS processing.
+uafR organizes tentative GC-MS annotations, public-database chemical
+enrichment, reported plant-compound evidence, comparable chemistry,
+structure-based similarity, and analysis handoff bundles. It preserves source
+provenance and uncertainty; it does not convert database records or tentative
+library hits into confirmed sample chemistry.
+
+The current development line is an internal release candidate. Stable and
+experimental interfaces are listed by `uafRApiStability()`. The package remains
+private during hardening, and source ZIP/student-bundle installation is the
+default sharing route.
 
 ## Production workflow guide
 
@@ -47,6 +56,50 @@ plan$Recommendations
 Use `inspectUafRCache()` and `summarizeUafRCache()` to audit local cache
 coverage before repeating expensive PubChem, KEGG, PubMed, PubTator, or plant
 provider workflows. These planning helpers do not query live web services.
+Provider interpretation contracts are available from `uafRProviderContracts()`;
+the package also ships `PROVIDER_SOURCES.md` with official source entry points
+and third-party data-use boundaries. Users remain responsible for checking
+current provider terms before redistributing downloaded source records.
+
+### Which workflow should I use?
+
+| Starting point | Recommended path | Main outputs |
+| --- | --- | --- |
+| GC-MS hit tables | `spreadOut()`, `mzExacto()`, `exactoThese()` | cleaned hit tables and exact-mass/library subsets |
+| compound names or CIDs | `categorate(detail = "research")`, `pubchemProfile()`, `keggProfile()` | source-backed enrichment, validation, trait tables |
+| plant species names | `resolvePlantPhytochemistry()` for discovery, then `runPlantChemistryProject()` for bundle handoff | plant-compound occurrences, evidence grades, matrices |
+| curated plant-compound rows | `standardizePlantCompoundIntake()`, `runPlantChemistryProject()` | finalized analysis bundle without live discovery |
+| large plant panel | `planPlantChemistryRun()`, cached/local LOTUS workflows, retry queues | run plan, cache summary, retry queue, manifest |
+| Tanimoto similarity | `preparePlantTanimotoInput()`, `chemicalTanimotoSimilarity()`, `plantChemicalTanimotoSimilarity()`, `plantComparableTanimotoSummary()` | identity-audited server handoffs plus compound and plant-pair similarity summaries |
+| model-ready matrices | `exportPlantChemistryFeatureSet()` or finalized bundle feature files | species x chemistry/source/evidence/context matrices |
+| private student install | `tools/build_student_bundle.R` and the bundle scripts | source ZIP, install scripts, offline acceptance test |
+
+Large-run recovery helpers are intentionally offline and manifest-based:
+
+``` r
+validation = validatePlantChemistryRunManifest("batch_manifest.csv")
+retry_queue = writePlantChemistryRetryQueue(
+  validation$Manifest,
+  path = "retry_queue.csv",
+  overwrite = TRUE
+)
+
+# No provider calls occur until dry_run is turned off and a runner is supplied.
+rerunFailedPlantQueries(retry_queue, dry_run = TRUE)
+```
+
+Compound identity decisions should be reviewed through explicit audit tables,
+not hidden name substitutions:
+
+``` r
+audit = standardizeCompoundIdentityAudit(phyto$CompoundResolution)
+validateCompoundIdentityAudit(audit)$Summary
+template = exportCompoundIdentityReviewTemplate(
+  phyto$CompoundResolution,
+  path = "compound_identity_review.csv",
+  overwrite = TRUE
+)
+```
 
 ## Installation
 
@@ -168,9 +221,10 @@ provenance.
 Current live-capable public adapters include PubMed literature search,
 PubTator candidate co-mentions, KNApSAcK organism-metabolite lookup, conservative
 LOTUS API parsing when taxon evidence is present, and PubChem taxonomy
-annotations after NCBI taxonomy resolution. NPASS species-source rows should be
-supplied through curated intake or `provider_results` until a small stable
-species-query endpoint is added.
+annotations after NCBI taxonomy resolution. NPASS is supported through a local,
+manifest-backed index built from the official NPASS 3.0/NPASS-2026 general,
+structure, species-source, and taxonomy downloads. Large projects should use
+local LOTUS and NPASS indexes rather than repeatedly scraping provider pages.
 
 For LOTUS specifically, use a local index for serious plant panels. The LOTUS
 simple web API is useful for small smoke tests, but common species can return
@@ -252,6 +306,16 @@ PubChem taxonomy annotations are source-backed chemical associations, not proof
 that a student's sample contains the compound. Direct species evidence is
 stronger than genus or family fallback evidence. Always inspect validation and
 provenance before interpretation.
+
+Evidence filters distinguish exact source records from aggregate or inferred
+associations. Exact species records from a validated local LOTUS index, the
+official NPASS index, or an exact-taxon KNApSAcK result can qualify as direct
+database evidence. PubChem taxonomy collection associations remain
+review-required unless a row-specific source explicitly links the species and
+compound. Broad collection citation lists are retained as source diagnostics;
+they are not converted into PMIDs, biological context, or direct occurrence
+claims. Genus/family fallbacks and PubMed/PubTator candidates remain separate
+from direct evidence in every analysis-ready export.
 
 ``` r
 library(uafR)
@@ -359,8 +423,109 @@ plant_tanimoto$PlantPairTanimotoSummary[, c(
   "compound_pair_count_ge_0_85"
 )]
 
-# For larger plant panels, stream the large pairwise tables to compressed CSV
-# files and keep the compact species-pair summary in the returned object.
+# For larger plant panels, first create an offline, identity-audited handoff.
+# This preserves all evidence rows but emits only one membership per species
+# and source-backed structure. It does not contact PubChem or calculate pairs.
+prepared = preparePlantTanimotoInput(
+  phyto,
+  occurrence_status = c("direct_reported", "curated_reported"),
+  analysis_ready = TRUE,
+  min_confidence = "medium",
+  include_review_required = FALSE,
+  out_dir = "plant_tanimoto_handoff",
+  overwrite = FALSE,
+  strict = TRUE
+)
+
+prepared$Summary
+prepared$ValidationSummary
+prepared$DuplicateAudit
+prepared$NameStructureAudit
+prepared$ExcludedRows
+```
+
+`preparePlantTanimotoInput()` treats repeated publications and source records
+as evidence, not extra compounds. It collapses only the species-by-structure
+membership, prefers exact source-record InChIKeys, removes any inherited
+fingerprint columns, and leaves CID blank whenever an InChIKey is available so
+the server must resolve and verify that InChIKey against PubChem. The generated
+`NameStructureAudit` preserves cases where one normalized compound label maps
+to multiple exact structures; these are not treated as duplicates or silently
+merged. The generated CSV and JSON manifests contain row counts and checksums.
+Copy the complete handoff directory and the validated uafR source version to
+the server. Production panel handoffs also contain
+`plant_species_universe.csv`; pass it to the server so plants with fewer than
+two usable structures remain present as explicit `insufficient_support` pairs
+instead of disappearing from the result.
+
+Run the server gates in order. Explicit `preflight` mode performs no network
+requests:
+
+``` sh
+Rscript tools/run_plant_tanimoto_server.R \
+  --input plant_tanimoto_handoff/plant_compound_membership_tanimoto_ready.csv \
+  --species-universe plant_tanimoto_handoff/plant_species_universe.csv \
+  --manifest plant_tanimoto_handoff/tanimoto_input_export_manifest.csv \
+  --release-manifest uafR_release_manifest.json \
+  --out-dir plant_tanimoto_server_output \
+  --cache-dir pubchem_tanimoto_cache \
+  --mode preflight --full-pairs true \
+  --throttle 1.1
+```
+
+The preflight validates checksums, identity formats, unique
+species-by-structure keys, review exclusions, installed package version,
+dependencies, write access, disk space, and estimated pair counts. Continue
+with the same handoff and cache:
+
+``` sh
+UAFR_CONFIRM_SERVER_TANIMOTO=YES Rscript tools/run_plant_tanimoto_server.R \
+  --input plant_tanimoto_handoff/plant_compound_membership_tanimoto_ready.csv \
+  --species-universe plant_tanimoto_handoff/plant_species_universe.csv \
+  --manifest plant_tanimoto_handoff/tanimoto_input_export_manifest.csv \
+  --release-manifest uafR_release_manifest.json \
+  --out-dir plant_tanimoto_server_output \
+  --cache-dir pubchem_tanimoto_cache \
+  --mode smoke --smoke-structures 25 --throttle 1.1
+
+UAFR_CONFIRM_SERVER_TANIMOTO=YES Rscript tools/run_plant_tanimoto_server.R \
+  --input plant_tanimoto_handoff/plant_compound_membership_tanimoto_ready.csv \
+  --species-universe plant_tanimoto_handoff/plant_species_universe.csv \
+  --manifest plant_tanimoto_handoff/tanimoto_input_export_manifest.csv \
+  --release-manifest uafR_release_manifest.json \
+  --out-dir plant_tanimoto_server_output \
+  --cache-dir pubchem_tanimoto_cache \
+  --mode summary --throttle 1.1
+
+UAFR_CONFIRM_SERVER_TANIMOTO=YES Rscript tools/run_plant_tanimoto_server.R \
+  --input plant_tanimoto_handoff/plant_compound_membership_tanimoto_ready.csv \
+  --species-universe plant_tanimoto_handoff/plant_species_universe.csv \
+  --manifest plant_tanimoto_handoff/tanimoto_input_export_manifest.csv \
+  --release-manifest uafR_release_manifest.json \
+  --out-dir plant_tanimoto_server_output \
+  --cache-dir pubchem_tanimoto_cache \
+  --mode full --full-pairs true --throttle 1.1
+```
+
+The smoke subset is deterministic and selected by round-robin plant coverage.
+The summary mode resolves all fingerprints and writes compact plant-pair
+summaries without full row-level pair tables. Full mode reuses that cache and
+publishes requested pair files only after row-count and identity validation.
+Runs pause with exit status 75 after repeated PubChem `429`/`503` responses;
+successful cache entries remain reusable. Inspect `server_run_status.json`,
+`server_progress.csv`, and the completion markers before advancing. Outputs
+larger than 25 million rows are written in compressed shards; outputs above 250
+million rows require a completed summary gate and explicit extreme-output
+confirmation. Compound-name fallback is disabled throughout. The server also
+writes exact comparable-scope and comparable-group summaries from the same
+decoded fingerprints. Unknown and non-comparable classifications are retained
+for audit but excluded from these comparable summaries by default.
+
+For a direct large run from a trusted in-memory result, stream the large
+pairwise tables to compressed CSV files and keep the compact species-pair
+summary in the returned object:
+
+``` r
 plant_tanimoto = plantChemicalTanimotoSimilarity(
   phyto,
   cache = TRUE,
@@ -539,6 +704,32 @@ Start with `compound_resolution_profile = "identity"` for a provider/data-depth
 pilot. Move to `"research"` only after the occurrence evidence, context
 coverage, provider context audit, and review burden look reasonable.
 
+For a large local-LOTUS panel, use a stratified pilot before touching the full
+run directory. The representative wrapper selects deterministic, alphabetically
+spread species from three precomputed lookup strata: exact species key, genus
+key without an exact species key, and no species/genus key. The default 25-row
+panel uses 10, 10, and 5 species, respectively. It performs species-level local
+LOTUS discovery only and leaves compound resolution disabled:
+
+``` sh
+Rscript tools/run_representative_lotus_pilot.R \
+  --plant-csv plant_species_run_input.csv \
+  --lotus-index LOTUS_lookup_index \
+  --out-dir representative_lotus_pilot \
+  --cache-dir representative_lotus_pilot_cache \
+  --exact-count 10 \
+  --genus-only-count 10 \
+  --no-key-count 5 \
+  --overwrite true
+```
+
+Inspect `representative_pilot_query_accounting.csv`,
+`representative_pilot_validation.csv`, `provider_diagnostics.csv`, and
+`representative_pilot_manifest.csv`. Exact-key species should exercise source
+record extraction; genus-only and no-key species test explicit no-hit behavior
+when genus fallback is disabled. The pilot never interprets a no-hit as
+biological absence and never launches PubChem or literature providers.
+
 For quick species-first discovery without a library, omit `chemical_library`.
 This produces PubChem-only enrichment and skips FMCS library matching:
 
@@ -557,11 +748,227 @@ names(phyto$SpeciesChemistryMatrix)
 phyto$CompoundResolution
 ```
 
-For larger plant lists, use the staged batch workflow. It discovers
-plant-compound evidence first, writes resumable checkpoints, filters to
-analysis-ready direct or curated records by default, and then performs a fast
-PubChem identity-only resolution pass. Richer `detail = "research"` enrichment
-should be run later on a reviewed subset of compounds.
+For 100 or more plants, use a staged run. Do not submit the complete panel to
+every live provider in one call. A large run requires `cache = TRUE`, a
+persistent `out_dir`, and local or explicitly authorized live discovery.
+`planPlantChemistryRun()` performs an offline preflight and reports discovery
+chunks, provider request lower bounds, identity batches, pairwise output size,
+and blocking readiness checks.
+
+``` r
+plants = read.csv("plant_species.csv", stringsAsFactors = FALSE)$species
+lotus_index = "lotus_cache/exports/LOTUS_lookup_index"
+run_dir = "plant_phytochemistry_700"
+cache_dir = "uafR_plant_cache"
+
+plan = planPlantChemistryRun(
+  plants = plants,
+  sources = c("lotus", "pubmed"),
+  cache_dir = cache_dir,
+  lotus_index = lotus_index,
+  species_chunk_size = 25,
+  compound_batch_size = 25,
+  max_pubmed_records = 10
+)
+
+plan$Summary
+plan$InputNameAudit[plan$InputNameAudit$review_required |
+                      plan$InputNameAudit$query_status == "blank_input", ]
+plan$ReadinessChecks
+plan$OutputEstimates
+plan$RunConfiguration
+```
+
+For a multi-provider production panel, use `runPlantChemistryPanel()` or its
+installed CLI instead of assembling the stages by hand. The runner freezes the
+input and review ledgers, verifies local LOTUS and NPASS resources, executes a
+small pilot, performs resumable discovery and compound enrichment, writes the
+Tanimoto server handoff, and reconciles the returned server products into a
+validated analysis bundle. Public-service calls are cached. Re-running the
+same command reuses only checkpoints whose input, parameter, provider-resource,
+and artifact signatures still match.
+
+An audited production panel should run from a checked source artifact, not from
+`devtools::load_all()`. After creating the approved clean Git commit, generate
+the release manifest and tarball together:
+
+``` sh
+Rscript tools/check_package_release.R \
+  --out-dir /private/tmp/uafR_production_release \
+  --release-manifest /private/tmp/uafR_production_release/uafR_release_manifest.json
+```
+
+Install that tarball into a dedicated project library and run the installed
+CLI. Supply the same manifest and tarball to every mode, preferably through one
+JSON configuration file, with `require_release_artifact` set to `true`.
+Preflight validates the clean Git commit, package version, tarball filename,
+byte count, MD5, and SHA-256. These artifacts become part of the run signature
+and are copied into the Tanimoto server handoff.
+
+``` sh
+PRODUCTION_LIB="project_software/R_library"
+mkdir -p "$PRODUCTION_LIB"
+R CMD INSTALL --library="$PRODUCTION_LIB" \
+  /private/tmp/uafR_production_release/build/uafR_0.4.0.9000.tar.gz
+
+RUNNER=$(R_LIBS_USER="$PRODUCTION_LIB" Rscript -e \
+  'cat(system.file("scripts", "run_plant_chemistry_panel.R", package = "uafR"))')
+
+R_LIBS_USER="$PRODUCTION_LIB" Rscript "$RUNNER" \
+  --config plant_chemistry_run_config.json \
+  --mode preflight
+```
+
+The repository `tools/run_plant_chemistry_panel.R` wrapper is for development;
+it deliberately loads the checkout. Do not use it for a commit-bound
+production data run.
+
+Set NCBI contact information in the environment; never put an API key in a
+script, JSON config, or command line:
+
+``` sh
+export NCBI_EMAIL="researcher@example.edu"
+export NCBI_TOOL="uafR"
+# Optional: export NCBI_API_KEY in the local shell only.
+```
+
+Run the gates separately while validating a new project. The abbreviated
+commands below show the required structure; keep the same paths and options on
+every resume:
+
+``` sh
+Rscript tools/run_plant_chemistry_panel.R \
+  --mode preflight \
+  --plant-csv plant_species_run_input.csv \
+  --out-dir plant_phytochemistry_full_panel \
+  --lotus-index LOTUS_lookup_index \
+  --npass-raw-dir resources/NPASS_3.0_2026/raw \
+  --sources lotus,npass,knapsack,pubchem,pubmed,pubtator \
+  --expected-species-count 701 \
+  --resume true
+
+Rscript tools/run_plant_chemistry_panel.R \
+  --mode build-indexes \
+  --plant-csv plant_species_run_input.csv \
+  --out-dir plant_phytochemistry_full_panel \
+  --lotus-index LOTUS_lookup_index \
+  --npass-raw-dir resources/NPASS_3.0_2026/raw \
+  --download-npass true \
+  --sources lotus,npass,knapsack,pubchem,pubmed,pubtator \
+  --resume true
+
+Rscript tools/run_plant_chemistry_panel.R \
+  --mode pilot \
+  --plant-csv plant_species_run_input.csv \
+  --out-dir plant_phytochemistry_full_panel \
+  --sources lotus,npass,knapsack,pubchem,pubmed,pubtator \
+  --pilot-count 12 \
+  --pilot-enrichment-compounds 25 \
+  --resume true
+```
+
+The pilot bounds each provider to at most
+`max(25, pilot_enrichment_compounds)` records per species (or an explicitly
+smaller `max_provider_records` value). Discovery does not perform unbounded
+name-based compound resolution. Its enrichment gate deterministically selects
+only records carrying a source-backed CID or full InChIKey, and the second
+discovery pass blocks live requests so `cache_only_rerun_identical` is a real
+checkpoint/cache test.
+
+Production discovery checkpoints use schema `3.3.0`. Each species chunk stores
+only normalized provider tables; context linking, evidence summaries,
+comparability, matrices, identity review, and validation are generated once
+after the chunks are combined. A checkpoint created by an older schema is
+rebuilt automatically. This makes resume behavior deterministic while avoiding
+repeated derivation work in every five- or twenty-five-species chunk.
+
+Continue through `discovery`, `identity`, `research-enrichment`,
+`full-enrichment`, and `tanimoto-handoff` only after the preceding gate has
+passed. `pipeline_status.json`, `pipeline_progress.csv`, stage manifests,
+`failed_queries.csv`, and `retry_queue.csv` are the operational source of
+truth. Exit status 75 means a provider returned repeated service-busy responses:
+leave caches and completed checkpoints in place, wait for the service to
+recover, and rerun the identical stage. Exit status 2 at finalization means the
+validated Tanimoto server output has not yet been supplied. It is not a request
+to restart discovery.
+
+The NPASS downloader verifies remote byte counts, keeps interrupted transfers
+as `.partial` files, and resumes them when the server supports byte ranges.
+`buildNpassIndex()` streams the species-source table and writes lossless RDS
+shards plus source and shard checksums. Raw provider downloads and KNApSAcK
+responses remain local project resources; they are not package data and should
+not be copied into redistributable result bundles without reviewing current
+provider terms.
+
+Resolve every `fail` readiness check before starting. In particular, genus-only
+and `sp.`/`spp.` entries cannot support direct species-level interpretation;
+replace them with accepted species names or preserve them in a separately
+labeled lower-rank analysis. Stage 1 should use only the local LOTUS index and
+should not contact PubChem. This creates versioned, atomic discovery
+checkpoints plus an incremental manifest and retry queue.
+
+``` r
+phyto_discovery = runPlantPhytochemistryBatch(
+  plants = plants,
+  sources = "lotus",
+  lotus_index = lotus_index,
+  out_dir = run_dir,
+  cache_dir = cache_dir,
+  species_chunk_size = 25,
+  compound_resolution_profile = "none",
+  cache = TRUE,
+  resume = TRUE,
+  progress = TRUE,
+  overwrite = TRUE
+)
+
+manifest_check = validatePlantChemistryRunManifest(
+  phyto_discovery$BatchChunkManifest,
+  base_dir = run_dir
+)
+manifest_check$Summary
+manifest_check$RetryQueue
+```
+
+If R is interrupted, run the same call again. Completed checkpoints are reused;
+failed, stopped, corrupt, or not-started chunks are retried. Compound resolution
+is deferred automatically until every discovery chunk is complete. Once the
+occurrence and evidence-review tables have been inspected, first recover exact
+source-record structures and prepare the identity-safe server handoff. PubChem
+fingerprints and pairwise similarity then follow the server preflight, smoke,
+summary, and full gates described above. Rich categorate enrichment should use
+the verified canonical CIDs from the successful server identity map rather than
+restart ambiguous name resolution.
+
+``` r
+phyto_batch = runPlantPhytochemistryBatch(
+  plants = plants,
+  sources = "lotus",
+  lotus_index = lotus_index,
+  out_dir = run_dir,
+  cache_dir = cache_dir,
+  species_chunk_size = 25,
+  compound_resolution_profile = "identity",
+  compound_batch_size = 25,
+  throttle = 0.5,
+  cache = TRUE,
+  resume = TRUE,
+  progress = TRUE,
+  overwrite = TRUE
+)
+
+phyto_batch$BatchRunManifest
+phyto_batch$CompoundResolution
+phyto_batch$CompoundIdentityReview
+```
+
+Run PubMed, PubTator, KNApSAcK, or PubChem occurrence searches only after a
+small all-provider pilot passes and an identical cache-only replay is
+reproducible. For a live follow-up of 100 or more species, use the production
+panel runner or set `allow_large_live_run = TRUE` explicitly in lower-level
+batch calls. NPASS discovery uses the documented local index; it is not queried
+through an inferred live species endpoint.
+
 The identity pass preserves chemically meaningful alpha/beta/gamma and
 plus/minus prefixes in compound keys, and reports deterministic PubChem alias
 matches with `MatchStatus = "resolved_alias"` in the identity audit table.
@@ -571,30 +978,6 @@ lookup is then used only for remaining gaps. A separate
 `CompoundIdentityReview` table flags source-ambiguous structures and rows where
 the source provides a structure but the displayed label looks like a class,
 mixture, plant product, or other non-discrete compound name.
-
-``` r
-plants = c("Salix nigra", "Camellia sinensis", "Zea mays")
-
-phyto_batch = runPlantPhytochemistryBatch(
-  plants = plants,
-  sources = c("lotus", "knapsack", "pubmed", "pubtator"),
-  out_dir = "plant_phytochemistry_batch",
-  cache_dir = "uafR_plant_cache",
-  species_chunk_size = 25,
-  compound_resolution_profile = "identity",
-  max_pubmed_records = 25,
-  max_provider_records = 100,
-  request_timeout = 30,
-  compound_batch_size = 100,
-  resume = TRUE,
-  overwrite = TRUE
-)
-
-phyto_batch$BatchRunManifest
-phyto_batch$SpeciesChemistrySummary
-phyto_batch$CompoundResolution
-phyto_batch$CompoundIdentityReview
-```
 
 Completed identity review worksheets can be reapplied to the result object so
 manual structure decisions are reproducible:
@@ -626,8 +1009,11 @@ The batch output directory includes `all_occurrences.csv`,
 `species_chemistry_summary.csv`, `species_chemistry_matrix.csv`,
 `chemistry_comparability.csv`,
 `comparable_chemistry_matrix.csv`, `provider_diagnostics.csv`,
-`context_coverage_report.csv`, `batch_chunk_manifest.csv`, and
-`run_manifest.json`.
+`context_coverage_report.csv`, `batch_chunk_manifest.csv`,
+`discovery_chunk_manifest.csv`, `failed_queries.csv`, `retry_queue.csv`, and
+`run_manifest.json`. The offline test suite exercises interrupted/resumed
+discovery across 705 synthetic species; this verifies orchestration and does
+not imply complete public chemistry coverage for any real plant panel.
 
 For projects that already have local curation, use the curated intake fallback:
 
@@ -736,10 +1122,10 @@ SMILES, InChIKeys, CIDs, formulas, or abundance values.
 
 ``` sh
 Rscript tools/export_ainsect_mololf_inputs.R \
-  --chem-id-csv /Users/chasestratton/src/github/castrattonDSU/aiNsect_tracker/EO_PCA_2026/20240612-EO-gcms-data_all.csv \
-  --chem-quant-csv /Users/chasestratton/src/github/castrattonDSU/aiNsect_tracker/EO_PCA_2026/20240612-EO-gcms-quant_all.csv \
-  --out-dir /Users/chasestratton/src/github/castrattonDSU/aiNsect_tracker/EO_PCA_2026/mololf_export \
-  --cache-dir /Users/chasestratton/src/github/castrattonDSU/aiNsect_tracker/EO_PCA_2026/pubchem_cache \
+  --chem-id-csv project_data/gcms_identity.csv \
+  --chem-quant-csv project_data/gcms_abundance.csv \
+  --out-dir project_results/mololf_export \
+  --cache-dir project_cache/pubchem \
   --profile ms \
   --throttle 0.2
 ```
@@ -1047,15 +1433,28 @@ Use `finalizePlantChemistryAnalysisBundle()` when a bundle has already been
 written and only needs the analysis-ready handoff files refreshed. Use
 `validatePlantChemistryAnalysisBundle()` before handing a bundle to another
 project. It checks manifest row/column counts, required columns, accidental row
-index columns, and CSV parser consistency. Optional Python and pandas checks can
-be enabled on machines where those tools are available.
+index columns, portable artifact paths, file sizes, MD5 checksums, nested
+feature-manifest file references, identical species IDs and row order across
+feature matrices, and CSV parser consistency. The manifest intentionally omits
+only its own checksum to avoid a circular hash. Optional Python and pandas
+checks can be enabled on machines where those tools are available.
+
+Schema `1.0.0` introduces portable manifest paths and checksums. Older bundles
+that lack those fields should be treated as legacy artifacts: rerun
+`finalizePlantChemistryAnalysisBundle()` with the current package before
+handoff, then require a passing validation result.
 
 For model-ready exports outside a full bundle, `exportPlantChemistryFeatureSet()`
 can write count, binary, fraction, and confidence-weighted matrices:
 
 ``` r
+project_species = read.csv("project_species.csv")$species
+project_plant_metadata = read.csv("project_plant_metadata.csv")
+
 features = exportPlantChemistryFeatureSet(
   membership = enriched_membership,
+  species_universe = project_species,
+  plant_metadata = project_plant_metadata,
   modes = c("count", "binary", "fraction", "confidence"),
   path = "plant_feature_set",
   overwrite = TRUE
@@ -1064,6 +1463,16 @@ features = exportPlantChemistryFeatureSet(
 features$Manifest
 features$SpeciesMetadata
 ```
+
+Every feature matrix uses the same `species_id` rows and order. Species in the
+declared universe with no supplied chemistry records are retained with zero
+feature values and `chemistry_record_status = "no_records_in_membership"`.
+Those zeros mean that no records were supplied to the feature builder; they do
+not demonstrate biological absence. Context fields are similarly conservative:
+`biological_context_known` requires a reported plant part or tissue,
+`analytical_method_known` requires an analytical method, and
+`source_provenance_record` records generic database/literature provenance
+separately.
 
 Evidence and classification helpers support reproducible subsetting and
 review:
@@ -1079,13 +1488,21 @@ review = filterPlantEvidenceReviewRequired(enriched_membership)
 
 Use `standardizeChemistryClassificationOverrides()` and
 `applyChemistryClassificationOverrides()` when a project needs source-backed or
-human-reviewed chemistry-scope corrections. Unknown chemistry is retained for
-audit but excluded from comparable matrices by default.
+human-reviewed chemistry-scope corrections. Overrides use the canonical values
+listed by `chemistryComparisonDictionary()`; common legacy aliases are
+normalized, but invalid scope/group combinations fail explicitly. Unknown,
+broad/uncertain, and xenobiotic/contaminant chemistry is retained for audit but
+excluded from comparable matrices by default.
 
 `keggProfile()` can also be used directly when the goal is KEGG-specific
 annotation. It resolves names or supplied KEGG IDs, parses KEGG flat-file
 records, follows KEGG links, and returns pathways, reactions, enzymes, modules,
-identifiers, and reproducible pathway/enzyme classifications.
+identifiers, and reproducible pathway/enzyme classifications. Name searches
+accept only exact normalized KEGG synonyms for enrichment. Broader substring
+results are preserved with `Accepted = "No"` and an explicit reason in
+`search_candidates` (and `KEGGSearchCandidates` in categorate results), so a
+result such as `1-Hexanol` matching `2-Ethylhexan-1-ol` cannot silently acquire
+the wrong biochemical context.
 
 ``` r
 kegg_profile = keggProfile(
@@ -1095,6 +1512,7 @@ kegg_profile = keggProfile(
 )
 
 kegg_profile$pathways
+kegg_profile$search_candidates
 kegg_profile$reactions
 kegg_profile$enzymes
 kegg_profile$classifications
@@ -1119,9 +1537,50 @@ path. Running `R CMD check .` directly on the live checkout can report local
 artifacts such as `.git`, `.DS_Store`, `.Rhistory`, or generated check
 directories that are not included in the source package.
 
+By default the wrapper also installs the built tarball into a clean temporary
+library and checks that core production helpers load. Useful release options
+include:
+
+``` sh
+Rscript tools/check_package_release.R --out-dir uafR_release_check
+Rscript tools/check_package_release.R --skip-install-check
+Rscript tools/check_package_release.R --student-bundle student_bundle/uafR_student_bundle_VERSION
+```
+
+After the worktree is clean, create a release-candidate manifest beside the
+built tarball:
+
+``` sh
+Rscript tools/check_package_release.R \
+  --out-dir /private/tmp/uafR_release_check \
+  --release-manifest /private/tmp/uafR_release_check/uafR_release_manifest.json
+```
+
+Manifest generation refuses a dirty worktree. It records the exact Git commit,
+package and R versions, tarball byte size, MD5 and SHA-256 hashes, package-test
+result, R CMD check result, and clean-library installation result.
+
 Live PubChem/NCI integration tests are opt-in. Set `UAFR_RUN_LIVE_TESTS=true`
 before running tests, or pass `--run-live-tests` to
 `tools/check_package_release.R`, when you want to exercise live web calls.
+
+### Offline plant chemistry example
+
+The package includes a simulated offline fixture under
+`inst/extdata/offline_plant_chemistry`. It is for workflow testing and teaching,
+not real phytochemical evidence. It exercises direct database-style evidence,
+fallback context, candidate-only literature rows, unresolved compounds,
+comparable chemistry, and small Tanimoto summaries without querying live
+services.
+
+From the repository root:
+
+``` sh
+Rscript tools/build_offline_plant_chemistry_example.R uafR_offline_example
+```
+
+The output is a finalized plant chemistry analysis bundle that can be opened in
+RStudio or inspected as CSV files.
 
 ## Combined Mass Spectrometry + Cheminformatics Workflow
 

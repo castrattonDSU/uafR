@@ -19,12 +19,16 @@ chemicalTanimotoSimilarity(
   out_dir = NULL,
   max_in_memory_pairs = 1e+06,
   pair_block_size = 250,
+  pair_shard_rows = Inf,
   cache = TRUE,
   cache_dir = NULL,
   throttle = 0.2,
   refresh = FALSE,
   request_fun = NULL,
-  name_fallback = TRUE
+  name_fallback = TRUE,
+  progress_fun = NULL,
+  progress_every = 25,
+  service_busy_limit = Inf
 )
 }
 \arguments{
@@ -72,6 +76,9 @@ paths.}
 
 \item{pair_block_size}{Number of focal rows per pairwise computation block.}
 
+\item{pair_shard_rows}{Maximum rows per compressed pairwise CSV shard.
+Use `Inf` (the default) to preserve one file per requested pair table.}
+
 \item{cache}{Logical. If `TRUE`, PubChem JSON responses are cached.}
 
 \item{cache_dir}{Cache directory. Defaults to the uafR user cache.}
@@ -85,13 +92,29 @@ returns parsed JSON or JSON text.}
 
 \item{name_fallback}{Logical. If `TRUE`, unresolved compounds may be queried
 by compound name after CID and InChIKey attempts fail.}
+
+\item{progress_fun}{Optional callback receiving named progress-event lists.
+It is intended for durable project runners and is ignored by default.}
+
+\item{progress_every}{Emit identity and pair-block progress after this many
+completed items or blocks.}
+
+\item{service_busy_limit}{Number of consecutive PubChem HTTP 429/503
+responses allowed before a `uaf_pubchem_service_busy` condition stops the
+run. The default `Inf` preserves ordinary interactive behavior.}
 }
 \value{
 A list with class `"uaf_tanimoto_similarity"` containing
 `CompoundInput`, `CompoundResolution`, `PubChemFingerprints`,
-`CompoundTanimoto`, `GroupCompoundMembership`,
-`GroupPairTanimotoSummary`, `GroupCompoundTanimoto`, `ExportManifest`, and
-`Provenance`.
+`CompoundIdentityMap`, `ExcludedCompoundIdentities`, `CanonicalCompounds`,
+`GroupCompoundMembershipEvidence`, `CompoundTanimoto`,
+`GroupCompoundMembership`, `GroupPairTanimotoSummary`,
+`GroupCompoundTanimoto`, `ComparableScopeTanimotoSummary`,
+`ComparableGroupTanimotoSummary`, `ExportManifest`, and `Provenance`. The
+identity tables retain every input mapping while analysis membership is
+collapsed to verified canonical PubChem structures. Comparable summaries
+require source-backed comparison labels and exclude unknown or explicitly
+non-comparable membership by default.
 }
 \description{
 `chemicalTanimotoSimilarity()` resolves chemicals to PubChem CIDs, fetches

@@ -35,6 +35,12 @@
 #' supplied and `"lotus"` is enabled, uafR queries this local index instead of
 #' the live LOTUS simple API. Lookup directories are the recommended path for
 #' hundreds of plant names.
+#' @param provider_indexes Optional named list of local provider indexes.
+#' `provider_indexes$lotus` and `provider_indexes$npass` are currently
+#' supported. `lotus_index` remains a backward-compatible alias.
+#' @param require_all_providers Logical. If `TRUE`, fail when a requested local
+#' resource is unavailable or a provider finishes with an incomplete/error
+#' status. Use this for audited production panels after a live pilot.
 #' @param throttle Seconds to wait between uncached provider requests.
 #' @param ncbi_email Optional NCBI email. Defaults to `Sys.getenv("NCBI_EMAIL")`.
 #' @param ncbi_tool Optional NCBI tool name. Defaults to `Sys.getenv("NCBI_TOOL",
@@ -65,6 +71,10 @@
 #' enrichment batch files when available.
 #' @param progress Logical. If `TRUE`, print simple enrichment progress
 #' messages.
+#' @param defer_derived Logical. If `TRUE`, return provider-normalized discovery
+#' tables while deferring context linking, summaries, matrices, identity review,
+#' and validation. This staging option is used by the resumable batch runner so
+#' expensive derived products are built once after chunks are combined.
 #' @param strict Logical. If `TRUE`, validation treats optional missing fields
 #' more strictly.
 #' @param curated_data Optional local species-compound table to standardize and
@@ -113,6 +123,8 @@ resolvePlantPhytochemistry = function(plants,
                                       cache = TRUE,
                                       cache_dir = NULL,
                                       lotus_index = Sys.getenv("UAFR_LOTUS_INDEX", ""),
+                                      provider_indexes = NULL,
+                                      require_all_providers = FALSE,
                                       throttle = 0.2,
                                       ncbi_email = Sys.getenv("NCBI_EMAIL", ""),
                                       ncbi_tool = Sys.getenv("NCBI_TOOL", "uafR"),
@@ -127,6 +139,7 @@ resolvePlantPhytochemistry = function(plants,
                                       enrichment_batch_size = Inf,
                                       resume_enrichment = TRUE,
                                       progress = interactive(),
+                                      defer_derived = FALSE,
                                       strict = FALSE,
                                       curated_data = NULL,
                                       provider_results = NULL,
@@ -136,13 +149,35 @@ resolvePlantPhytochemistry = function(plants,
                                       refresh = FALSE,
                                       ...) {
   detail = match.arg(detail)
+  if (isTRUE(defer_derived) && isTRUE(enrich_compounds) && detail != "none") {
+    stop("`defer_derived = TRUE` requires compound enrichment to be disabled.",
+         call. = FALSE)
+  }
   plant_queries = .plant_queries(plants, taxon_fallback)
   plant_resolution = .plant_name_resolution(plant_queries)
   sources = .plant_normalize_sources(sources)
   cache_dir = .plant_cache_dir(cache_dir)
+  provider_indexes = .plant_provider_indexes(provider_indexes, lotus_index)
+  lotus_index = provider_indexes$lotus
+  aliases = .plant_query_aliases(plants, plant_queries)
+  resources = plantProviderAvailability(
+    sources = sources,
+    provider_indexes = provider_indexes,
+    lotus_index = lotus_index
+  )
+  if (isTRUE(require_all_providers)) {
+    unavailable = resources$provider[
+      resources$availability_status != "available"
+    ]
+    if (length(unavailable) > 0) {
+      stop("Required plant provider resource(s) unavailable: ",
+           paste(unavailable, collapse = ", "), call. = FALSE)
+    }
+  }
 
   dispatch = .plant_provider_dispatch(
     plant_queries = plant_queries,
+    plant_aliases = aliases,
     sources = sources,
     cache = cache,
     cache_dir = cache_dir,
@@ -153,6 +188,7 @@ resolvePlantPhytochemistry = function(plants,
     max_pubmed_records = max_pubmed_records,
     max_provider_records = max_provider_records,
     lotus_index = lotus_index,
+    provider_indexes = provider_indexes,
     request_timeout = request_timeout,
     provider_results = provider_results,
     request_fun = request_fun,
@@ -160,6 +196,18 @@ resolvePlantPhytochemistry = function(plants,
     refresh = refresh,
     progress = progress
   )
+  if (isTRUE(require_all_providers)) {
+    incomplete = dispatch$ProviderDiagnostics$provider[
+      tolower(dispatch$ProviderDiagnostics$status) %in%
+        c("warning", "error", "failed", "timeout", "timed_out",
+          "rate_limited", "service_unavailable", "not_queried",
+          "not_implemented", "unavailable")
+    ]
+    if (length(incomplete) > 0) {
+      stop("Required plant provider stage(s) incomplete: ",
+           paste(unique(incomplete), collapse = ", "), call. = FALSE)
+    }
+  }
 
   occurrence_parts = list(dispatch$PlantCompoundOccurrences)
   if (!is.null(curated_data)) {
@@ -168,41 +216,48 @@ resolvePlantPhytochemistry = function(plants,
   }
   occurrences = .plant_bind_occurrences(occurrence_parts)
   occurrences = .plant_match_occurrences_to_queries(occurrences, plant_queries)
-  context_evidence = plantContextEvidence(occurrences)
-  context_source_rows = .plant_bind_tables(
-    list(context_sources, dispatch$LiteratureCandidates),
-    .plant_literature_cols()
-  )
-  if (isTRUE(enrich_context) || nrow(context_source_rows) > 0) {
-    source_context = enrichPlantContextEvidence(
-      occurrences,
-      context_sources = context_source_rows,
-      fetch_pubmed = isTRUE(enrich_context),
-      cache = cache,
-      cache_dir = file.path(cache_dir, "context_enrichment"),
-      throttle = throttle,
-      ncbi_email = ncbi_email,
-      ncbi_tool = ncbi_tool,
-      ncbi_api_key = ncbi_api_key,
-      max_sources = max_context_sources,
-      request_fun = request_fun,
-      request_timeout = request_timeout,
-      min_confidence = "low",
-      apply = FALSE
+  if (isTRUE(defer_derived)) {
+    context_evidence = .uaf_empty_table(.plant_context_evidence_cols())
+    provider_context_audit =
+      .uaf_empty_table(.plant_provider_context_audit_cols())
+  } else {
+    context_evidence = plantContextEvidence(occurrences)
+    context_source_rows = .plant_bind_tables(
+      list(context_sources, dispatch$LiteratureCandidates),
+      .plant_literature_cols()
     )
-    context_evidence = .plant_bind_tables(
-      list(context_evidence, source_context),
-      .plant_context_evidence_cols()
+    if (isTRUE(enrich_context) || nrow(context_source_rows) > 0) {
+      source_context = enrichPlantContextEvidence(
+        occurrences,
+        context_sources = context_source_rows,
+        fetch_pubmed = isTRUE(enrich_context),
+        cache = cache,
+        cache_dir = file.path(cache_dir, "context_enrichment"),
+        throttle = throttle,
+        ncbi_email = ncbi_email,
+        ncbi_tool = ncbi_tool,
+        ncbi_api_key = ncbi_api_key,
+        max_sources = max_context_sources,
+        request_fun = request_fun,
+        request_timeout = request_timeout,
+        min_confidence = "low",
+        apply = FALSE
+      )
+      context_evidence = .plant_bind_tables(
+        list(context_evidence, source_context),
+        .plant_context_evidence_cols()
+      )
+    }
+    if (nrow(context_evidence) > 0) {
+      occurrences = .plant_apply_context_evidence(occurrences,
+                                                  context_evidence)
+    }
+    occurrences = .plant_clean_context_conflicts(occurrences)
+    provider_context_audit = plantProviderContextAudit(
+      list(PlantCompoundOccurrences = occurrences,
+           PlantContextEvidence = context_evidence)
     )
   }
-  if (nrow(context_evidence) > 0) {
-    occurrences = .plant_apply_context_evidence(occurrences, context_evidence)
-  }
-  occurrences = .plant_clean_context_conflicts(occurrences)
-  provider_context_audit = plantProviderContextAudit(
-    list(PlantCompoundOccurrences = occurrences,
-         PlantContextEvidence = context_evidence)
-  )
 
   enrichment = if (isTRUE(enrich_compounds) && detail != "none") {
     enrichPlantCompounds(occurrences,
@@ -225,38 +280,46 @@ resolvePlantPhytochemistry = function(plants,
                                         "Compound enrichment was not requested."))
   }
 
-  comparability = plantChemistryComparability(
-    list(PlantCompoundOccurrences = occurrences,
-         CategorateResult = enrichment$CategorateResult),
-    min_confidence = "low"
-  )
-  summary = summarizePlantPhytochemistry(
-    plant_compounds = occurrences,
-    categorate_result = enrichment$CategorateResult,
-    compound_resolution = enrichment$CompoundResolution,
-    plant_queries = plant_queries,
-    provider_diagnostics = dispatch$ProviderDiagnostics,
-    comparability = comparability
-  )
-  matrix = plantPhytochemistryMatrix(
-    list(PlantCompoundOccurrences = occurrences,
-         CategorateResult = enrichment$CategorateResult),
-    level = "species",
-    profile = "core",
-    mode = "binary",
-    min_confidence = min_confidence
-  )
-  comparable_matrix = plantComparableChemistryMatrix(
-    list(ChemistryComparability = comparability),
-    comparison_scope = "specialized_metabolites",
-    level = "species",
-    mode = "binary",
-    min_comparability_confidence = min_confidence
-  )
-  compound_identity_review = plantCompoundIdentityReviewTable(
-    list(PlantCompoundOccurrences = occurrences,
-         CompoundResolution = enrichment$CompoundResolution)
-  )
+  if (isTRUE(defer_derived)) {
+    comparability = .uaf_empty_table(.plant_comparability_cols())
+    summary = .uaf_empty_table(.plant_summary_cols())
+    matrix = .uaf_empty_table(c("species"))
+    comparable_matrix = .uaf_empty_table(c("species"))
+    compound_identity_review = .plant_empty_compound_identity_review()
+  } else {
+    comparability = plantChemistryComparability(
+      list(PlantCompoundOccurrences = occurrences,
+           CategorateResult = enrichment$CategorateResult),
+      min_confidence = "low"
+    )
+    summary = summarizePlantPhytochemistry(
+      plant_compounds = occurrences,
+      categorate_result = enrichment$CategorateResult,
+      compound_resolution = enrichment$CompoundResolution,
+      plant_queries = plant_queries,
+      provider_diagnostics = dispatch$ProviderDiagnostics,
+      comparability = comparability
+    )
+    matrix = plantPhytochemistryMatrix(
+      list(PlantCompoundOccurrences = occurrences,
+           CategorateResult = enrichment$CategorateResult),
+      level = "species",
+      profile = "core",
+      mode = "binary",
+      min_confidence = min_confidence
+    )
+    comparable_matrix = plantComparableChemistryMatrix(
+      list(ChemistryComparability = comparability),
+      comparison_scope = "specialized_metabolites",
+      level = "species",
+      mode = "binary",
+      min_comparability_confidence = min_confidence
+    )
+    compound_identity_review = plantCompoundIdentityReviewTable(
+      list(PlantCompoundOccurrences = occurrences,
+           CompoundResolution = enrichment$CompoundResolution)
+    )
+  }
 
   provenance = .plant_bind_tables(list(
     dispatch$Provenance,
@@ -269,12 +332,16 @@ resolvePlantPhytochemistry = function(plants,
 
   out = list(
     PlantQueries = plant_queries,
+    PlantQueryAliases = aliases,
     PlantNameResolution = plant_resolution,
     ProviderDiagnostics = dispatch$ProviderDiagnostics,
+    ProviderQueryAccounting = dispatch$ProviderQueryAccounting,
+    ProviderResourceManifest = resources,
     PlantCompoundOccurrences = occurrences,
     PlantContextEvidence = context_evidence,
     ProviderContextAudit = provider_context_audit,
     LiteratureCandidates = dispatch$LiteratureCandidates,
+    SourceCompoundIdentity = dispatch$SourceCompoundIdentity,
     CompoundResolution = enrichment$CompoundResolution,
     CompoundIdentityReview = compound_identity_review,
     CategorateResult = enrichment$CategorateResult,
@@ -292,8 +359,9 @@ resolvePlantPhytochemistry = function(plants,
     Provenance = provenance
   )
   class(out) = c("uaf_plant_phytochemistry", class(out))
-  validation = validatePlantPhytochemistryResult(out, strict = strict)
-  out$Validation = validation
+  if (!isTRUE(defer_derived)) {
+    out$Validation = validatePlantPhytochemistryResult(out, strict = strict)
+  }
   out
 }
 
@@ -516,7 +584,10 @@ queryLotusIndex = function(plants, lotus_index,
                            taxon_fallback = c("species", "genus"),
                            max_records = Inf) {
   plant_queries = .plant_queries(plants, taxon_fallback)
-  .plant_query_lotus_index(plant_queries, lotus_index, max_records)
+  aliases = .plant_query_aliases(plants, plant_queries)
+  .plant_query_lotus_index(
+    plant_queries, lotus_index, max_records, plant_aliases = aliases
+  )
 }
 
 #' Build a compact local LOTUS index
@@ -585,7 +656,7 @@ buildLotusIndex = function(input,
       error = function(error) {
         if (isTRUE(strict)) stop(error)
         status <<- "error"
-        error_message <<- conditionMessage(error)
+        error_message <<- .plant_redact_secrets(conditionMessage(error))
         NULL
       }
     )
@@ -596,7 +667,7 @@ buildLotusIndex = function(input,
         error = function(error) {
           if (isTRUE(strict)) stop(error)
           status <<- "error"
-          error_message <<- conditionMessage(error)
+          error_message <<- .plant_redact_secrets(conditionMessage(error))
           .plant_empty_lotus_index()
         }
       )
@@ -795,6 +866,9 @@ enrichPlantCompounds = function(plant_compounds,
 #' @param lotus_index Optional local LOTUS index as a data frame, flat file, or
 #' manifest-backed lookup directory. When supplied, source-backed LOTUS SMILES,
 #' InChIKeys, formulas, and PubChem CIDs are used before PubChem name lookup.
+#' @param source_only Logical. If `TRUE`, resolve only exact identities available
+#' from `lotus_index` and do not make PubChem requests. Unresolved and ambiguous
+#' names remain explicit for later review or server-side resolution.
 #'
 #' @return A `CompoundResolution` data frame. The underlying identity-only
 #' PubChem tables are attached as the `"CategorateResult"` attribute. Compound
@@ -811,8 +885,10 @@ resolvePlantCompoundIdentities = function(plant_compounds,
                                           progress = interactive(),
                                           pubchem_fun = NULL,
                                           compound_request_fun = NULL,
-                                          lotus_index = NULL) {
+                                          lotus_index = NULL,
+                                          source_only = FALSE) {
   occurrences = .plant_occurrences_from_input(plant_compounds)
+  source_identity = .plant_source_identity_from_input(plant_compounds)
   identity = .plant_resolve_compound_identities(
     occurrences = occurrences,
     cache = cache,
@@ -823,10 +899,14 @@ resolvePlantCompoundIdentities = function(plant_compounds,
     progress = progress,
     pubchem_fun = pubchem_fun,
     request_fun = compound_request_fun,
-    lotus_index = lotus_index
+    lotus_index = lotus_index,
+    source_identity = source_identity,
+    source_only = source_only
   )
   out = identity$CompoundResolution
   attr(out, "CategorateResult") = identity$CategorateResult
+  attr(out, "SourceCompoundIdentity") =
+    identity$CategorateResult$SourceCompoundIdentity
   attr(out, "Provenance") = identity$Provenance
   out
 }
@@ -1091,9 +1171,10 @@ applyPlantCompoundIdentityReview = function(x,
 #' @description
 #' Runs species-first discovery in resumable species chunks, then optionally
 #' resolves compounds through a staged identity or enrichment pass. The default
-#' compound stage is `"identity"` because live provider pilots show that broad
-#' rich PubChem enrichment is the production bottleneck for hundreds of plant
-#' names.
+#' compound stage is `"identity"`, but panels of 100 or more species should
+#' first be run with `compound_resolution_profile = "none"` and a local LOTUS
+#' index. Identity and richer PubChem enrichment should follow only after the
+#' discovery manifest and occurrence evidence have been reviewed.
 #'
 #' @param plants Character vector or data frame of plant names.
 #' @param sources Public provider names passed to `resolvePlantPhytochemistry()`.
@@ -1131,9 +1212,18 @@ applyPlantCompoundIdentityReview = function(x,
 #' path, or manifest-backed lookup directory. Passed to
 #' `resolvePlantPhytochemistry()` and used instead of the live LOTUS simple API
 #' when `"lotus"` is enabled.
+#' @param provider_indexes Optional named list of local provider indexes.
+#' `provider_indexes$lotus` and `provider_indexes$npass` are supported.
+#' `lotus_index` remains a backward-compatible alias.
+#' @param require_all_providers Logical. If `TRUE`, each requested provider must
+#' be configured and each completed discovery chunk must report a successful
+#' provider stage. Intended for audited production runs after pilot testing.
 #' @param request_timeout Maximum seconds allowed for an uncached provider
 #' request.
 #' @param provider_results Optional mocked or pre-fetched provider results.
+#' @param discovery_fun Optional replacement for
+#' `resolvePlantPhytochemistry()`. This is primarily intended for deterministic
+#' tests and fully local provider workflows.
 #' @param enrichment_fun Optional rich enrichment function for tests or cached
 #' workflows.
 #' @param pubchem_fun Optional replacement for `pubchemProfile()`.
@@ -1149,11 +1239,19 @@ applyPlantCompoundIdentityReview = function(x,
 #' @param strict Logical passed to validation.
 #' @param stop_on_error Logical. If `TRUE`, stop on the first failed discovery
 #' chunk; otherwise record the failed chunk and continue.
+#' @param allow_large_live_run Logical. Large runs (100 or more species) require
+#' persistent checkpoints and, by default, local/injected discovery. Set this
+#' to `TRUE` only after a small live pilot and review of
+#' `planPlantChemistryRun()`.
+#' @param service_busy_pause_threshold Number of consecutive discovery chunks
+#' reporting rate-limit or service-busy errors before the run stops scheduling
+#' new chunks. Use `Inf` to disable this automatic pause.
 #' @param refresh Logical passed to provider adapters.
 #' @param ... Additional arguments passed to rich compound enrichment.
 #'
 #' @return A `uaf_plant_phytochemistry` result with additional
-#' `BatchRunManifest` and `BatchChunkManifest` tables.
+#' `BatchRunManifest`, `BatchChunkManifest`, `FailedQueries`, and `RetryQueue`
+#' tables.
 #'
 #' @export
 runPlantPhytochemistryBatch = function(
@@ -1172,26 +1270,31 @@ runPlantPhytochemistryBatch = function(
     max_unique_compounds = Inf,
     chemical_library = NULL,
     cache = TRUE,
-    throttle = 0.2,
+    throttle = 0.5,
     ncbi_email = Sys.getenv("NCBI_EMAIL", ""),
     ncbi_tool = Sys.getenv("NCBI_TOOL", "uafR"),
     ncbi_api_key = Sys.getenv("NCBI_API_KEY", ""),
     max_pubmed_records = 50,
     max_provider_records = max_pubmed_records,
     lotus_index = Sys.getenv("UAFR_LOTUS_INDEX", ""),
+    provider_indexes = NULL,
+    require_all_providers = FALSE,
     request_timeout = 30,
     provider_results = NULL,
+    discovery_fun = NULL,
     enrichment_fun = NULL,
     pubchem_fun = NULL,
     request_fun = NULL,
     pubtator_request_fun = NULL,
     compound_request_fun = NULL,
-    compound_batch_size = 100,
+    compound_batch_size = 50,
     resume = TRUE,
     progress = interactive(),
     overwrite = FALSE,
     strict = FALSE,
     stop_on_error = FALSE,
+    allow_large_live_run = FALSE,
+    service_busy_pause_threshold = 1,
     refresh = FALSE,
     ...) {
   compound_resolution_profile = match.arg(compound_resolution_profile)
@@ -1211,114 +1314,364 @@ runPlantPhytochemistryBatch = function(
   if (isTRUE(cache) || !is.null(out_dir)) {
     dir.create(checkpoint_dir, recursive = TRUE, showWarnings = FALSE)
   }
-  lotus_enabled = "lotus" %in% .plant_normalize_sources(sources)
-  lotus_index_signature = if (lotus_enabled) {
-    .plant_lotus_index_signature(lotus_index)
-  } else {
-    "lotus_index:not_used"
-  }
-  lotus_index = if (lotus_enabled) .plant_lotus_index_or_null(lotus_index) else
-    NULL
-  if (!is.null(lotus_index)) {
+  sources_normalized = .plant_normalize_sources(sources)
+  provider_indexes = .plant_provider_indexes(provider_indexes, lotus_index)
+  lotus_enabled = "lotus" %in% sources_normalized
+  lotus_index = if (lotus_enabled) {
+    .plant_lotus_index_or_null(provider_indexes$lotus)
+  } else NULL
+  if (!is.null(lotus_index) && is.null(.plant_lotus_lookup_info(lotus_index))) {
     lotus_index = standardizeLotusIndex(lotus_index)
+  }
+  if (!is.null(lotus_index)) provider_indexes$lotus = lotus_index
+  provider_index_signature = .plant_provider_indexes_signature(
+    provider_indexes, sources_normalized
+  )
+  provider_resources = plantProviderAvailability(
+    sources = sources_normalized,
+    provider_indexes = provider_indexes,
+    lotus_index = lotus_index
+  )
+  if (isTRUE(require_all_providers)) {
+    unavailable = provider_resources$provider[
+      provider_resources$availability_status != "available"
+    ]
+    if (length(unavailable) > 0) {
+      stop("Required plant provider resource(s) unavailable: ",
+           paste(unique(unavailable), collapse = ", "), call. = FALSE)
+    }
   }
 
   plant_queries = .plant_queries(plants, taxon_fallback)
+  plant_aliases = .plant_query_aliases(plants, plant_queries)
   species = unique(.uaf_non_empty(plant_queries$species))
   if (length(species) < 1) {
     stop("`plants` must contain at least one non-empty species name.",
          call. = FALSE)
   }
+  injected_discovery = !is.null(provider_results) || !is.null(discovery_fun)
+  if (length(species) >= 100 && !injected_discovery) {
+    if (!isTRUE(cache)) {
+      stop("Runs with 100 or more species require `cache = TRUE`.",
+           call. = FALSE)
+    }
+    if (is.null(out_dir)) {
+      stop(paste(
+        "Runs with 100 or more species require `out_dir` so incremental",
+        "manifests, failed queries, and retry queues are preserved."
+      ), call. = FALSE)
+    }
+    if (lotus_enabled && is.null(lotus_index) &&
+        !isTRUE(allow_large_live_run)) {
+      stop(paste(
+        "Large live LOTUS simple-search runs are disabled by default.",
+        "Supply a local `lotus_index`, or complete a small pilot and set",
+        "`allow_large_live_run = TRUE` explicitly."
+      ), call. = FALSE)
+    }
+    local_sources = character()
+    if (!is.null(lotus_index)) local_sources = c(local_sources, "lotus")
+    if (!is.null(.plant_npass_index_or_null(provider_indexes$npass))) {
+      local_sources = c(local_sources, "npass")
+    }
+    live_sources = setdiff(sources_normalized, local_sources)
+    if (length(live_sources) > 0 && !isTRUE(allow_large_live_run)) {
+      stop(paste0(
+        "Large live provider stages are disabled by default (selected: ",
+        paste(live_sources, collapse = ", "), "). Run local LOTUS discovery",
+        " first, then use targeted follow-up panels; or set",
+        " `allow_large_live_run = TRUE` after reviewing the preflight plan."
+      ), call. = FALSE)
+    }
+  }
   chunk_size = .plant_enrichment_batch_size(species_chunk_size,
                                             length(species))
   species_chunks = split(species, ceiling(seq_along(species) / chunk_size))
+  species_chunk_inputs = .plant_batch_chunk_inputs(
+    plants, plant_queries, species_chunks
+  )
   chunk_results = vector("list", length(species_chunks))
-  chunk_manifest_rows = list()
+  run_signature = .plant_batch_run_signature(
+    species = species,
+    sources = sources_normalized,
+    taxon_fallback = taxon_fallback,
+    provider_index_signature = provider_index_signature,
+    max_pubmed_records = max_pubmed_records,
+    max_provider_records = max_provider_records,
+    provider_results = provider_results,
+    query_signature = .plant_batch_query_signature(plant_queries,
+                                                   plant_aliases)
+  )
+  checkpoint_files = vapply(seq_along(species_chunks), function(i) {
+    chunk_signature = .plant_batch_chunk_signature(
+      run_signature, i, species_chunks[[i]]
+    )
+    file.path(
+      checkpoint_dir,
+      paste0("discovery_v2_chunk_", sprintf("%04d", i), "_",
+             chunk_signature, ".rds")
+    )
+  }, character(1))
+  chunk_manifest = .plant_batch_manifest_plan(
+    species_chunks = species_chunks,
+    checkpoint_files = checkpoint_files,
+    run_signature = run_signature,
+    out_dir = out_dir,
+    cache = cache
+  )
+  chunk_manifest = .plant_batch_merge_prior_manifest(
+    chunk_manifest, out_dir, run_signature, resume, overwrite
+  )
+  .plant_write_batch_operational_files(chunk_manifest, out_dir)
+  discovery_fun = discovery_fun %||% resolvePlantPhytochemistry
+  if (!is.function(discovery_fun)) {
+    stop("`discovery_fun` must be a function when supplied.", call. = FALSE)
+  }
+  busy_threshold = suppressWarnings(as.numeric(
+    service_busy_pause_threshold[[1]]
+  ))
+  if (is.na(busy_threshold) || busy_threshold < 1) {
+    stop("`service_busy_pause_threshold` must be at least 1 or `Inf`.",
+         call. = FALSE)
+  }
+  consecutive_busy_chunks = 0L
+  pause_reason = NA_character_
 
   for (i in seq_along(species_chunks)) {
     chunk_species = species_chunks[[i]]
-    checkpoint_file = file.path(
-      checkpoint_dir,
-      paste0("discovery_chunk_", sprintf("%04d", i), "_",
-             .pubchem_url_hash(paste(c(chunk_species, sources,
-                                        taxon_fallback,
-                                        lotus_index_signature),
-                                      collapse = "\r")),
-             ".rds")
+    chunk_input = species_chunk_inputs[[i]]
+    chunk_provider_results = .plant_batch_subset_provider_results(
+      provider_results, chunk_species
     )
+    checkpoint_file = checkpoint_files[[i]]
+    chunk_signature = chunk_manifest$chunk_signature[[i]]
     chunk_started = Sys.time()
-    status = "ok"
+    status = "completed"
     error_message = NA_character_
     result = NULL
-    if (isTRUE(cache) && isTRUE(resume) && file.exists(checkpoint_file)) {
+    checkpoint = list(ok = FALSE, reason = "not_checked", result = NULL)
+    if (isTRUE(cache) && isTRUE(resume) && !isTRUE(refresh)) {
+      checkpoint = .plant_read_batch_checkpoint(
+        checkpoint_file,
+        expected_run_signature = run_signature,
+        expected_chunk_signature = chunk_signature,
+        expected_species = chunk_species
+      )
+    }
+    chunk_manifest$checkpoint_read_status[[i]] = checkpoint$reason
+    if (isTRUE(checkpoint$ok)) {
       if (isTRUE(progress)) {
         message("uafR plant discovery chunk ", i, "/",
                 length(species_chunks), ": using cached result")
       }
-      result = readRDS(checkpoint_file)
-      status = "cached"
-    } else {
-      if (isTRUE(progress)) {
-        message("uafR plant discovery chunk ", i, "/",
-                length(species_chunks), ": querying ", length(chunk_species),
-                " species")
-      }
-      result = tryCatch(
-        resolvePlantPhytochemistry(
-          plants = chunk_species,
-          sources = sources,
-          taxon_fallback = taxon_fallback,
-          enrich_compounds = FALSE,
-          detail = "none",
-          cache = cache,
-          cache_dir = cache_dir,
-          throttle = throttle,
-          ncbi_email = ncbi_email,
-          ncbi_tool = ncbi_tool,
-          ncbi_api_key = ncbi_api_key,
-          max_pubmed_records = max_pubmed_records,
-          max_provider_records = max_provider_records,
-          lotus_index = lotus_index,
-          request_timeout = request_timeout,
-          provider_results = provider_results,
-          request_fun = request_fun,
-          pubtator_request_fun = pubtator_request_fun,
-          progress = progress,
-          refresh = refresh
-        ),
-        error = function(error) {
-          status <<- "error"
-          error_message <<- conditionMessage(error)
-          if (isTRUE(stop_on_error)) stop(error)
-          .plant_empty_batch_result(chunk_species, taxon_fallback,
-                                    error_message)
-        }
+      result = checkpoint$result
+      counts = .plant_batch_result_counts(result)
+      chunk_results[[i]] = result
+      chunk_manifest$status[[i]] = "completed"
+      chunk_manifest$checkpoint_status[[i]] = "cache_hit"
+      chunk_manifest$checkpoint_cache_hit[[i]] = "Yes"
+      chunk_manifest$started_at[[i]] = format(
+        chunk_started, "%Y-%m-%dT%H:%M:%S%z"
       )
-      if (isTRUE(cache)) saveRDS(result, checkpoint_file)
+      chunk_manifest$finished_at[[i]] = .plant_timestamp()
+      chunk_manifest$completed_at[[i]] = chunk_manifest$finished_at[[i]]
+      chunk_manifest$elapsed_seconds[[i]] = round(as.numeric(difftime(
+        Sys.time(), chunk_started, units = "secs"
+      )), 3)
+      chunk_manifest$cache_hit_count[[i]] = counts$cache_hit_count + 1L
+      chunk_manifest$request_count[[i]] = counts$request_count
+      chunk_manifest$occurrence_count[[i]] = counts$occurrence_count
+      chunk_manifest$literature_candidate_count[[i]] =
+        counts$literature_candidate_count
+      chunk_manifest$provider_diagnostic_count[[i]] =
+        counts$provider_diagnostic_count
+      chunk_manifest$error_count[[i]] = counts$error_count
+      chunk_manifest$warning_count[[i]] = counts$warning_count
+      .plant_write_batch_operational_files(chunk_manifest, out_dir)
+      consecutive_busy_chunks = 0L
+      next
+    }
+
+    if (file.exists(checkpoint_file) && checkpoint$reason != "not_checked") {
+      chunk_manifest$checkpoint_status[[i]] = paste0(
+        "rebuild_", checkpoint$reason
+      )
+    } else if (!isTRUE(cache)) {
+      chunk_manifest$checkpoint_status[[i]] = "cache_disabled"
+    } else {
+      chunk_manifest$checkpoint_status[[i]] = "cache_miss"
+    }
+    prior_retry = tolower(.uaf_first_non_empty_text(
+      chunk_manifest$previous_status[[i]], ""
+    )) %in% c("failed", "error", "timeout", "timed_out", "rate_limited",
+              "incomplete", "running", "started", "stopped", "retry")
+    invalid_checkpoint = file.exists(checkpoint_file) &&
+      checkpoint$reason != "not_checked" && checkpoint$reason != "missing"
+    if (prior_retry || invalid_checkpoint) {
+      chunk_manifest$retry_count[[i]] =
+        suppressWarnings(as.integer(chunk_manifest$retry_count[[i]])) + 1L
+    }
+    chunk_manifest$status[[i]] = "running"
+    chunk_manifest$started_at[[i]] = format(
+      chunk_started, "%Y-%m-%dT%H:%M:%S%z"
+    )
+    .plant_write_batch_operational_files(chunk_manifest, out_dir)
+
+    if (isTRUE(progress)) {
+      message("uafR plant discovery chunk ", i, "/",
+              length(species_chunks), ": querying ", length(chunk_species),
+              " species")
+    }
+    captured_condition = NULL
+    was_interrupted = FALSE
+    discovery_args = list(
+      plants = chunk_input,
+      sources = sources,
+      taxon_fallback = taxon_fallback,
+      enrich_compounds = FALSE,
+      detail = "none",
+      cache = cache,
+      cache_dir = cache_dir,
+      throttle = throttle,
+      ncbi_email = ncbi_email,
+      ncbi_tool = ncbi_tool,
+      ncbi_api_key = ncbi_api_key,
+      max_pubmed_records = max_pubmed_records,
+      max_provider_records = max_provider_records,
+      lotus_index = lotus_index,
+      provider_indexes = provider_indexes,
+      require_all_providers = require_all_providers,
+      request_timeout = request_timeout,
+      provider_results = chunk_provider_results,
+      request_fun = request_fun,
+      pubtator_request_fun = pubtator_request_fun,
+      progress = progress,
+      refresh = refresh
+    )
+    discovery_formals = names(formals(discovery_fun))
+    if ("defer_derived" %in% discovery_formals ||
+        "..." %in% discovery_formals) {
+      discovery_args$defer_derived = TRUE
+    }
+    result = tryCatch(
+      do.call(discovery_fun, discovery_args),
+      interrupt = function(condition) {
+        captured_condition <<- condition
+        was_interrupted <<- TRUE
+        NULL
+      },
+      error = function(condition) {
+        captured_condition <<- condition
+        NULL
+      }
+    )
+    if (is.null(captured_condition) &&
+        !.plant_valid_discovery_result(result)) {
+      captured_condition = simpleError(paste(
+        "Discovery function returned an invalid result; required tables are",
+        "PlantQueries, ProviderDiagnostics, PlantCompoundOccurrences, and",
+        "LiteratureCandidates."
+      ))
+    }
+
+    health = NULL
+    if (!is.null(captured_condition)) {
+      error_message = .plant_redact_secrets(
+        conditionMessage(captured_condition)
+      )
+      status = if (isTRUE(was_interrupted)) {
+        "stopped"
+      } else if (.plant_service_busy_message(error_message)) {
+        "rate_limited"
+      } else {
+        "failed"
+      }
+      result = .plant_empty_batch_result(chunk_input, taxon_fallback,
+                                         error_message)
+      chunk_manifest$checkpoint_status[[i]] = "not_written_failure"
+    } else {
+      health = .plant_batch_result_health(result)
+      if (health$error_count > 0) {
+        status = if (isTRUE(health$service_busy)) "rate_limited" else "failed"
+        error_message = health$error_message
+        chunk_manifest$checkpoint_status[[i]] = "not_written_provider_error"
+      } else if (isTRUE(cache)) {
+        envelope = .plant_batch_checkpoint_envelope(
+          result = result,
+          run_signature = run_signature,
+          chunk_signature = chunk_signature,
+          species = chunk_species
+        )
+        save_error = tryCatch({
+          .plant_atomic_save_rds(envelope, checkpoint_file)
+          NULL
+        }, error = function(condition) condition)
+        if (inherits(save_error, "condition")) {
+          status = "failed"
+          error_message = .plant_redact_secrets(paste(
+            "Checkpoint write failed:", conditionMessage(save_error)
+          ))
+          chunk_manifest$checkpoint_status[[i]] = "write_failed"
+        } else {
+          chunk_manifest$checkpoint_status[[i]] = "written"
+        }
+      } else {
+        chunk_manifest$checkpoint_status[[i]] = "cache_disabled"
+      }
     }
     chunk_results[[i]] = result
+    counts = .plant_batch_result_counts(result)
     elapsed = round(as.numeric(difftime(Sys.time(), chunk_started,
                                         units = "secs")), 3)
-    chunk_manifest_rows[[length(chunk_manifest_rows) + 1]] = data.frame(
-      chunk_id = i,
-      species_count = length(chunk_species),
-      species = paste(chunk_species, collapse = "; "),
-      occurrence_count = nrow(result$PlantCompoundOccurrences),
-      literature_candidate_count = nrow(result$LiteratureCandidates),
-      provider_diagnostic_count = nrow(result$ProviderDiagnostics),
-      status = status,
-      error_message = error_message,
-      checkpoint_file = checkpoint_file,
-      elapsed_seconds = elapsed,
-      completed_at = .plant_timestamp(),
-      stringsAsFactors = FALSE
-    )
+    chunk_manifest$status[[i]] = status
+    chunk_manifest$error_message[[i]] = error_message
+    chunk_manifest$elapsed_seconds[[i]] = elapsed
+    chunk_manifest$finished_at[[i]] = .plant_timestamp()
+    chunk_manifest$completed_at[[i]] = chunk_manifest$finished_at[[i]]
+    chunk_manifest$cache_hit_count[[i]] = counts$cache_hit_count
+    chunk_manifest$request_count[[i]] = counts$request_count
+    chunk_manifest$occurrence_count[[i]] = counts$occurrence_count
+    chunk_manifest$literature_candidate_count[[i]] =
+      counts$literature_candidate_count
+    chunk_manifest$provider_diagnostic_count[[i]] =
+      counts$provider_diagnostic_count
+    chunk_manifest$error_count[[i]] = counts$error_count
+    chunk_manifest$warning_count[[i]] = counts$warning_count
+    .plant_write_batch_operational_files(chunk_manifest, out_dir)
+
+    if (status == "rate_limited") {
+      consecutive_busy_chunks = consecutive_busy_chunks + 1L
+    } else {
+      consecutive_busy_chunks = 0L
+    }
+    if (isTRUE(was_interrupted) ||
+        (isTRUE(stop_on_error) && status %in%
+           c("failed", "rate_limited", "stopped"))) {
+      if (isTRUE(was_interrupted) && !is.null(captured_condition)) {
+        stop(captured_condition)
+      }
+      stop(simpleError(error_message))
+    }
+    if (is.finite(busy_threshold) &&
+        consecutive_busy_chunks >= busy_threshold) {
+      pause_reason = paste0(
+        "Paused after ", consecutive_busy_chunks,
+        " consecutive rate-limit/service-busy discovery chunks. Resume later",
+        " with the same out_dir and cache_dir."
+      )
+      if (isTRUE(progress)) message(pause_reason)
+      break
+    }
   }
 
-  combined = .plant_combine_batch_results(chunk_results, plant_queries,
-                                          taxon_fallback)
-  chunk_manifest = .plant_bind_flexible_tables(chunk_manifest_rows)
+  combined = .plant_combine_batch_results(
+    chunk_results, plant_queries, taxon_fallback,
+    link_source_context = TRUE
+  )
   combined$BatchChunkManifest = chunk_manifest
+  combined$FailedQueries = .plant_batch_failed_queries(chunk_manifest)
+  combined$RetryQueue = writePlantChemistryRetryQueue(chunk_manifest)
+  discovery_complete = all(chunk_manifest$status == "completed")
 
   resolution_occurrences = .plant_batch_resolution_occurrences(
     combined$PlantCompoundOccurrences,
@@ -1335,23 +1688,43 @@ runPlantPhytochemistryBatch = function(
           collapse = "; "),
     NA_character_, length(unique(.uaf_non_empty(
       resolution_occurrences$compound_name_clean))),
-    "Compound resolution stage was not run."
+    if (discovery_complete) {
+      "Compound resolution stage was not run."
+    } else {
+      "Compound resolution was deferred because discovery is incomplete."
+    }
   )
   categorate_result = NULL
   trait_evidence = .uaf_empty_table(.plant_trait_evidence_cols())
   compound_resolution = .plant_compound_resolution(
     combined$PlantCompoundOccurrences, NULL
   )
-  if (compound_resolution_profile == "none") {
+  if (!discovery_complete || compound_resolution_profile == "none") {
     compound_resolution =
       .plant_mark_all_compounds_not_attempted(compound_resolution)
+    if (!discovery_complete && nrow(compound_resolution) > 0) {
+      compound_resolution$notes = paste(
+        "Compound resolution was deferred because one or more discovery",
+        "chunks are failed, stopped, rate-limited, or not started."
+      )
+    }
   } else {
     compound_resolution = .plant_mark_unattempted_compounds(
       compound_resolution, resolution_occurrences
     )
   }
 
-  if (compound_resolution_profile == "identity" &&
+  compound_stage_status = if (!discovery_complete) {
+    "deferred_incomplete_discovery"
+  } else if (compound_resolution_profile == "none") {
+    "not_requested"
+  } else if (nrow(resolution_occurrences) < 1) {
+    "no_compounds_selected"
+  } else {
+    "completed"
+  }
+
+  if (discovery_complete && compound_resolution_profile == "identity" &&
       nrow(resolution_occurrences) > 0) {
     identity = .plant_resolve_compound_identities(
       occurrences = resolution_occurrences,
@@ -1363,14 +1736,16 @@ runPlantPhytochemistryBatch = function(
       progress = progress,
       pubchem_fun = pubchem_fun,
       request_fun = compound_request_fun,
-      lotus_index = lotus_index
+      lotus_index = lotus_index,
+      source_identity = combined$SourceCompoundIdentity
     )
     categorate_result = identity$CategorateResult
     compound_resolution = .plant_merge_compound_resolution(
       compound_resolution, identity$CompoundResolution
     )
     compound_provenance = identity$Provenance
-  } else if (compound_resolution_profile %in% c("research", "full") &&
+  } else if (discovery_complete &&
+             compound_resolution_profile %in% c("research", "full") &&
              nrow(resolution_occurrences) > 0) {
     enrichment = enrichPlantCompounds(
       resolution_occurrences,
@@ -1441,11 +1816,17 @@ runPlantPhytochemistryBatch = function(
     compound_resolution_profile = compound_resolution_profile,
     resolution_occurrences = resolution_occurrences,
     out_dir = out_dir,
-    cache_dir = cache_dir
+    cache_dir = cache_dir,
+    discovery_complete = discovery_complete,
+    compound_stage_status = compound_stage_status,
+    run_signature = run_signature,
+    pause_reason = pause_reason
   )
   combined$BatchRunManifest = run_manifest
   combined$Validation = validatePlantPhytochemistryResult(combined,
                                                           strict = strict)
+  combined$BatchRunManifest$validation_status =
+    .uaf_first_non_empty_text(combined$Validation$Summary$Status)
   class(combined) = unique(c("uaf_plant_phytochemistry", class(combined)))
   if (!is.null(out_dir)) {
     combined$BatchExportManifest = .plant_write_batch_outputs(
@@ -1629,7 +2010,7 @@ runPlantPhytochemistryPilot = function(
     max_unique_compounds = Inf,
     chemical_library = NULL,
     cache = TRUE,
-    throttle = 0.2,
+    throttle = 0.5,
     ncbi_email = Sys.getenv("NCBI_EMAIL", ""),
     ncbi_tool = Sys.getenv("NCBI_TOOL", "uafR"),
     ncbi_api_key = Sys.getenv("NCBI_API_KEY", ""),
@@ -1643,7 +2024,7 @@ runPlantPhytochemistryPilot = function(
     request_fun = NULL,
     pubtator_request_fun = NULL,
     compound_request_fun = NULL,
-    compound_batch_size = 100,
+    compound_batch_size = 50,
     matrix_feature = c("comparison_group", "biosynthetic_family",
                        "chemical_behavior", "compound",
                        "comparison_scope"),
@@ -2467,11 +2848,13 @@ plantContextEvidence = function(x, min_confidence = "low") {
   if (!.plant_has_context_signal(occurrences)) {
     return(.uaf_empty_table(.plant_context_evidence_cols()))
   }
-  rows = list()
+  rows = vector("list", nrow(occurrences))
   for (i in seq_len(nrow(occurrences))) {
     occ = occurrences[i, , drop = FALSE]
-    rows = c(rows, .plant_direct_context_rows(occ))
-    rows = c(rows, .plant_text_context_rows(occ))
+    rows[[i]] = .plant_bind_tables(
+      c(.plant_direct_context_rows(occ), .plant_text_context_rows(occ)),
+      .plant_context_evidence_cols()
+    )
   }
   out = .plant_normalize_context_evidence(
     .plant_bind_tables(rows, .plant_context_evidence_cols())
@@ -2644,21 +3027,50 @@ enrichPlantContextEvidence = function(x,
   if (nrow(occurrences) < 1 || nrow(sources) < 1) {
     return(.uaf_empty_table(.plant_context_evidence_cols()))
   }
+  source_signatures = .plant_context_source_signatures(sources)
+  source_identity = paste(
+    .plant_normalize_pmid(sources$pmid),
+    .plant_normalize_doi(sources$doi),
+    ifelse(is.na(sources$evidence_url), "", sources$evidence_url),
+    source_signatures,
+    sep = "\r"
+  )
+  sources = sources[!duplicated(source_identity), , drop = FALSE]
+  source_signatures = source_signatures[!duplicated(source_identity)]
   occurrence_keys = .plant_source_context_keys(occurrences)
   source_keys = .plant_source_context_keys(sources)
   source_index = .plant_source_context_index(source_keys)
+  patterns = .plant_context_patterns()
+  unique_source_index = which(!duplicated(source_signatures))
+  prepared_templates = lapply(unique_source_index, function(i) {
+    .plant_prepare_context_source(sources[i, , drop = FALSE], patterns)
+  })
+  template_index = match(source_signatures,
+                         source_signatures[unique_source_index])
+  prepared_sources = lapply(seq_len(nrow(sources)), function(i) {
+    prepared = prepared_templates[[template_index[[i]]]]
+    prepared$source = sources[i, , drop = FALSE]
+    prepared
+  })
   rows = list()
+  row_index = 0L
   for (i in seq_len(nrow(occurrences))) {
     keys = occurrence_keys[[i]]
     if (length(keys) < 1) next
     hit_idx = unique(unlist(source_index[keys], use.names = FALSE))
     hit_idx = hit_idx[!is.na(hit_idx)]
     if (length(hit_idx) < 1) next
+    occurrence = occurrences[i, , drop = FALSE]
+    occurrence_terms = .plant_context_occurrence_terms(occurrence)
     for (j in hit_idx) {
-      rows = c(rows, .plant_context_rows_from_source(
-        occurrence = occurrences[i, , drop = FALSE],
-        source = sources[j, , drop = FALSE]
-      ))
+      evidence = .plant_context_rows_from_prepared_source(
+        occurrence = occurrence,
+        prepared = prepared_sources[[j]],
+        occurrence_terms = occurrence_terms
+      )
+      if (nrow(evidence) < 1L) next
+      row_index = row_index + 1L
+      rows[[row_index]] = evidence
     }
   }
   out = .plant_normalize_context_evidence(
@@ -2670,6 +3082,18 @@ enrichPlantContextEvidence = function(x,
   out = unique(out[keep, , drop = FALSE])
   row.names(out) = NULL
   out
+}
+
+.plant_context_source_signatures = function(sources) {
+  provider = vapply(sources$source_database, function(value) {
+    .plant_provider_key(.uaf_first_non_empty_text(value, "unknown"))
+  }, character(1))
+  fields = lapply(c("title", "abstract", "evidence_text"), function(col) {
+    value = .plant_col_or_default(sources, col, NA_character_)
+    value[is.na(value)] = ""
+    value
+  })
+  do.call(paste, c(list(provider), fields, sep = "\r"))
 }
 
 .plant_source_context_keys = function(x) {
@@ -2703,34 +3127,240 @@ enrichPlantContextEvidence = function(x,
 }
 
 .plant_context_rows_from_source = function(occurrence, source) {
-  text_rows = .plant_source_context_text_rows(occurrence, source)
-  if (nrow(text_rows) < 1) return(list())
-  patterns = .plant_context_patterns()
-  rows = list()
-  for (j in seq_len(nrow(text_rows))) {
-    sentence = text_rows$text[[j]]
-    sentence_rows = list()
-    for (i in seq_len(nrow(patterns))) {
-      if (patterns$normalized_context[[i]] == "extract_unspecified") next
-      hit = .plant_regex_match_text(sentence, patterns$pattern[[i]])
-      if (is.na(hit) || hit == "") next
-      sentence_rows[[length(sentence_rows) + 1]] =
-        .plant_context_evidence_row(
-          occurrence = .plant_occurrence_with_source(occurrence, source),
-          context_type = patterns$context_type[[i]],
-          raw_context_text = hit,
-          normalized_context = patterns$normalized_context[[i]],
-          source_field = text_rows$source_field[[j]],
-          extraction_rule = paste0("source_context:",
-                                   text_rows$source_rule[[j]], ":",
-                                   patterns$rule_name[[i]]),
-          context_confidence = text_rows$context_confidence[[j]],
-          evidence_basis = text_rows$evidence_basis[[j]]
-        )
-    }
-    rows = c(rows, .plant_prune_context_rows(sentence_rows))
+  prepared = .plant_prepare_context_source(
+    source = source,
+    patterns = .plant_context_patterns()
+  )
+  .plant_context_rows_from_prepared_source(
+    occurrence = occurrence,
+    prepared = prepared,
+    occurrence_terms = .plant_context_occurrence_terms(occurrence)
+  )
+}
+
+.plant_prepare_context_source = function(source, patterns) {
+  source = .plant_normalize_literature(source)
+  if (nrow(source) < 1) {
+    return(list(
+      source = .uaf_empty_table(.plant_literature_cols()),
+      document_lower = "",
+      sentences = data.frame(),
+      hits = data.frame()
+    ))
   }
-  rows
+  source = source[1, , drop = FALSE]
+  text_fields = c(
+    title = .uaf_first_non_empty_text(source$title),
+    abstract = .uaf_first_non_empty_text(source$abstract),
+    evidence_text = .uaf_first_non_empty_text(source$evidence_text)
+  )
+  document_text = paste(.uaf_non_empty(text_fields), collapse = " ")
+  sentence_rows = list()
+  hit_rows = list()
+  seen_text = character()
+  sentence_index = 0L
+  provider = .plant_provider_key(source$source_database)
+  for (field in names(text_fields)) {
+    text = text_fields[[field]]
+    if (is.na(text) || text == "") next
+    text_key = tolower(.uaf_squish_text(text))
+    if (!is.na(text_key) && text_key %in% seen_text) next
+    seen_text = c(seen_text, text_key)
+    sentences = .plant_split_sentences(text)
+    if (length(sentences) < 1) sentences = text
+    for (sentence in sentences) {
+      raw_hits = vapply(patterns$pattern, function(pattern) {
+        .plant_regex_match_text(sentence, pattern)
+      }, character(1))
+      keep_hits = !is.na(raw_hits) & raw_hits != "" &
+        patterns$normalized_context != "extract_unspecified"
+      if (!any(keep_hits)) next
+      sentence_index = sentence_index + 1L
+      sentence_rows[[sentence_index]] = data.frame(
+        sentence_index = sentence_index,
+        source_field = field,
+        text = sentence,
+        text_lower = tolower(sentence),
+        source_rule = paste0(provider, "_", field, "_sentence"),
+        has_scope = grepl(.plant_source_context_scope_pattern(), sentence,
+                          ignore.case = TRUE, perl = TRUE),
+        stringsAsFactors = FALSE
+      )
+      idx = which(keep_hits)
+      hit_rows[[sentence_index]] = data.frame(
+        sentence_index = sentence_index,
+        context_type = patterns$context_type[idx],
+        raw_context_text = raw_hits[idx],
+        normalized_context = patterns$normalized_context[idx],
+        rule_name = patterns$rule_name[idx],
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  list(
+    source = source,
+    document_lower = tolower(document_text),
+    document_has_scope = grepl(.plant_source_context_scope_pattern(),
+                               document_text, ignore.case = TRUE,
+                               perl = TRUE),
+    sentences = if (length(sentence_rows) > 0) {
+      do.call(rbind, sentence_rows)
+    } else {
+      data.frame()
+    },
+    hits = if (length(hit_rows) > 0) {
+      do.call(rbind, hit_rows)
+    } else {
+      data.frame()
+    }
+  )
+}
+
+.plant_context_occurrence_terms = function(occurrence) {
+  species = .uaf_first_non_empty_text(occurrence$species,
+                                      occurrence$query_plant)
+  genus = .uaf_first_non_empty_text(occurrence$genus,
+                                    .plant_genus(species))
+  compound = .uaf_first_non_empty_text(occurrence$compound_name)
+  list(
+    species = tolower(.uaf_first_non_empty_text(species, "")),
+    genus = tolower(.uaf_first_non_empty_text(genus, "")),
+    compound = tolower(.uaf_first_non_empty_text(compound, ""))
+  )
+}
+
+.plant_context_fixed_has = function(text, term, min_chars = 3L,
+                                     max_chars = Inf) {
+  if (length(term) < 1 || is.na(term) || term == "" ||
+      nchar(term) < min_chars || nchar(term) > max_chars) {
+    return(rep(FALSE, length(text)))
+  }
+  grepl(term, text, fixed = TRUE)
+}
+
+.plant_context_rows_from_prepared_source = function(
+    occurrence, prepared,
+    occurrence_terms = .plant_context_occurrence_terms(occurrence)) {
+  text_rows = prepared$sentences
+  hits = prepared$hits
+  if (!is.data.frame(text_rows) || nrow(text_rows) < 1 ||
+      !is.data.frame(hits) || nrow(hits) < 1) {
+    return(.uaf_empty_table(.plant_context_evidence_cols()))
+  }
+  has_species = .plant_context_fixed_has(
+    text_rows$text_lower, occurrence_terms$species
+  ) | .plant_context_fixed_has(text_rows$text_lower, occurrence_terms$genus)
+  has_compound = .plant_context_fixed_has(
+    text_rows$text_lower, occurrence_terms$compound,
+    min_chars = 4L, max_chars = 120L
+  )
+  document_has_species = .plant_context_fixed_has(
+    prepared$document_lower, occurrence_terms$species
+  ) | .plant_context_fixed_has(prepared$document_lower,
+                               occurrence_terms$genus)
+  document_has_compound = .plant_context_fixed_has(
+    prepared$document_lower, occurrence_terms$compound,
+    min_chars = 4L, max_chars = 120L
+  )
+  keep = rep(FALSE, nrow(text_rows))
+  confidence = rep("low", nrow(text_rows))
+  basis = rep("source_text_context_not_linked_to_species_or_compound",
+              nrow(text_rows))
+  direct = has_species & has_compound
+  keep[direct] = TRUE
+  confidence[direct] = "medium"
+  basis[direct] = "source_backed_species_compound_sentence"
+  species_scope = !keep & has_species & text_rows$has_scope
+  keep[species_scope] = TRUE
+  confidence[species_scope] = "medium"
+  basis[species_scope] =
+    "source_backed_species_chemical_context_sentence"
+  compound_scope = !keep & has_compound & text_rows$has_scope
+  keep[compound_scope] = TRUE
+  basis[compound_scope] = "source_backed_compound_context_sentence"
+  document_scope = !keep & text_rows$has_scope &
+    isTRUE(prepared$document_has_scope) &
+    isTRUE(document_has_species) & isTRUE(document_has_compound)
+  keep[document_scope] = TRUE
+  basis[document_scope] = "source_backed_document_context_sentence"
+  if (!any(keep)) {
+    return(.uaf_empty_table(.plant_context_evidence_cols()))
+  }
+  sentence_metadata = data.frame(
+    sentence_index = text_rows$sentence_index,
+    source_field = text_rows$source_field,
+    source_rule = text_rows$source_rule,
+    context_confidence = confidence,
+    evidence_basis = basis,
+    keep = keep,
+    stringsAsFactors = FALSE
+  )
+  hit_metadata = sentence_metadata[
+    match(hits$sentence_index, sentence_metadata$sentence_index), ,
+    drop = FALSE
+  ]
+  hits = cbind(hits, hit_metadata[, setdiff(names(hit_metadata),
+                                            "sentence_index"), drop = FALSE])
+  hits = hits[hits$keep, , drop = FALSE]
+  if (nrow(hits) < 1) {
+    return(.uaf_empty_table(.plant_context_evidence_cols()))
+  }
+  source_occurrence = .plant_occurrence_with_source(
+    occurrence, prepared$source
+  )
+  out = .plant_context_evidence_rows_from_hits(source_occurrence, hits)
+  sentence_groups = split(seq_len(nrow(out)), hits$sentence_index)
+  rows = lapply(sentence_groups, function(idx) {
+    .plant_bind_tables(
+      .plant_prune_context_rows(lapply(idx, function(i) {
+        out[i, , drop = FALSE]
+      })),
+      .plant_context_evidence_cols()
+    )
+  })
+  .plant_bind_tables(rows, .plant_context_evidence_cols())
+}
+
+.plant_context_evidence_rows_from_hits = function(occurrence, hits) {
+  n = nrow(hits)
+  data.frame(
+    species = rep(.uaf_first_non_empty_text(occurrence$species), n),
+    species_slug = rep(.uaf_first_non_empty_text(
+      occurrence$species_slug, .plant_slug(occurrence$species)
+    ), n),
+    genus = rep(.uaf_first_non_empty_text(occurrence$genus), n),
+    family = rep(.uaf_first_non_empty_text(occurrence$family), n),
+    compound_name = rep(.uaf_first_non_empty_text(
+      occurrence$compound_name
+    ), n),
+    compound_name_clean = rep(.uaf_first_non_empty_text(
+      occurrence$compound_name_clean
+    ), n),
+    source_database = rep(.uaf_first_non_empty_text(
+      occurrence$source_database
+    ), n),
+    source_record_id = rep(.uaf_first_non_empty_text(
+      occurrence$source_record_id
+    ), n),
+    pmid = rep(.uaf_first_non_empty_text(occurrence$pmid), n),
+    evidence_url = rep(.uaf_first_non_empty_text(
+      occurrence$evidence_url
+    ), n),
+    context_type = hits$context_type,
+    raw_context_text = hits$raw_context_text,
+    normalized_context = hits$normalized_context,
+    source_field = hits$source_field,
+    extraction_rule = paste0("source_context:", hits$source_rule, ":",
+                             hits$rule_name),
+    context_confidence = hits$context_confidence,
+    evidence_basis = hits$evidence_basis,
+    requires_review = .uaf_yes_no(
+      hits$context_confidence == "low" |
+        hits$normalized_context %in% c("other", "extract_unspecified")
+    ),
+    retrieved_at = rep(.plant_timestamp(), n),
+    stringsAsFactors = FALSE
+  )
 }
 
 .plant_occurrence_with_source = function(occurrence, source) {
@@ -3713,22 +4343,48 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 }
 
 .plant_data_dictionary = function() {
-  specs = list(
-    .plant_schema("PlantQueries", .plant_query_cols(),
+	  specs = list(
+	    .plant_schema("PlantQueries", .plant_query_cols(),
                   required = c("query_id", "query_plant",
                                "query_plant_clean", "species", "species_slug"),
-                  role = "query",
-                  description = "Input plant names and query-normalized fields."),
+	                  role = "query",
+	                  description = "Input plant names and query-normalized fields."),
+	    .plant_schema("PlantQueryAliases", .plant_query_alias_cols(),
+	                  required = c("query_id", "query_plant", "species",
+	                               "alias", "alias_clean", "alias_type"),
+	                  role = "query_alias",
+	                  description = "Submitted, normalized, and verified plant-name aliases used for provider matching."),
     .plant_schema("PlantNameResolution", .plant_name_resolution_cols(),
                   required = c("query_id", "query_plant",
                                "query_status", "matched_taxon"),
                   role = "taxonomy",
                   description = "Plant name parsing and resolution status."),
-    .plant_schema("ProviderDiagnostics", .plant_provider_diagnostic_cols(),
+	    .plant_schema("ProviderDiagnostics", .plant_provider_diagnostic_cols(),
                   required = c("provider", "enabled", "queried",
                                "record_count", "error_count", "retrieved_at"),
-                  role = "diagnostics",
-                  description = "Provider availability, requests, records, and warnings."),
+	                  role = "diagnostics",
+	                  description = "Provider availability, requests, records, and warnings."),
+	    .plant_schema("ProviderQueryAccounting",
+	                  .plant_provider_query_accounting_cols(),
+	                  required = c("query_id", "species", "provider",
+	                               "query_status", "occurrence_count",
+	                               "provider_status", "retry_required"),
+	                  role = "query_accounting",
+	                  allowed = list(
+	                    query_status = c("records", "no_records",
+	                                     "retry_required"),
+	                    retry_required = .plant_yes_no_values()
+	                  ),
+	                  description = "One row per plant-provider combination distinguishing records, confirmed no-hit results, and retry-required queries."),
+	    .plant_schema("ProviderResourceManifest",
+	                  .plant_provider_resource_manifest_cols(),
+	                  required = c("provider", "resource_type", "resource_id",
+	                               "availability_status", "checked_at"),
+	                  role = "provider_resource",
+	                  allowed = list(
+	                    availability_status = c("available", "unavailable")
+	                  ),
+	                  description = "Versioned local-index and live-service resources configured for the run."),
     .plant_schema("PlantCompoundOccurrences", .plant_occurrence_cols(),
                   required = c("query_plant", "query_plant_clean",
                                "species", "compound_name",
@@ -3778,9 +4434,15 @@ print.uaf_plant_phytochemistry = function(x, ...) {
                   required = c("query_plant", "species", "source_database",
                                "evidence_tier", "confidence"),
                   role = "literature",
-                  allowed = list(confidence = .plant_confidence_values(),
-                                 evidence_tier = .plant_evidence_tiers()),
-                  description = "Publication and annotation candidates; not confirmed occurrence by default."),
+	                  allowed = list(confidence = .plant_confidence_values(),
+	                                 evidence_tier = .plant_evidence_tiers()),
+	                  description = "Publication and annotation candidates; not confirmed occurrence by default."),
+	    .plant_schema("SourceCompoundIdentity",
+	                  .plant_source_compound_identity_cols(),
+	                  required = c("compound_name", "compound_name_clean",
+	                               "source_database", "identity_status"),
+	                  role = "source_compound_identity",
+	                  description = "Chemical identifiers and structures supplied directly by occurrence providers before PubChem resolution."),
     .plant_schema("CompoundResolution", .plant_compound_resolution_cols(),
                   required = c("compound_name", "compound_name_clean",
                                "resolved"),
@@ -3873,7 +4535,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   integer_cols = grepl(
     paste(c("^input_order$", "_count$", "^RowCount$", "^ColumnCount$",
             "^request_count$", "^cache_hit_count$", "^record_count$",
-            "^error_count$", "^warning_count$", "^max_pubmed_records$",
+            "^error_count$", "^warning_count$", "^timeout_count$",
+            "^rate_limit_count$", "^max_pubmed_records$",
             "^max_provider_records$"),
           collapse = "|"),
     cols,
@@ -3900,7 +4563,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 .plant_provider_diagnostic_cols = function() {
   c("provider", "enabled", "queried", "available", "request_count",
     "cache_hit_count", "record_count", "error_count", "warning_count",
-    "status", "message", "retrieved_at", "elapsed_seconds",
+    "timeout_count", "rate_limit_count", "status", "no_hit_reason",
+    "warning_message", "message", "retrieved_at", "elapsed_seconds",
     "error_messages")
 }
 
@@ -3942,8 +4606,9 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   c("query_plant", "query_plant_clean", "species", "genus", "family",
     "source_database", "source_record_id", "pmid", "doi", "title",
     "abstract", "chemical_mention", "species_mention", "evidence_text",
-    "evidence_url", "retrieved_at", "confidence", "curation_flag",
-    "evidence_tier")
+    "evidence_url", "literature_query", "literature_total_hit_count",
+    "literature_search_truncated", "abstract_retrieval_status",
+    "retrieved_at", "confidence", "curation_flag", "evidence_tier")
 }
 
 .plant_compound_resolution_cols = function() {
@@ -4050,7 +4715,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 
 .plant_metabolism_domain_values = function() {
   c("specialized_metabolism", "primary_metabolism", "lipid_metabolism",
-    "plant_hormone_signaling", "broad_or_uncertain", "unknown")
+    "plant_hormone_signaling", "xenobiotic_or_contaminant",
+    "broad_or_uncertain", "unknown")
 }
 
 .plant_biosynthetic_family_values = function() {
@@ -4070,7 +4736,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 .plant_comparison_scope_values = function() {
   c("specialized_metabolites", "volatile_specialized_metabolites",
     "primary_metabolites", "lipids_fatty_acids",
-    "plant_hormone_signaling", "broad_or_uncertain", "unknown")
+    "plant_hormone_signaling", "xenobiotic_or_contaminant",
+    "broad_or_uncertain", "unknown")
 }
 
 .plant_context_group_values = function() {
@@ -4193,10 +4860,12 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   unique(intersect(sources, allowed))
 }
 
-.plant_provider_dispatch = function(plant_queries, sources, cache, cache_dir,
+.plant_provider_dispatch = function(plant_queries, plant_aliases, sources,
+                                    cache, cache_dir,
                                     throttle, ncbi_email, ncbi_tool,
                                     ncbi_api_key, max_pubmed_records,
                                     max_provider_records, lotus_index,
+                                    provider_indexes,
                                     provider_results,
                                     request_fun, pubtator_request_fun,
                                     request_timeout, refresh, progress) {
@@ -4204,10 +4873,16 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   literature_rows = list()
   diagnostic_rows = list()
   provenance_rows = list()
-  for (provider in sources) {
+  accounting_rows = list()
+  source_identity_rows = list()
+  pubmed_literature = .uaf_empty_table(.plant_literature_cols())
+  dispatch_sources = c(setdiff(sources, "pubtator"),
+                       intersect(sources, "pubtator"))
+  for (provider in dispatch_sources) {
     result = .plant_query_provider(
       provider = provider,
       plant_queries = plant_queries,
+      plant_aliases = plant_aliases,
       cache = cache,
       cache_dir = cache_dir,
       throttle = throttle,
@@ -4217,6 +4892,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       max_pubmed_records = max_pubmed_records,
       max_provider_records = max_provider_records,
       lotus_index = lotus_index,
+      provider_indexes = provider_indexes,
+      pubmed_literature = pubmed_literature,
       provider_results = provider_results,
       request_fun = request_fun,
       pubtator_request_fun = pubtator_request_fun,
@@ -4228,9 +4905,17 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       result$PlantCompoundOccurrences
     literature_rows[[length(literature_rows) + 1]] =
       result$LiteratureCandidates
+    if (provider == "pubmed") pubmed_literature = result$LiteratureCandidates
     diagnostic_rows[[length(diagnostic_rows) + 1]] =
       result$ProviderDiagnostics
     provenance_rows[[length(provenance_rows) + 1]] = result$Provenance
+    accounting_rows[[length(accounting_rows) + 1]] =
+      .plant_provider_query_accounting(
+        plant_queries, provider, result$PlantCompoundOccurrences,
+        result$LiteratureCandidates, result$ProviderDiagnostics
+      )
+    source_identity_rows[[length(source_identity_rows) + 1]] =
+      result$SourceCompoundIdentity
   }
   list(
     PlantCompoundOccurrences = .plant_bind_occurrences(occurrence_rows),
@@ -4238,14 +4923,23 @@ print.uaf_plant_phytochemistry = function(x, ...) {
                                               .plant_literature_cols()),
     ProviderDiagnostics = .plant_bind_tables(diagnostic_rows,
                                              .plant_provider_diagnostic_cols()),
+    ProviderQueryAccounting = .plant_bind_tables(
+      accounting_rows, .plant_provider_query_accounting_cols()
+    ),
+    SourceCompoundIdentity = .plant_merge_source_identity_tables(
+      source_identity_rows
+    ),
     Provenance = .plant_bind_tables(provenance_rows, .plant_provenance_cols())
   )
 }
 
-.plant_query_provider = function(provider, plant_queries, cache, cache_dir,
+.plant_query_provider = function(provider, plant_queries, plant_aliases,
+                                 cache, cache_dir,
                                  throttle, ncbi_email, ncbi_tool,
                                  ncbi_api_key, max_pubmed_records,
                                  max_provider_records, lotus_index,
+                                 provider_indexes,
+                                 pubmed_literature,
                                  provider_results,
                                  request_fun, pubtator_request_fun,
                                  request_timeout, refresh, progress) {
@@ -4259,23 +4953,27 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   result = switch(provider,
                   lotus = .plant_query_lotus(
                     plant_queries, cache, cache_dir, throttle, request_fun,
-                    max_provider_records, request_timeout, lotus_index),
+                    max_provider_records, request_timeout, lotus_index,
+                    plant_aliases),
                   knapsack = .plant_query_knapsack(
                     plant_queries, cache, cache_dir, throttle, request_fun,
-                    max_provider_records, request_timeout),
+                    max_provider_records, request_timeout, plant_aliases),
                   npass = .plant_query_npass(
-                    plant_queries),
+                    plant_queries, provider_indexes$npass,
+                    max_provider_records, plant_aliases),
                   pubchem = .plant_query_pubchem_occurrences(
                     plant_queries, cache, cache_dir, throttle, ncbi_email,
                     ncbi_tool, ncbi_api_key, max_provider_records,
-                    request_fun, request_timeout),
+                    request_fun, request_timeout, plant_aliases),
                   pubmed = .plant_query_pubmed_literature(
                     plant_queries, cache, cache_dir, throttle, ncbi_email,
                     ncbi_tool, ncbi_api_key, max_pubmed_records,
-                    request_fun, request_timeout),
+                    request_fun, request_timeout, plant_aliases),
                   pubtator = .plant_query_pubtator_literature(
                     plant_queries, cache, cache_dir, throttle,
-                    pubtator_request_fun, request_timeout),
+                    pubtator_request_fun, request_timeout,
+                    pubmed_literature = pubmed_literature,
+                    plant_aliases = plant_aliases),
                   .plant_provider_empty_result(provider, plant_queries,
                                                status = "not_implemented",
                                                message = paste0(
@@ -4288,6 +4986,7 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 }
 
 .plant_provider_from_result = function(provider, result, plant_queries) {
+  source_identity = .plant_empty_source_compound_identity()
   if (is.data.frame(result)) {
     occurrences = .plant_normalize_occurrences(result, source_hint = provider)
     literature = .uaf_empty_table(.plant_literature_cols())
@@ -4296,6 +4995,10 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       result$PlantCompoundOccurrences %||% result$occurrences %||%
         .uaf_empty_table(.plant_occurrence_cols()),
       source_hint = provider
+    )
+    source_identity = .plant_bind_tables(
+      list(result$SourceCompoundIdentity %||% result$source_compound_identity),
+      .plant_source_compound_identity_cols()
     )
     literature = .plant_normalize_literature(
       result$LiteratureCandidates %||% result$literature_candidates %||%
@@ -4311,6 +5014,7 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   list(
     PlantCompoundOccurrences = occurrences,
     LiteratureCandidates = literature,
+    SourceCompoundIdentity = source_identity,
     ProviderDiagnostics = .plant_provider_diagnostics(
       provider, TRUE, TRUE, TRUE, 0, 0,
       nrow(occurrences) + nrow(literature), 0, 0, "ok",
@@ -4326,15 +5030,20 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 
 .plant_query_lotus = function(plant_queries, cache, cache_dir, throttle,
                               request_fun, max_records, request_timeout,
-                              lotus_index = NULL) {
+                              lotus_index = NULL, plant_aliases = NULL) {
   lotus_index = .plant_lotus_index_or_null(lotus_index)
   if (!is.null(lotus_index)) {
-    return(.plant_query_lotus_local(plant_queries, lotus_index, max_records))
+    return(.plant_query_lotus_local(
+      plant_queries, lotus_index, max_records, plant_aliases
+    ))
   }
   rows = list()
   request_count = 0
+  cache_hit_count = 0L
   errors = 0
   error_messages = character()
+  consecutive_busy = 0L
+  circuit_open = FALSE
   requested_max_records = .plant_max_records(max_records)
   effective_max_records = if (is.null(request_fun)) {
     .plant_lotus_live_record_cap(requested_max_records)
@@ -4342,36 +5051,56 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     requested_max_records
   }
   for (i in seq_len(nrow(plant_queries))) {
-    plant = plant_queries$species[[i]]
-    url = paste0("https://lotus.naturalproducts.net/api/search/simple?query=",
-                 utils::URLencode(plant, reserved = TRUE))
-    request_count = request_count + 1
-    result = tryCatch({
-      .plant_fetch_lotus_json(url, cache, file.path(cache_dir, "lotus"),
-                              throttle, request_fun,
-                              timeout = request_timeout,
-                              max_records = effective_max_records)
-    }, error = function(error) {
-      errors <<- errors + 1
-      error_messages <<- c(error_messages, conditionMessage(error))
-      NULL
-    })
-    parsed = .plant_lotus_rows(plant_queries[i, , drop = FALSE], result,
-                               url, effective_max_records)
-    if (nrow(parsed) > 0) rows[[length(rows) + 1]] = parsed
+    query_row = plant_queries[i, , drop = FALSE]
+    terms = .plant_taxon_query_terms(query_row, plant_aliases)
+    terms = terms[terms$rank == "species", , drop = FALSE]
+    for (j in seq_len(nrow(terms))) {
+      plant = terms$term[[j]]
+      url = paste0("https://lotus.naturalproducts.net/api/search/simple?query=",
+                   utils::URLencode(plant, reserved = TRUE))
+      request_count = request_count + 1
+      result = tryCatch({
+        .plant_fetch_lotus_json(url, cache, file.path(cache_dir, "lotus"),
+                                throttle, request_fun,
+                                timeout = request_timeout,
+                                max_records = effective_max_records)
+      }, error = function(error) {
+        errors <<- errors + 1
+        error_messages <<- c(error_messages, conditionMessage(error))
+        consecutive_busy <<- .plant_provider_busy_update(consecutive_busy,
+                                                         error)
+        NULL
+      })
+      if (is.null(result) && .plant_provider_circuit_open(consecutive_busy)) {
+        circuit_open = TRUE
+        break
+      }
+      if (!is.null(result)) consecutive_busy = 0L
+      if (!is.null(result)) {
+        cache_hit_count = cache_hit_count + as.integer(.plant_cache_hit(result))
+      }
+      parsed = .plant_lotus_rows(
+        query_row, result, url, effective_max_records,
+        accepted_species = .plant_verified_species_aliases(plant_aliases,
+                                                           query_row)
+      )
+      if (nrow(parsed) > 0) rows[[length(rows) + 1]] = parsed
+    }
+    if (circuit_open) break
   }
   occurrences = .plant_bind_occurrences(rows)
   status = .plant_provider_status(nrow(occurrences), errors)
   diagnostic_note = paste(
     "LOTUS simple API taxon-oriented candidates; only rows with taxon evidence are retained.",
     .plant_lotus_live_cap_note(requested_max_records, effective_max_records,
-                               is.null(request_fun))
+                               is.null(request_fun)),
+    .plant_provider_circuit_note(circuit_open)
   )
   list(
     PlantCompoundOccurrences = occurrences,
     LiteratureCandidates = .uaf_empty_table(.plant_literature_cols()),
     ProviderDiagnostics = .plant_provider_diagnostics(
-      "lotus", TRUE, TRUE, TRUE, request_count, NA_integer_,
+      "lotus", TRUE, TRUE, TRUE, request_count, cache_hit_count,
       nrow(occurrences), errors, 0, status,
       diagnostic_note,
       error_messages = .plant_error_messages(error_messages)),
@@ -4384,14 +5113,17 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   )
 }
 
-.plant_query_lotus_local = function(plant_queries, lotus_index, max_records) {
+.plant_query_lotus_local = function(plant_queries, lotus_index, max_records,
+                                    plant_aliases = NULL) {
   started = Sys.time()
   errors = 0L
   error_messages = character()
   lookup = .plant_lotus_lookup_info(lotus_index)
   occurrences = if (!is.null(lookup)) {
     tryCatch(
-      .plant_query_lotus_lookup_index(plant_queries, lookup, max_records),
+      .plant_query_lotus_lookup_index(
+        plant_queries, lookup, max_records, plant_aliases
+      ),
       error = function(error) {
         errors <<- errors + 1L
         error_messages <<- conditionMessage(error)
@@ -4408,10 +5140,16 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       }
     )
     if (nrow(index) > 0) {
-      .plant_query_lotus_index(plant_queries, index, max_records)
+      .plant_query_lotus_index(
+        plant_queries, index, max_records, plant_aliases = plant_aliases
+      )
     } else {
       .plant_empty_occurrences()
     }
+  }
+  source_identity = attr(occurrences, "SourceCompoundIdentity")
+  if (!is.data.frame(source_identity)) {
+    source_identity = .plant_empty_source_compound_identity()
   }
   status = .plant_provider_status(nrow(occurrences), errors)
   message = if (errors > 0) {
@@ -4426,8 +5164,9 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   list(
     PlantCompoundOccurrences = occurrences,
     LiteratureCandidates = .uaf_empty_table(.plant_literature_cols()),
+    SourceCompoundIdentity = source_identity,
     ProviderDiagnostics = .plant_provider_diagnostics(
-      "lotus", TRUE, TRUE, errors < 1, 0, NA_integer_,
+      "lotus", TRUE, TRUE, errors < 1, 0, 0,
       nrow(occurrences), errors, 0, status, message,
       elapsed_seconds = round(as.numeric(difftime(Sys.time(), started,
                                                   units = "secs")), 3),
@@ -4467,11 +5206,13 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 }
 
 .plant_query_lotus_index = function(plant_queries, lotus_index,
-                                    max_records = Inf) {
+                                    max_records = Inf,
+                                    plant_aliases = NULL) {
   lookup = .plant_lotus_lookup_info(lotus_index)
   if (!is.null(lookup)) {
-    return(.plant_query_lotus_lookup_index(plant_queries, lookup,
-                                           max_records))
+    return(.plant_query_lotus_lookup_index(
+      plant_queries, lookup, max_records, plant_aliases
+    ))
   }
   index = if (is.data.frame(lotus_index) &&
               all(.plant_lotus_index_cols() %in% names(lotus_index))) {
@@ -4479,19 +5220,23 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   } else {
     standardizeLotusIndex(lotus_index)
   }
-  .plant_query_lotus_index_data(plant_queries, index, max_records)
+  .plant_query_lotus_index_data(
+    plant_queries, index, max_records, plant_aliases
+  )
 }
 
 .plant_query_lotus_index_data = function(plant_queries, index,
-                                         max_records = Inf) {
+                                         max_records = Inf,
+                                         plant_aliases = NULL) {
   if (nrow(index) < 1 || nrow(plant_queries) < 1) {
     return(.plant_empty_occurrences())
   }
   rows = list()
+  identity_rows = list()
   max_records = .plant_max_records(max_records)
   for (i in seq_len(nrow(plant_queries))) {
     query = plant_queries[i, , drop = FALSE]
-    matches = .plant_lotus_index_matches(index, query)
+    matches = .plant_lotus_index_matches(index, query, plant_aliases)
     if (nrow(matches) < 1) next
     matches$.uaf_rank_order = match(matches$matched_rank,
                                     c("species", "genus", "family",
@@ -4504,23 +5249,37 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     }
     rows[[length(rows) + 1]] =
       .plant_lotus_index_occurrences(query, matches)
+    identity_rows[[length(identity_rows) + 1]] =
+      .plant_lotus_source_identity_from_matches(matches)
   }
-  .plant_bind_occurrences(rows)
+  out = .plant_bind_occurrences(rows)
+  attr(out, "SourceCompoundIdentity") = .plant_bind_unique_tables(
+    identity_rows, .plant_source_compound_identity_cols(),
+    c("source_database", "source_record_id", "source_compound_id",
+      "InChIKey", "SMILES")
+  )
+  out
 }
 
 .plant_query_lotus_lookup_index = function(plant_queries, lookup,
-                                           max_records = Inf) {
-  index = .plant_lotus_lookup_index_rows(plant_queries, lookup)
+                                           max_records = Inf,
+                                           plant_aliases = NULL) {
+  index = .plant_lotus_lookup_index_rows(
+    plant_queries, lookup, plant_aliases
+  )
   if (nrow(index) < 1) return(.plant_empty_occurrences())
-  .plant_query_lotus_index_data(plant_queries, index, max_records)
+  .plant_query_lotus_index_data(
+    plant_queries, index, max_records, plant_aliases
+  )
 }
 
-.plant_lotus_lookup_index_rows = function(plant_queries, lookup) {
+.plant_lotus_lookup_index_rows = function(plant_queries, lookup,
+                                          plant_aliases = NULL) {
   lookup = .plant_lotus_lookup_info(lookup)
   if (is.null(lookup) || nrow(plant_queries) < 1) {
     return(.plant_empty_lotus_index())
   }
-  keys = .plant_lotus_lookup_query_keys(plant_queries)
+  keys = .plant_lotus_lookup_query_keys(plant_queries, plant_aliases)
   if (nrow(keys) < 1) return(.plant_empty_lotus_index())
   prefix_length = suppressWarnings(as.integer(
     lookup$manifest$shard_prefix_length[[1]]
@@ -4597,12 +5356,12 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   .uaf_empty_table(.plant_lotus_lookup_cols())
 }
 
-.plant_lotus_lookup_query_keys = function(plant_queries) {
+.plant_lotus_lookup_query_keys = function(plant_queries,
+                                          plant_aliases = NULL) {
   rows = list()
   for (i in seq_len(nrow(plant_queries))) {
     query = plant_queries[i, , drop = FALSE]
-    query_species = .uaf_first_non_empty_text(query$species,
-                                              query$query_plant)
+    query_species = .plant_verified_species_aliases(plant_aliases, query)
     query_genus = .uaf_first_non_empty_text(query$genus,
                                             .plant_genus(query_species))
     query_family = .uaf_first_non_empty_text(query$family)
@@ -4618,7 +5377,9 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       data.frame(index_key_type = type, index_key = value,
                  stringsAsFactors = FALSE)
     }
-    rows[[length(rows) + 1]] = add_key("species", query_species)
+    for (species_value in query_species) {
+      rows[[length(rows) + 1]] = add_key("species", species_value)
+    }
     if ("genus" %in% fallback) {
       rows[[length(rows) + 1]] = add_key("genus", query_genus)
     }
@@ -4656,8 +5417,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   file.path(root, "shards", paste0(prefix, ".csv"))
 }
 
-.plant_lotus_index_matches = function(index, query) {
-  query_species = .uaf_first_non_empty_text(query$species, query$query_plant)
+.plant_lotus_index_matches = function(index, query, plant_aliases = NULL) {
+  query_species = .plant_verified_species_aliases(plant_aliases, query)
   query_genus = .uaf_first_non_empty_text(query$genus, .plant_genus(query_species))
   query_family = .uaf_first_non_empty_text(query$family)
   fallback = .uaf_non_empty(strsplit(
@@ -4668,13 +5429,13 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   fallback = tolower(.uaf_squish_text(fallback))
 
   pieces = list()
-  species_hit = .plant_clean_name(index$species) ==
+  species_hit = .plant_clean_name(index$species) %in%
     .plant_clean_name(query_species)
   species_hit[is.na(species_hit)] = FALSE
   if (any(species_hit, na.rm = TRUE)) {
     hit = index[species_hit, , drop = FALSE]
     hit$matched_rank = "species"
-    hit$matched_taxon = query_species
+    hit$matched_taxon = hit$species
     pieces[[length(pieces) + 1]] = hit
   }
 
@@ -4748,7 +5509,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       occurrence_type = "local_lotus_index_record",
       retrieved_at = .plant_timestamp(),
       confidence = ifelse(rank == "species", "high", "medium"),
-      curation_flag = "database_record_review_recommended",
+      curation_flag = ifelse(rank == "species", "source_database_record",
+                             "taxon_fallback_review_required"),
       evidence_tier = ifelse(rank == "species",
                              "direct_species_database",
                              paste0(rank, "_database_fallback")),
@@ -4756,6 +5518,36 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     )
   })
   .plant_bind_occurrences(rows)
+}
+
+.plant_lotus_source_identity_from_matches = function(matches) {
+  if (!is.data.frame(matches) || nrow(matches) < 1) {
+    return(.plant_empty_source_compound_identity())
+  }
+  rows = lapply(seq_len(nrow(matches)), function(i) {
+    hit = matches[i, , drop = FALSE]
+    data.frame(
+      compound_name = hit$compound_name,
+      compound_name_clean = hit$compound_name_clean,
+      source_database = "LOTUS",
+      source_record_id = .plant_lotus_index_source_record_id(hit),
+      source_compound_id = .plant_lotus_index_compound_id(hit),
+      source_compound_id_type = .plant_lotus_index_compound_id_type(hit),
+      CID = suppressWarnings(as.integer(.uaf_first_non_empty_text(hit$cid))),
+      InChIKey = .uaf_first_non_empty_text(hit$inchikey),
+      SMILES = .uaf_first_non_empty_text(hit$smiles),
+      MolecularFormula = .uaf_first_non_empty_text(hit$molecular_formula),
+      evidence_url = .plant_lotus_index_evidence_url(hit),
+      evidence_text = .uaf_first_non_empty_text(
+        hit$evidence_text, .plant_lotus_index_evidence_text(hit)
+      ),
+      identity_status = NA_character_,
+      identity_note = NA_character_,
+      stringsAsFactors = FALSE
+    )
+  })
+  out = .plant_bind_tables(rows, .plant_source_compound_identity_cols())
+  .plant_annotate_source_identity_status(unique(out))
 }
 
 .plant_lotus_index_or_null = function(lotus_index) {
@@ -4786,10 +5578,14 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   if (is.character(lotus_index)) {
     if (!file.exists(lotus_index)) return(paste0("lotus_index:missing:",
                                                  lotus_index))
-    info = file.info(lotus_index)
-    return(paste("lotus_index:path", normalizePath(lotus_index,
-                                                   winslash = "/",
-                                                   mustWork = FALSE),
+    lookup = .plant_lotus_lookup_info(lotus_index)
+    signature_path = if (is.null(lookup)) lotus_index else
+      lookup$manifest_file
+    info = file.info(signature_path)
+    signature_label = if (is.null(lookup)) "path" else "lookup_manifest"
+    return(paste("lotus_index", signature_label,
+                 normalizePath(signature_path, winslash = "/",
+                               mustWork = FALSE),
                  info$size, info$mtime, sep = ":"))
   }
   paste("lotus_index:data_frame", nrow(lotus_index), ncol(lotus_index),
@@ -4797,30 +5593,74 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 }
 
 .plant_query_knapsack = function(plant_queries, cache, cache_dir, throttle,
-                                 request_fun, max_records, request_timeout) {
+                                 request_fun, max_records, request_timeout,
+                                 plant_aliases = NULL) {
   rows = list()
   request_count = 0
+  cache_hit_count = 0L
   errors = 0
   error_messages = character()
+  consecutive_busy = 0L
+  circuit_open = FALSE
+  effective_throttle = if (is.null(request_fun)) max(throttle, 1) else throttle
   for (i in seq_len(nrow(plant_queries))) {
+    if (circuit_open) break
     query_row = plant_queries[i, , drop = FALSE]
-    terms = .plant_taxon_query_terms(query_row)
+    terms = .plant_taxon_query_terms(query_row, plant_aliases)
+    terms = terms[terms$rank %in% c("species", "genus"), , drop = FALSE]
     for (j in seq_len(nrow(terms))) {
       url = paste0(
-        "https://www.knapsackfamily.com/knapsack_core/result.php?sname=organism&word=",
+        "https://www.knapsackfamily.com/knapsack_core/info.php?sname=organism&word=",
         utils::URLencode(terms$term[[j]], reserved = TRUE)
       )
       request_count = request_count + 1
       html = tryCatch({
         .plant_fetch_text(url, cache, file.path(cache_dir, "knapsack"),
-                          throttle, request_fun, timeout = request_timeout)
+                          effective_throttle, request_fun,
+                          timeout = request_timeout)
       }, error = function(error) {
         errors <<- errors + 1
         error_messages <<- c(error_messages, conditionMessage(error))
+        consecutive_busy <<- .plant_provider_busy_update(consecutive_busy,
+                                                         error)
         NULL
       })
+      if (is.null(html) && .plant_provider_circuit_open(consecutive_busy)) {
+        circuit_open = TRUE
+        break
+      }
+      if (!is.null(html)) consecutive_busy = 0L
+      if (!is.null(html)) {
+        cache_hit_count = cache_hit_count + as.integer(.plant_cache_hit(html))
+      }
+      result_url = .plant_knapsack_result_url(html, terms$term[[j]])
+      if (!is.na(result_url) && !identical(result_url, url)) {
+        request_count = request_count + 1L
+        html = tryCatch({
+          .plant_fetch_text(
+            result_url, cache, file.path(cache_dir, "knapsack"),
+            effective_throttle, request_fun, timeout = request_timeout
+          )
+        }, error = function(error) {
+          errors <<- errors + 1
+          error_messages <<- c(error_messages, conditionMessage(error))
+          consecutive_busy <<- .plant_provider_busy_update(consecutive_busy,
+                                                           error)
+          NULL
+        })
+        if (is.null(html) && .plant_provider_circuit_open(consecutive_busy)) {
+          circuit_open = TRUE
+          break
+        }
+        if (!is.null(html)) consecutive_busy = 0L
+        if (!is.null(html)) {
+          cache_hit_count = cache_hit_count + as.integer(.plant_cache_hit(html))
+        }
+      } else {
+        result_url = url
+      }
       parsed = .plant_knapsack_rows(query_row, html, terms$term[[j]],
-                                    terms$rank[[j]], url, max_records)
+                                    terms$rank[[j]], result_url, max_records)
       if (nrow(parsed) > 0) rows[[length(rows) + 1]] = parsed
     }
   }
@@ -4830,36 +5670,93 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     PlantCompoundOccurrences = occurrences,
     LiteratureCandidates = .uaf_empty_table(.plant_literature_cols()),
     ProviderDiagnostics = .plant_provider_diagnostics(
-      "knapsack", TRUE, TRUE, TRUE, request_count, NA_integer_,
+      "knapsack", TRUE, TRUE, TRUE, request_count, cache_hit_count,
       nrow(occurrences), errors, 0, status,
-      "KNApSAcK organism query records normalized from public HTML output.",
+      paste("KNApSAcK documented organism endpoint records were exact-taxon",
+            "filtered and normalized from public HTML output.",
+            .plant_provider_circuit_note(circuit_open)),
       error_messages = .plant_error_messages(error_messages)),
     Provenance = .plant_provenance("provider_dispatch", "knapsack",
                                    paste(plant_queries$query_plant,
                                          collapse = "; "),
-                                   "https://www.knapsackfamily.com/knapsack_core/result.php",
+                                   "https://www.knapsackfamily.com/knapsack_core/info.php",
                                    nrow(occurrences),
                                    "KNApSAcK organism-metabolite candidate search.")
   )
 }
 
-.plant_query_npass = function(plant_queries) {
-  .plant_provider_empty_result(
-    "npass", plant_queries, status = "not_queried",
-    message = paste("NPASS species-source data are exposed primarily through",
-                    "web search and downloadable files. Supply NPASS rows via",
-                    "`provider_results` or curated intake until a small stable",
-                    "species-query endpoint is added."))
+.plant_query_npass = function(plant_queries, npass_index, max_records,
+                              plant_aliases = NULL) {
+  if (is.null(.plant_npass_index_or_null(npass_index))) {
+    return(.plant_provider_empty_result(
+      "npass", plant_queries, status = "unavailable",
+      message = paste(
+        "NPASS requires a local NPASS 3.0 index. Build one with",
+        "`buildNpassIndex()` and supply it as `provider_indexes$npass`."
+      )
+    ))
+  }
+  started = Sys.time()
+  result = tryCatch(
+    .plant_npass_query_result(
+      plant_queries, npass_index, max_records, plant_aliases
+    ),
+    error = function(error) error
+  )
+  if (inherits(result, "error")) {
+    return(list(
+      PlantCompoundOccurrences = .plant_empty_occurrences(),
+      LiteratureCandidates = .uaf_empty_table(.plant_literature_cols()),
+      SourceCompoundIdentity = .plant_empty_source_compound_identity(),
+      ProviderDiagnostics = .plant_provider_diagnostics(
+        "npass", TRUE, TRUE, FALSE, 0, 0, 0, 1, 0, "error",
+        "The local NPASS index query failed.",
+        elapsed_seconds = round(as.numeric(difftime(Sys.time(), started,
+                                                    units = "secs")), 3),
+        error_messages = conditionMessage(result)
+      ),
+      Provenance = .plant_provenance(
+        "provider_dispatch", "npass_local_index",
+        paste(plant_queries$query_plant, collapse = "; "),
+        .uaf_first_non_empty_text(npass_index), 0,
+        "NPASS local index query failed."
+      )
+    ))
+  }
+  occurrences = result$PlantCompoundOccurrences
+  list(
+    PlantCompoundOccurrences = occurrences,
+    LiteratureCandidates = .uaf_empty_table(.plant_literature_cols()),
+    SourceCompoundIdentity = result$SourceCompoundIdentity,
+    ProviderDiagnostics = .plant_provider_diagnostics(
+      "npass", TRUE, TRUE, TRUE, 0, 0, nrow(occurrences), 0, 0,
+      .plant_provider_status(nrow(occurrences), 0),
+      paste("NPASS records were queried from a manifest-backed local",
+            "NPASS 3.0 species-source index."),
+      elapsed_seconds = round(as.numeric(difftime(Sys.time(), started,
+                                                  units = "secs")), 3)
+    ),
+    Provenance = .plant_provenance(
+      "provider_dispatch", "npass_local_index",
+      paste(plant_queries$query_plant, collapse = "; "),
+      .uaf_first_non_empty_text(npass_index), nrow(occurrences),
+      "NPASS species-compound occurrences queried from a local index."
+    )
+  )
 }
 
 .plant_query_pubchem_occurrences = function(plant_queries, cache, cache_dir,
                                             throttle, ncbi_email, ncbi_tool,
                                             ncbi_api_key, max_records,
-                                            request_fun, request_timeout) {
+                                            request_fun, request_timeout,
+                                            plant_aliases = NULL) {
   rows = list()
   request_count = 0
+  cache_hit_count = 0L
   errors = 0
   error_messages = character()
+  consecutive_busy = 0L
+  circuit_open = FALSE
   effective_throttle = throttle
   if (is.null(request_fun)) {
     has_ncbi_key = length(.uaf_non_empty(ncbi_api_key)) > 0
@@ -4867,20 +5764,71 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   }
   for (i in seq_len(nrow(plant_queries))) {
     query_row = plant_queries[i, , drop = FALSE]
-    request_count = request_count + 1
-    taxid_search = tryCatch({
-      .plant_ncbi_taxonomy_search(query_row$species[[1]], cache, cache_dir,
-                                  effective_throttle, ncbi_email, ncbi_tool,
-                                  ncbi_api_key, request_fun,
-                                  request_timeout)
-    }, error = function(error) {
-      errors <<- errors + 1
-      error_messages <<- c(error_messages, conditionMessage(error))
-      NULL
-    })
-    taxids = .plant_pubmed_ids(taxid_search)
-    if (length(taxids) < 1) next
-    taxid = taxids[[1]]
+    accepted_species = .plant_verified_species_aliases(
+      plant_aliases, query_row
+    )
+    taxon_match = NULL
+    for (query_term in accepted_species) {
+      request_count = request_count + 1L
+      taxid_search = tryCatch({
+        .plant_ncbi_taxonomy_search(query_term, cache, cache_dir,
+                                    effective_throttle, ncbi_email, ncbi_tool,
+                                    ncbi_api_key, request_fun,
+                                    request_timeout)
+      }, error = function(error) {
+        errors <<- errors + 1L
+        error_messages <<- c(error_messages, conditionMessage(error))
+        consecutive_busy <<- .plant_provider_busy_update(consecutive_busy,
+                                                         error)
+        NULL
+      })
+      if (is.null(taxid_search) &&
+          .plant_provider_circuit_open(consecutive_busy)) {
+        circuit_open = TRUE
+        break
+      }
+      if (!is.null(taxid_search)) consecutive_busy = 0L
+      if (!is.null(taxid_search)) {
+        cache_hit_count = cache_hit_count +
+          as.integer(.plant_cache_hit(taxid_search))
+      }
+      taxids = .plant_pubmed_ids(taxid_search)
+      if (length(taxids) < 1) next
+      request_count = request_count + 1L
+      taxid_summary = tryCatch({
+        .plant_ncbi_taxonomy_summary(
+          taxids, cache, cache_dir, effective_throttle, ncbi_email,
+          ncbi_tool, ncbi_api_key, request_fun, request_timeout
+        )
+      }, error = function(error) {
+        errors <<- errors + 1L
+        error_messages <<- c(error_messages, conditionMessage(error))
+        consecutive_busy <<- .plant_provider_busy_update(consecutive_busy,
+                                                         error)
+        NULL
+      })
+      if (is.null(taxid_summary) &&
+          .plant_provider_circuit_open(consecutive_busy)) {
+        circuit_open = TRUE
+        break
+      }
+      if (!is.null(taxid_summary)) consecutive_busy = 0L
+      if (!is.null(taxid_summary)) {
+        cache_hit_count = cache_hit_count +
+          as.integer(.plant_cache_hit(taxid_summary))
+      }
+      matches = .plant_verified_taxonomy_matches(
+        taxid_summary, taxids, accepted_species
+      )
+      if (nrow(matches) > 0) {
+        taxon_match = matches[1, , drop = FALSE]
+        break
+      }
+    }
+    if (circuit_open) break
+    if (is.null(taxon_match) || nrow(taxon_match) < 1) next
+    taxid = taxon_match$taxid[[1]]
+    matched_scientific_name = taxon_match$scientific_name[[1]]
     url = paste0("https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/taxonomy/",
                  utils::URLencode(taxid, reserved = TRUE), "/JSON")
     request_count = request_count + 1
@@ -4891,10 +5839,21 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     }, error = function(error) {
       errors <<- errors + 1
       error_messages <<- c(error_messages, conditionMessage(error))
+      consecutive_busy <<- .plant_provider_busy_update(consecutive_busy,
+                                                       error)
       NULL
     })
+    if (is.null(result) && .plant_provider_circuit_open(consecutive_busy)) {
+      circuit_open = TRUE
+      break
+    }
+    if (!is.null(result)) consecutive_busy = 0L
+    if (!is.null(result)) {
+      cache_hit_count = cache_hit_count + as.integer(.plant_cache_hit(result))
+    }
     parsed = .plant_pubchem_taxonomy_rows(query_row, taxid, result, url,
                                           max_records)
+    if (nrow(parsed) > 0) parsed$matched_taxon = matched_scientific_name
     parsed_parts = list(parsed)
     remaining = .plant_remaining_records(parsed_parts, max_records)
     specs = .plant_pubchem_taxonomy_external_specs(result)
@@ -4920,12 +5879,27 @@ print.uaf_plant_phytochemistry = function(x, ...) {
         }, error = function(error) {
           errors <<- errors + 1
           error_messages <<- c(error_messages, conditionMessage(error))
+          consecutive_busy <<- .plant_provider_busy_update(consecutive_busy,
+                                                           error)
           NULL
         })
+        if (is.null(external_result) &&
+            .plant_provider_circuit_open(consecutive_busy)) {
+          circuit_open = TRUE
+          break
+        }
+        if (!is.null(external_result)) consecutive_busy = 0L
+        if (!is.null(external_result)) {
+          cache_hit_count = cache_hit_count +
+            as.integer(.plant_cache_hit(external_result))
+        }
         external_rows = .plant_pubchem_taxonomy_external_rows(
           query_row, taxid, specs[j, , drop = FALSE], external_result,
           external_url, remaining
         )
+        if (nrow(external_rows) > 0) {
+          external_rows$matched_taxon = matched_scientific_name
+        }
         if (nrow(external_rows) > 0) {
           parsed_parts[[length(parsed_parts) + 1]] = external_rows
         }
@@ -4937,6 +5911,7 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       parsed = parsed[seq_len(max_rows), , drop = FALSE]
     }
     if (nrow(parsed) > 0) rows[[length(rows) + 1]] = parsed
+    if (circuit_open) break
   }
   occurrences = .plant_bind_occurrences(rows)
   status = .plant_provider_status(nrow(occurrences), errors)
@@ -4944,9 +5919,10 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     PlantCompoundOccurrences = occurrences,
     LiteratureCandidates = .uaf_empty_table(.plant_literature_cols()),
     ProviderDiagnostics = .plant_provider_diagnostics(
-      "pubchem", TRUE, TRUE, TRUE, request_count, NA_integer_,
+      "pubchem", TRUE, TRUE, TRUE, request_count, cache_hit_count,
       nrow(occurrences), errors, 0, status,
-      "PubChem taxonomy PUG-View and external-table chemical annotations; review evidence context before treating as occurrence.",
+      paste("PubChem taxonomy PUG-View and external-table chemical annotations; review evidence context before treating as occurrence.",
+            .plant_provider_circuit_note(circuit_open)),
       error_messages = .plant_error_messages(error_messages)),
     Provenance = .plant_provenance("provider_dispatch", "pubchem",
                                    paste(plant_queries$query_plant,
@@ -4960,19 +5936,26 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 .plant_query_pubmed_literature = function(plant_queries, cache, cache_dir,
                                           throttle, ncbi_email, ncbi_tool,
                                           ncbi_api_key, max_pubmed_records,
-                                          request_fun, request_timeout) {
+                                          request_fun, request_timeout,
+                                          plant_aliases = NULL) {
   rows = list()
   request_count = 0
+  cache_hit_count = 0L
   errors = 0
   error_messages = character()
+  consecutive_busy = 0L
+  circuit_open = FALSE
   effective_throttle = throttle
   if (is.null(request_fun)) {
     has_ncbi_key = length(.uaf_non_empty(ncbi_api_key)) > 0
     effective_throttle = max(throttle, ifelse(has_ncbi_key, 0.10, 0.34))
   }
   for (i in seq_len(nrow(plant_queries))) {
-    plant = plant_queries$species[[i]]
-    term = .plant_pubmed_query(plant)
+    query_row = plant_queries[i, , drop = FALSE]
+    accepted_species = .plant_verified_species_aliases(
+      plant_aliases, query_row
+    )
+    term = .plant_pubmed_query(accepted_species)
     esearch_url = .plant_ncbi_url(
       endpoint = "esearch.fcgi",
       params = c(db = "pubmed", term = term, retmode = "json",
@@ -4988,9 +5971,21 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     }, error = function(error) {
       errors <<- errors + 1
       error_messages <<- c(error_messages, conditionMessage(error))
+      consecutive_busy <<- .plant_provider_busy_update(consecutive_busy,
+                                                       error)
       NULL
     })
+    if (is.null(search) && .plant_provider_circuit_open(consecutive_busy)) {
+      circuit_open = TRUE
+      break
+    }
+    if (!is.null(search)) consecutive_busy = 0L
+    if (!is.null(search)) {
+      cache_hit_count = cache_hit_count + as.integer(.plant_cache_hit(search))
+    }
     ids = .plant_pubmed_ids(search)
+    total_hits = .plant_pubmed_total_hits(search, length(ids))
+    truncated = is.finite(total_hits) && total_hits > length(ids)
     if (length(ids) < 1) next
     summary_url = .plant_ncbi_url(
       endpoint = "esummary.fcgi",
@@ -5006,11 +6001,51 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     }, error = function(error) {
       errors <<- errors + 1
       error_messages <<- c(error_messages, conditionMessage(error))
+      consecutive_busy <<- .plant_provider_busy_update(consecutive_busy,
+                                                       error)
       NULL
     })
+    if (is.null(summary) && .plant_provider_circuit_open(consecutive_busy)) {
+      circuit_open = TRUE
+      break
+    }
+    if (!is.null(summary)) consecutive_busy = 0L
+    if (!is.null(summary)) {
+      cache_hit_count = cache_hit_count + as.integer(.plant_cache_hit(summary))
+    }
+    fetch_url = .plant_ncbi_url(
+      endpoint = "efetch.fcgi",
+      params = c(db = "pubmed", id = paste(ids, collapse = ","),
+                 retmode = "xml", rettype = "abstract", tool = ncbi_tool,
+                 email = ncbi_email),
+      api_key = ncbi_api_key
+    )
+    request_count = request_count + 1L
+    abstracts = tryCatch({
+      xml = .plant_fetch_text(fetch_url, cache,
+                              file.path(cache_dir, "pubmed_abstracts"),
+                              effective_throttle, request_fun,
+                              timeout = request_timeout)
+      cache_hit_count = cache_hit_count + as.integer(.plant_cache_hit(xml))
+      .plant_pubmed_abstracts(xml)
+    }, error = function(error) {
+      errors <<- errors + 1L
+      error_messages <<- c(error_messages, conditionMessage(error))
+      consecutive_busy <<- .plant_provider_busy_update(consecutive_busy, error)
+      character()
+    })
+    if (length(abstracts) < 1 &&
+        .plant_provider_circuit_open(consecutive_busy)) {
+      circuit_open = TRUE
+      break
+    }
+    if (length(abstracts) > 0) consecutive_busy = 0L
     rows[[length(rows) + 1]] =
-      .plant_pubmed_summary_rows(plant_queries[i, , drop = FALSE], ids,
-                                 summary)
+      .plant_pubmed_summary_rows(query_row, ids,
+                                 summary, abstracts = abstracts,
+                                 total_hits = total_hits,
+                                 truncated = truncated,
+                                 query = term)
   }
   literature = .plant_bind_tables(rows, .plant_literature_cols())
   status = .plant_provider_status(nrow(literature), errors)
@@ -5018,9 +6053,10 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     PlantCompoundOccurrences = .plant_empty_occurrences(),
     LiteratureCandidates = literature,
     ProviderDiagnostics = .plant_provider_diagnostics(
-      "pubmed", TRUE, TRUE, TRUE, request_count, NA_integer_,
+      "pubmed", TRUE, TRUE, TRUE, request_count, cache_hit_count,
       nrow(literature), errors, 0, status,
-      "PubMed E-utilities literature candidates; not confirmed occurrence.",
+      paste("PubMed E-utilities literature candidates; not confirmed occurrence.",
+            .plant_provider_circuit_note(circuit_open)),
       error_messages = .plant_error_messages(error_messages)),
     Provenance = .plant_provenance("provider_dispatch", "pubmed",
                                    paste(plant_queries$query_plant,
@@ -5033,18 +6069,101 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 
 .plant_query_pubtator_literature = function(plant_queries, cache, cache_dir,
                                             throttle, request_fun,
-                                            request_timeout) {
+                                            request_timeout,
+                                            pubmed_literature = NULL,
+                                            batch_size = 100,
+                                            plant_aliases = NULL) {
   rows = list()
   request_count = 0
+  cache_hit_count = 0L
   errors = 0
   error_messages = character()
+  no_record_pmids = character()
+  consecutive_busy = 0L
+  circuit_open = FALSE
   effective_throttle = if (is.null(request_fun)) max(throttle, 0.34) else
     throttle
-  for (i in seq_len(nrow(plant_queries))) {
-    plant = plant_queries$species[[i]]
+  pubmed_literature = .plant_normalize_literature(pubmed_literature, "pubmed")
+  pmids = unique(.uaf_non_empty(pubmed_literature$pmid))
+  invalid_pmids = pmids[!grepl("^[0-9]+$", pmids)]
+  if (length(invalid_pmids) > 0L) {
+    errors = errors + 1L
+    error_messages = c(
+      error_messages,
+      paste("PubTator received non-numeric PMID values:",
+            paste(invalid_pmids, collapse = ", "))
+    )
+    pmids = setdiff(pmids, invalid_pmids)
+  }
+  if (length(pmids) > 0) {
+    groups = split(pmids, ceiling(seq_along(pmids) / max(1L, batch_size)))
+    documents = list()
+    for (group in groups) {
+      url = paste0(
+        "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/publications/export/biocjson?pmids=",
+        paste(group, collapse = ",")
+      )
+      request_count = request_count + 1L
+      result = tryCatch({
+        .plant_fetch_json(url, cache, file.path(cache_dir, "pubtator_bioc"),
+                          effective_throttle, request_fun,
+                          timeout = request_timeout)
+      }, error = function(error) {
+        if (.plant_pubtator_no_records_error(error, group)) {
+          no_record_pmids <<- unique(c(no_record_pmids, group))
+          .plant_pubtator_cache_no_records(
+            url, group, cache, file.path(cache_dir, "pubtator_bioc")
+          )
+          return(NULL)
+        }
+        errors <<- errors + 1L
+        error_messages <<- c(error_messages, conditionMessage(error))
+        consecutive_busy <<- .plant_provider_busy_update(consecutive_busy,
+                                                         error)
+        NULL
+      })
+      if (is.null(result) && .plant_provider_circuit_open(consecutive_busy)) {
+        circuit_open = TRUE
+        break
+      }
+      if (!is.null(result)) consecutive_busy = 0L
+      if (!is.null(result)) {
+        cache_hit_count = cache_hit_count + as.integer(.plant_cache_hit(result))
+        cached_no_records = tryCatch(
+          unlist(result$uafR_no_records$pmids, use.names = FALSE),
+          error = function(error) character()
+        )
+        no_record_pmids = unique(c(no_record_pmids,
+                                   .uaf_non_empty(cached_no_records)))
+      }
+      documents = c(documents, .plant_pubtator_docs(result))
+    }
+    for (i in seq_len(nrow(plant_queries))) {
+      species_pmids = unique(.uaf_non_empty(pubmed_literature$pmid[
+        pubmed_literature$species == plant_queries$species[[i]]
+      ]))
+      docs = documents[vapply(documents, function(doc) {
+        .uaf_first_non_empty_text(doc$pmid, doc$id, doc$sourceid) %in%
+          species_pmids
+      }, logical(1))]
+      query_row = plant_queries[i, , drop = FALSE]
+      parsed = .plant_pubtator_rows(
+        query_row, docs,
+        accepted_species = .plant_verified_species_aliases(
+          plant_aliases, query_row
+        )
+      )
+      rows[[length(rows) + 1]] = parsed$LiteratureCandidates
+    }
+  } else for (i in seq_len(nrow(plant_queries))) {
+    query_row = plant_queries[i, , drop = FALSE]
+    accepted_species = .plant_verified_species_aliases(
+      plant_aliases, query_row
+    )
     url = paste0("https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/",
                  "?text=", utils::URLencode(
-                   paste(plant, "phytochemical metabolite"),
+                   paste(paste(accepted_species, collapse = " OR "),
+                         "phytochemical metabolite"),
                    reserved = TRUE))
     request_count = request_count + 1
     result = tryCatch({
@@ -5054,9 +6173,21 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     }, error = function(error) {
       errors <<- errors + 1
       error_messages <<- c(error_messages, conditionMessage(error))
+      consecutive_busy <<- .plant_provider_busy_update(consecutive_busy,
+                                                       error)
       NULL
     })
-    parsed = .plant_pubtator_rows(plant_queries[i, , drop = FALSE], result)
+    if (is.null(result) && .plant_provider_circuit_open(consecutive_busy)) {
+      circuit_open = TRUE
+      break
+    }
+    if (!is.null(result)) consecutive_busy = 0L
+    if (!is.null(result)) {
+      cache_hit_count = cache_hit_count + as.integer(.plant_cache_hit(result))
+    }
+    parsed = .plant_pubtator_rows(
+      query_row, result, accepted_species = accepted_species
+    )
     rows[[length(rows) + 1]] = parsed$LiteratureCandidates
   }
   literature = .plant_bind_tables(rows, .plant_literature_cols())
@@ -5066,9 +6197,15 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     PlantCompoundOccurrences = occurrences,
     LiteratureCandidates = literature,
     ProviderDiagnostics = .plant_provider_diagnostics(
-      "pubtator", TRUE, TRUE, TRUE, request_count, NA_integer_,
+      "pubtator", TRUE, TRUE, TRUE, request_count, cache_hit_count,
       nrow(literature), errors, 0, status,
-      "PubTator candidate co-mentions; not confirmed occurrence.",
+      paste("PubTator BioC annotations for PubMed PMIDs (free-text search",
+            "fallback when no PubMed candidates exist); co-mentions are not",
+            "confirmed occurrence.", if (length(no_record_pmids) > 0L) {
+              paste(length(no_record_pmids),
+                    "PMID(s) had no indexed PubTator record.")
+            } else "",
+            .plant_provider_circuit_note(circuit_open)),
       error_messages = .plant_error_messages(error_messages)),
     Provenance = .plant_provenance("provider_dispatch", "pubtator",
                                    paste(plant_queries$query_plant,
@@ -5079,12 +6216,42 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   )
 }
 
+.plant_pubtator_no_records_error = function(error, pmids) {
+  pmids = .uaf_non_empty(pmids)
+  length(pmids) > 0L && all(grepl("^[0-9]+$", pmids)) &&
+    grepl("(?:HTTP(?: status)?(?: was)?[^0-9]*)?400(?: Bad Request)?",
+          conditionMessage(error), ignore.case = TRUE, perl = TRUE)
+}
+
+.plant_pubtator_cache_no_records = function(url, pmids, cache, cache_dir) {
+  if (!isTRUE(cache)) return(invisible(NULL))
+  dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
+  cache_file = file.path(cache_dir, paste0(.pubchem_url_hash(url), ".json"))
+  payload = jsonlite::toJSON(
+    list(
+      PubTator3 = list(),
+      uafR_no_records = list(
+        reason = paste(
+          "HTTP 400 for a numeric PMID export batch;",
+          "no indexed PubTator record returned."
+        ),
+        pmids = as.list(as.character(pmids)),
+        recorded_at = .plant_timestamp()
+      )
+    ),
+    auto_unbox = TRUE, null = "null", na = "null"
+  )
+  .pubchem_atomic_write_text(payload, cache_file)
+  invisible(cache_file)
+}
+
 .plant_provider_empty_result = function(provider, plant_queries,
                                         status = "no_records",
                                         message = "No provider records returned.") {
   list(
     PlantCompoundOccurrences = .plant_empty_occurrences(),
     LiteratureCandidates = .uaf_empty_table(.plant_literature_cols()),
+    SourceCompoundIdentity = .plant_empty_source_compound_identity(),
     ProviderDiagnostics = .plant_provider_diagnostics(
       provider = provider,
       enabled = TRUE,
@@ -5114,12 +6281,59 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   "no_records"
 }
 
+.plant_service_busy_message = function(message) {
+  message = paste(.uaf_non_empty(message), collapse = " ")
+  nzchar(message) && grepl(
+    "(^|[^0-9])(429|503)([^0-9]|$)|rate[ -]?limit|service[ -]?busy|service unavailable|temporar(il)?y unavailable",
+    message,
+    ignore.case = TRUE
+  )
+}
+
+.plant_provider_busy_update = function(current, error) {
+  if (.plant_service_busy_message(conditionMessage(error))) {
+    as.integer(current) + 1L
+  } else {
+    0L
+  }
+}
+
+.plant_provider_circuit_open = function(consecutive_busy, limit = 2L) {
+  is.finite(consecutive_busy) && consecutive_busy >= limit
+}
+
+.plant_provider_circuit_note = function(circuit_open) {
+  if (!isTRUE(circuit_open)) return("")
+  paste(
+    "The provider circuit breaker stopped this chunk after two consecutive",
+    "rate-limit or service-busy errors; resume later with the existing cache."
+  )
+}
+
 .plant_provider_diagnostics = function(provider, enabled, queried, available,
                                        request_count, cache_hit_count,
                                        record_count, error_count,
                                        warning_count, status, message,
                                        elapsed_seconds = NA_real_,
-                                       error_messages = NA_character_) {
+                                       error_messages = NA_character_,
+                                       timeout_count = NA_integer_,
+                                       rate_limit_count = NA_integer_,
+                                       no_hit_reason = NA_character_) {
+  timeout_count = .plant_provider_event_count(
+    timeout_count, error_messages, "timeout"
+  )
+  rate_limit_count = .plant_provider_event_count(
+    rate_limit_count, error_messages, "rate_limit"
+  )
+  no_hit_reason = .plant_provider_no_hit_reason(
+    status, record_count, error_count, no_hit_reason
+  )
+  warning_message = if (tolower(.uaf_first_non_empty_text(status, "")) %in%
+                        c("warning", "error", "failed", "timeout",
+                          "timed_out", "rate_limited", "unavailable",
+                          "not_queried", "not_implemented")) {
+    .plant_error_messages(c(message, error_messages))
+  } else NA_character_
   data.frame(
     provider = provider,
     enabled = .uaf_yes_no(enabled),
@@ -5130,13 +6344,55 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     record_count = suppressWarnings(as.integer(record_count)),
     error_count = suppressWarnings(as.integer(error_count)),
     warning_count = suppressWarnings(as.integer(warning_count)),
+    timeout_count = suppressWarnings(as.integer(timeout_count)),
+    rate_limit_count = suppressWarnings(as.integer(rate_limit_count)),
     status = status,
-    message = message,
+    no_hit_reason = no_hit_reason,
+    warning_message = .plant_redact_secrets(warning_message),
+    message = .plant_redact_secrets(message),
     retrieved_at = .plant_timestamp(),
     elapsed_seconds = suppressWarnings(as.numeric(elapsed_seconds)),
-    error_messages = .uaf_first_non_empty_text(error_messages),
+    error_messages = .uaf_first_non_empty_text(
+      .plant_redact_secrets(error_messages)
+    ),
     stringsAsFactors = FALSE
   )
+}
+
+.plant_provider_event_count = function(value, messages,
+                                        type = c("timeout", "rate_limit")) {
+  type = match.arg(type)
+  numeric_value = suppressWarnings(as.integer(value[[1]]))
+  if (is.finite(numeric_value)) return(numeric_value)
+  messages = .uaf_non_empty(.plant_redact_secrets(messages))
+  if (length(messages) < 1) return(0L)
+  pattern = if (type == "timeout") {
+    "time[ -]?out|timed out|operation.*timed"
+  } else {
+    "(^|[^0-9])(429|503)([^0-9]|$)|rate[ -]?limit|service[ -]?busy|service unavailable"
+  }
+  as.integer(sum(vapply(messages, grepl, logical(1), pattern = pattern,
+                        ignore.case = TRUE, perl = TRUE)))
+}
+
+.plant_provider_no_hit_reason = function(status, record_count, error_count,
+                                          supplied = NA_character_) {
+  supplied = .uaf_first_non_empty_text(supplied)
+  if (!is.na(supplied)) return(supplied)
+  status = tolower(.uaf_first_non_empty_text(status, "unknown"))
+  records = suppressWarnings(as.numeric(record_count[[1]]))
+  errors = suppressWarnings(as.numeric(error_count[[1]]))
+  if (is.finite(records) && records > 0) return(NA_character_)
+  if (status %in% c("unavailable", "not_implemented")) {
+    return("provider_unavailable")
+  }
+  if (status %in% c("not_queried", "disabled")) return("provider_not_queried")
+  if ((is.finite(errors) && errors > 0) ||
+      status %in% c("error", "failed", "warning", "timeout", "timed_out",
+                    "rate_limited", "service_unavailable")) {
+    return("provider_error_or_incomplete_query")
+  }
+  "no_records_returned_for_exact_query"
 }
 
 .plant_provider_finish = function(result, provider, started, progress) {
@@ -5146,6 +6402,7 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     result = list(
       PlantCompoundOccurrences = .plant_empty_occurrences(),
       LiteratureCandidates = .uaf_empty_table(.plant_literature_cols()),
+      SourceCompoundIdentity = .plant_empty_source_compound_identity(),
       ProviderDiagnostics = .plant_provider_diagnostics(
         provider, TRUE, TRUE, FALSE, 0, 0, 0, 1, 0, "warning",
         "Provider adapter returned a non-list result.",
@@ -5156,6 +6413,15 @@ print.uaf_plant_phytochemistry = function(x, ...) {
                                      "Provider adapter returned a non-list result.")
     )
   }
+  supplied_identity = if (is.data.frame(result$SourceCompoundIdentity)) {
+    result$SourceCompoundIdentity
+  } else {
+    .plant_empty_source_compound_identity()
+  }
+  result$SourceCompoundIdentity = .plant_merge_source_identity_tables(list(
+    supplied_identity,
+    .plant_source_identity_from_occurrences(result$PlantCompoundOccurrences)
+  ))
   if (is.data.frame(result$ProviderDiagnostics)) {
     result$ProviderDiagnostics$elapsed_seconds = elapsed
   }
@@ -5166,10 +6432,104 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   result
 }
 
+.plant_source_identity_from_occurrences = function(occurrences) {
+  occurrences = .plant_normalize_occurrences(occurrences)
+  if (nrow(occurrences) < 1) return(.plant_empty_source_compound_identity())
+  keep = !is.na(occurrences$compound_id) & occurrences$compound_id != ""
+  occurrences = occurrences[keep, , drop = FALSE]
+  if (nrow(occurrences) < 1) return(.plant_empty_source_compound_identity())
+  cid_type = grepl("pubchem.*cid|^cid$",
+                   tolower(.uaf_squish_text(occurrences$compound_id_type)))
+  cid = rep(NA_integer_, nrow(occurrences))
+  cid[cid_type] = suppressWarnings(as.integer(occurrences$compound_id[cid_type]))
+  molecular_formula = rep(NA_character_, nrow(occurrences))
+  knapsack = grepl("knapsack",
+                   tolower(.uaf_squish_text(occurrences$source_database)))
+  molecular_formula[knapsack] = vapply(
+    occurrences$evidence_text[knapsack],
+    .plant_knapsack_formula_from_evidence,
+    character(1)
+  )
+  out = data.frame(
+    compound_name = occurrences$compound_name,
+    compound_name_clean = occurrences$compound_name_clean,
+    source_database = occurrences$source_database,
+    source_record_id = occurrences$source_record_id,
+    source_compound_id = occurrences$compound_id,
+    source_compound_id_type = occurrences$compound_id_type,
+    CID = cid,
+    InChIKey = NA_character_,
+    SMILES = NA_character_,
+    MolecularFormula = molecular_formula,
+    evidence_url = occurrences$evidence_url,
+    evidence_text = occurrences$evidence_text,
+    identity_status = "source_identifier_only",
+    identity_note = paste(
+      "The provider supplied this identifier; no structure was inferred from",
+      "the occurrence row. Cross-source identity validation is still required."
+    ),
+    stringsAsFactors = FALSE
+  )
+  .plant_bind_unique_tables(
+    list(out), .plant_source_compound_identity_cols(),
+    c("source_database", "source_record_id", "source_compound_id")
+  )
+}
+
+.plant_knapsack_formula_from_evidence = function(text) {
+  text = .uaf_first_non_empty_text(text)
+  if (is.na(text)) return(NA_character_)
+  match = regexec("(?:Molecular_formula|Formula)=([^;]+)", text,
+                  ignore.case = TRUE, perl = TRUE)
+  value = regmatches(text, match)[[1]]
+  if (length(value) < 2) return(NA_character_)
+  formula = .uaf_squish_text(value[[2]])
+  if (!.plant_formula_like(formula)) NA_character_ else formula
+}
+
+.plant_merge_source_identity_tables = function(tables) {
+  out = .plant_bind_tables(tables, .plant_source_compound_identity_cols())
+  if (nrow(out) < 1) return(out)
+  source_key = paste(
+    .plant_clean_name(out$source_database),
+    .uaf_squish_text(out$source_record_id),
+    .uaf_squish_text(out$source_compound_id),
+    sep = "\r"
+  )
+  cid_numeric = suppressWarnings(as.numeric(out$CID))
+  has_specific_identity =
+    (!is.na(cid_numeric) & is.finite(cid_numeric)) |
+    (!is.na(out$InChIKey) & out$InChIKey != "") |
+    (!is.na(out$SMILES) & out$SMILES != "") |
+    (!is.na(out$MolecularFormula) & out$MolecularFormula != "")
+  specific_keys = unique(source_key[has_specific_identity])
+  drop_generic = !has_specific_identity & source_key %in% specific_keys
+  out = out[!drop_generic, , drop = FALSE]
+  key = paste(source_key[!drop_generic],
+              .uaf_squish_text(out$InChIKey),
+              .uaf_squish_text(out$SMILES), sep = "\r")
+  out = out[!duplicated(key), , drop = FALSE]
+  row.names(out) = NULL
+  out
+}
+
 .plant_error_messages = function(messages) {
-  messages = unique(.uaf_non_empty(messages))
+  messages = unique(.uaf_non_empty(.plant_redact_secrets(messages)))
   if (length(messages) < 1) return(NA_character_)
   .plant_truncate(paste(messages, collapse = " | "), 1000)
+}
+
+.plant_redact_secrets = function(x) {
+  x = as.character(x)
+  gsub(
+    paste0(
+      "(?i)(\\b(?:api[ _-]?key|access[ _-]?token|password|secret)",
+      "\\s*[:=]\\s*)[^,;&\\s\"'<>]+"
+    ),
+    "\\1[REDACTED]",
+    x,
+    perl = TRUE
+  )
 }
 
 .plant_progress = function(progress, ...) {
@@ -5511,7 +6871,9 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 }
 
 .plant_occurrences_from_input = function(x) {
-  if (inherits(x, "uaf_plant_phytochemistry")) {
+  if ((inherits(x, "uaf_plant_phytochemistry") ||
+       (is.list(x) && !is.data.frame(x))) &&
+      is.data.frame(x$PlantCompoundOccurrences)) {
     return(.plant_normalize_occurrences(x$PlantCompoundOccurrences))
   }
   if (is.data.frame(x) && all(.plant_occurrence_cols() %in% names(x))) {
@@ -5524,10 +6886,16 @@ print.uaf_plant_phytochemistry = function(x, ...) {
                                               throttle, batch_size, resume,
                                               progress, pubchem_fun,
                                               request_fun,
-                                              lotus_index = NULL) {
+                                              lotus_index = NULL,
+                                              source_identity = NULL,
+                                              source_only = FALSE) {
   occurrences = .plant_normalize_occurrences(occurrences)
   compounds = sort(unique(.uaf_non_empty(occurrences$compound_name)))
-  source_identity = .plant_source_compound_identity(occurrences, lotus_index)
+  source_identity = .plant_merge_source_identity_tables(list(
+    source_identity,
+    .plant_source_compound_identity(occurrences, lotus_index)
+  ))
+  source_identity = .plant_annotate_source_identity_status(source_identity)
   source_resolution = .plant_source_compound_resolution(occurrences,
                                                         source_identity)
   if (length(compounds) < 1) {
@@ -5545,9 +6913,11 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   source_resolved = source_resolution$compound_name_clean[
     source_resolution$resolved %in% TRUE
   ]
-  pubchem_compounds = compounds[
-    !.plant_clean_compound(compounds) %in% source_resolved
-  ]
+  pubchem_compounds = if (isTRUE(source_only)) {
+    character()
+  } else {
+    compounds[!.plant_clean_compound(compounds) %in% source_resolved]
+  }
   categorate_result = if (length(pubchem_compounds) > 0) {
     .plant_pubchem_identity_categorate(
       compounds = pubchem_compounds,
@@ -5560,6 +6930,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       pubchem_fun = pubchem_fun,
       request_fun = request_fun
     )
+  } else if (isTRUE(source_only)) {
+    .plant_empty_identity_categorate("source_identity_only")
   } else {
     .plant_empty_identity_categorate("source_identity_only")
   }
@@ -5604,6 +6976,17 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       .plant_enrichment_note(categorate_result)
     )
   )
+}
+
+.plant_source_identity_from_input = function(x) {
+  supplied = if (is.list(x) && !is.data.frame(x) &&
+                 is.data.frame(x$SourceCompoundIdentity)) {
+    x$SourceCompoundIdentity
+  } else {
+    attr(x, "SourceCompoundIdentity", exact = TRUE)
+  }
+  if (!is.data.frame(supplied)) return(.plant_empty_source_compound_identity())
+  .plant_merge_source_identity_tables(list(supplied))
 }
 
 .plant_source_compound_identity = function(occurrences, lotus_index = NULL) {
@@ -5739,23 +7122,34 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     group = identity[idx, , drop = FALSE]
     structures = unique(.uaf_non_empty(group$SMILES))
     inchikeys = unique(.uaf_non_empty(group$InChIKey))
+    cids = unique(.uaf_non_empty(as.character(group$CID)))
     formulas = unique(.uaf_non_empty(group$MolecularFormula))
-    if (length(structures) == 1 || length(inchikeys) == 1) {
+    sources = unique(.uaf_non_empty(group$source_database))
+    source_label = .pubchem_collapse(sources)
+    conflicting = length(structures) > 1 || length(inchikeys) > 1 ||
+      length(cids) > 1
+    if (!conflicting && (length(structures) == 1 || length(inchikeys) == 1)) {
       identity$identity_status[idx] = "source_structure_unique"
       identity$identity_note[idx] =
-        "Resolved from a unique source-backed LOTUS structure for this normalized compound key."
-    } else if (length(structures) > 1 || length(inchikeys) > 1) {
+        paste0("Resolved from one non-conflicting source-backed structure for ",
+               "this normalized compound key (source: ", source_label, ").")
+    } else if (conflicting) {
       identity$identity_status[idx] = "source_structure_ambiguous"
       identity$identity_note[idx] =
-        "Multiple LOTUS source structures map to this normalized compound key; review at source-record level before assigning one structure."
+        paste0("Conflicting source structures, InChIKeys, or CIDs map to this ",
+               "normalized compound key; review source records before assigning ",
+               "one identity (sources: ", source_label, ").")
     } else if (length(formulas) == 1) {
       identity$identity_status[idx] = "source_formula_only"
       identity$identity_note[idx] =
-        "LOTUS provides a formula but no unique structure; keep unresolved for structure-required workflows."
+        paste0("A source provides one formula but no unique structure; keep ",
+               "unresolved for structure-required workflows (source: ",
+               source_label, ").")
     } else {
       identity$identity_status[idx] = "source_identity_incomplete"
       identity$identity_note[idx] =
-        "LOTUS source record did not provide a usable structure or formula."
+        paste0("The source record did not provide a usable structure or ",
+               "formula (source: ", source_label, ").")
     }
   }
   identity
@@ -5765,6 +7159,7 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   occurrences = .plant_normalize_occurrences(occurrences)
   source_identity = .plant_bind_tables(list(source_identity),
                                        .plant_source_compound_identity_cols())
+  source_identity = .plant_annotate_source_identity_status(source_identity)
   if (nrow(occurrences) < 1 || nrow(source_identity) < 1) {
     return(.uaf_empty_table(.plant_compound_resolution_cols()))
   }
@@ -5803,7 +7198,11 @@ print.uaf_plant_phytochemistry = function(x, ...) {
         NA_character_
       },
       resolution_source = if (isTRUE(unique_status)) {
-        "LOTUS_source_identity"
+        paste0(
+          paste(sort(unique(.uaf_non_empty(hits$source_database))),
+                collapse = "+"),
+          "_source_identity"
+        )
       } else {
         "source_identity_review_required"
       },
@@ -6150,12 +7549,19 @@ print.uaf_plant_phytochemistry = function(x, ...) {
              .pubchem_url_hash(paste(batch, collapse = "\r")), ".rds")
     )
     if (isTRUE(cache) && isTRUE(resume) && file.exists(cache_file)) {
+      cached_result = .plant_read_categorate_checkpoint(cache_file, batch)
+      if (!is.null(cached_result)) {
+        if (isTRUE(progress)) {
+          message("uafR plant identity batch ", i, "/", length(groups),
+                  ": using cached result")
+        }
+        results[[i]] = cached_result
+        next
+      }
       if (isTRUE(progress)) {
         message("uafR plant identity batch ", i, "/", length(groups),
-                ": using cached result")
+                ": cached result is incomplete or unreadable; rebuilding")
       }
-      results[[i]] = readRDS(cache_file)
-      next
     }
     if (isTRUE(progress)) {
       message("uafR plant identity batch ", i, "/", length(groups),
@@ -6172,7 +7578,14 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       pubchem_fun = pubchem_fun,
       request_fun = request_fun
     )
-    if (isTRUE(cache)) saveRDS(result, cache_file)
+    if (isTRUE(cache) &&
+        .plant_categorate_checkpoint_cacheable(result, batch)) {
+      .plant_atomic_save_rds(result, cache_file)
+    } else if (isTRUE(cache) && isTRUE(progress)) {
+      message("uafR plant identity batch ", i, "/", length(groups),
+              ": result was not checkpointed because PubChem did not",
+              " complete the identity pass")
+    }
     results[[i]] = result
   }
   .plant_merge_identity_categorate_results(results, compounds,
@@ -6417,6 +7830,7 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     ChemicalPathwayRoles = normalized$ChemicalPathwayRoles,
     KEGGReactionParticipants = normalized$KEGGReactionParticipants,
     KEGGMatches = kegg$matches,
+    KEGGSearchCandidates = kegg$search_candidates,
     KEGGRecords = kegg$records,
     KEGGIdentifiers = kegg$identifiers,
     KEGGPathways = kegg$pathways,
@@ -6470,12 +7884,19 @@ print.uaf_plant_phytochemistry = function(x, ...) {
              ".rds")
     )
     if (isTRUE(cache) && isTRUE(resume) && file.exists(cache_file)) {
+      cached_result = .plant_read_categorate_checkpoint(cache_file, batch)
+      if (!is.null(cached_result)) {
+        if (isTRUE(progress)) {
+          message("uafR plant enrichment batch ", i, "/", length(groups),
+                  ": using cached result")
+        }
+        results[[i]] = cached_result
+        next
+      }
       if (isTRUE(progress)) {
         message("uafR plant enrichment batch ", i, "/", length(groups),
-                ": using cached result")
+                ": cached result is incomplete or unreadable; rebuilding")
       }
-      results[[i]] = readRDS(cache_file)
-      next
     }
     if (isTRUE(progress)) {
       message("uafR plant enrichment batch ", i, "/", length(groups),
@@ -6494,7 +7915,14 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       progress = FALSE,
       ...
     )
-    if (isTRUE(cache)) saveRDS(result, cache_file)
+    if (isTRUE(cache) &&
+        .plant_categorate_checkpoint_cacheable(result, batch)) {
+      .plant_atomic_save_rds(result, cache_file)
+    } else if (isTRUE(cache) && isTRUE(progress)) {
+      message("uafR plant enrichment batch ", i, "/", length(groups),
+              ": result was not checkpointed because PubChem did not",
+              " complete the identity pass")
+    }
     results[[i]] = result
   }
   .plant_merge_categorate_results(results, compounds,
@@ -6544,6 +7972,500 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   out
 }
 
+.plant_batch_checkpoint_version = function() "3.3.0"
+
+.plant_batch_subset_provider_results = function(provider_results,
+                                                 species) {
+  if (is.null(provider_results) || !is.list(provider_results)) {
+    return(provider_results)
+  }
+  allowed = unique(.plant_clean_name(.uaf_non_empty(species)))
+  if (length(allowed) < 1L) return(provider_results)
+  out = provider_results
+  for (provider in names(out)) {
+    value = out[[provider]]
+    if (is.data.frame(value)) {
+      out[[provider]] = .plant_batch_subset_species_table(value, allowed)
+      next
+    }
+    if (!is.list(value)) next
+    occurrences = value$PlantCompoundOccurrences %||% value$occurrences
+    literature = value$LiteratureCandidates %||% value$literature_candidates
+    source_identity = value$SourceCompoundIdentity %||%
+      value$source_compound_identity
+    occurrences = .plant_batch_subset_species_table(occurrences, allowed)
+    literature = .plant_batch_subset_species_table(literature, allowed)
+    source_identity = .plant_batch_subset_source_identity(
+      source_identity, occurrences
+    )
+    if (!is.null(value$PlantCompoundOccurrences)) {
+      value$PlantCompoundOccurrences = occurrences
+    } else if (!is.null(value$occurrences)) {
+      value$occurrences = occurrences
+    }
+    if (!is.null(value$LiteratureCandidates)) {
+      value$LiteratureCandidates = literature
+    } else if (!is.null(value$literature_candidates)) {
+      value$literature_candidates = literature
+    }
+    if (!is.null(value$SourceCompoundIdentity)) {
+      value$SourceCompoundIdentity = source_identity
+    } else if (!is.null(value$source_compound_identity)) {
+      value$source_compound_identity = source_identity
+    }
+    out[[provider]] = value
+  }
+  out
+}
+
+.plant_batch_subset_species_table = function(x, allowed_species) {
+  if (!is.data.frame(x) || nrow(x) < 1L) return(x)
+  key_columns = intersect(
+    c("species", "query_plant", "query_plant_clean"), names(x)
+  )
+  if (length(key_columns) < 1L) return(x)
+  keep = rep(FALSE, nrow(x))
+  for (column in key_columns) {
+    values = if (identical(column, "query_plant_clean")) {
+      .plant_clean_name(x[[column]])
+    } else {
+      .plant_clean_name(x[[column]])
+    }
+    keep = keep | (!is.na(values) & values %in% allowed_species)
+  }
+  x[keep, , drop = FALSE]
+}
+
+.plant_batch_subset_source_identity = function(source_identity,
+                                                occurrences) {
+  if (!is.data.frame(source_identity)) return(source_identity)
+  if (nrow(source_identity) < 1L || !is.data.frame(occurrences) ||
+      nrow(occurrences) < 1L) {
+    return(source_identity[FALSE, , drop = FALSE])
+  }
+  keep = rep(FALSE, nrow(source_identity))
+  if ("source_record_id" %in% names(source_identity) &&
+      "source_record_id" %in% names(occurrences)) {
+    occurrence_ids = .uaf_non_empty(occurrences$source_record_id)
+    keep = keep | source_identity$source_record_id %in% occurrence_ids
+  }
+  if ("compound_name_clean" %in% names(source_identity)) {
+    occurrence_names = if ("compound_name_clean" %in% names(occurrences)) {
+      .uaf_non_empty(occurrences$compound_name_clean)
+    } else if ("compound_name" %in% names(occurrences)) {
+      .plant_clean_compound(occurrences$compound_name)
+    } else {
+      character()
+    }
+    keep = keep | source_identity$compound_name_clean %in% occurrence_names
+  }
+  source_identity[keep, , drop = FALSE]
+}
+
+.plant_batch_chunk_inputs = function(plants, plant_queries, species_chunks) {
+  if (!is.data.frame(plants)) return(species_chunks)
+  input = as.data.frame(plants, stringsAsFactors = FALSE)
+  names(input) = .plant_normalize_column_names(names(input))
+  species_field = if ("species" %in% names(input)) "species" else names(input)[[1]]
+  input_species = .plant_canonical_taxon_name(input[[species_field]])
+  lapply(species_chunks, function(chunk_species) {
+    rows = input[input_species %in% chunk_species, , drop = FALSE]
+    if (nrow(rows) < 1) {
+      return(data.frame(species = chunk_species, stringsAsFactors = FALSE))
+    }
+    order_index = match(.plant_canonical_taxon_name(rows[[species_field]]),
+                        chunk_species)
+    rows = rows[order(order_index, na.last = TRUE), , drop = FALSE]
+    row.names(rows) = NULL
+    rows
+  })
+}
+
+.plant_batch_query_signature = function(plant_queries, plant_aliases) {
+  values = function(x) {
+    if (!is.data.frame(x) || nrow(x) < 1) return("empty")
+    x[] = lapply(x, function(value) {
+      value = .uaf_squish_text(value)
+      value[is.na(value)] = ""
+      value
+    })
+    paste(c(names(x), unlist(x, use.names = FALSE)), collapse = "\r")
+  }
+  paste0("plant_query_contract:", .pubchem_url_hash(paste(
+    values(plant_queries), values(plant_aliases), sep = "\n--aliases--\n"
+  )))
+}
+
+.plant_batch_provider_results_signature = function(provider_results) {
+  if (is.null(provider_results)) return("provider_results:none")
+  path = tempfile("uafR_provider_results_", fileext = ".rds")
+  on.exit(unlink(path, force = TRUE), add = TRUE)
+  serialized = tryCatch({
+    saveRDS(provider_results, path, version = 3, compress = FALSE)
+    TRUE
+  }, error = function(error) FALSE)
+  if (isTRUE(serialized) && file.exists(path)) {
+    return(paste0(
+      "provider_results:rds_md5=", unname(tools::md5sum(path)[[1L]]),
+      ":bytes=", file.info(path)$size
+    ))
+  }
+  paste0("provider_results:class=",
+         paste(class(provider_results), collapse = "/"),
+         ":length=", length(provider_results))
+}
+
+.plant_batch_run_signature = function(species, sources, taxon_fallback,
+                                       provider_index_signature,
+                                       max_pubmed_records,
+                                       max_provider_records,
+                                       provider_results,
+                                       query_signature = NA_character_) {
+  payload = c(
+    "uafR_plant_discovery",
+    .plant_batch_checkpoint_version(),
+    paste(species, collapse = "\n"),
+    paste(sort(unique(.uaf_non_empty(sources))), collapse = ";"),
+    paste(.uaf_non_empty(taxon_fallback), collapse = ";"),
+    provider_index_signature,
+    .uaf_first_non_empty_text(query_signature,
+                              "plant_query_contract:not_supplied"),
+    paste0("max_pubmed_records=", max_pubmed_records),
+    paste0("max_provider_records=", max_provider_records),
+    .plant_batch_provider_results_signature(provider_results)
+  )
+  .pubchem_url_hash(paste(payload, collapse = "\r"))
+}
+
+.plant_batch_chunk_signature = function(run_signature, chunk_index, species) {
+  .pubchem_url_hash(paste(c(run_signature, chunk_index, species),
+                          collapse = "\r"))
+}
+
+.plant_batch_manifest_plan = function(species_chunks, checkpoint_files,
+                                       run_signature, out_dir, cache) {
+  starts = cumsum(c(1L, vapply(species_chunks, length, integer(1))))
+  starts = starts[seq_along(species_chunks)]
+  ends = starts + vapply(species_chunks, length, integer(1)) - 1L
+  output_files = if (isTRUE(cache)) {
+    if (is.null(out_dir)) {
+      normalizePath(checkpoint_files, winslash = "/", mustWork = FALSE)
+    } else {
+      file.path("checkpoints", basename(checkpoint_files))
+    }
+  } else {
+    rep(NA_character_, length(species_chunks))
+  }
+  data.frame(
+    batch_index = seq_along(species_chunks),
+    chunk_id = seq_along(species_chunks),
+    query_start = starts,
+    query_end = ends,
+    query_count = vapply(species_chunks, length, integer(1)),
+    query_label = vapply(species_chunks, paste, collapse = "; ",
+                         FUN.VALUE = character(1)),
+    species_count = vapply(species_chunks, length, integer(1)),
+    species = vapply(species_chunks, paste, collapse = "; ",
+                     FUN.VALUE = character(1)),
+    status = "not_started",
+    previous_status = NA_character_,
+    started_at = NA_character_,
+    finished_at = NA_character_,
+    completed_at = NA_character_,
+    elapsed_seconds = 0,
+    cache_hit_count = 0L,
+    request_count = 0L,
+    retry_count = 0L,
+    error_count = 0L,
+    warning_count = 0L,
+    error_message = NA_character_,
+    occurrence_count = 0L,
+    literature_candidate_count = 0L,
+    provider_diagnostic_count = 0L,
+    output_file = output_files,
+    output_path = output_files,
+    checkpoint_file = output_files,
+    checkpoint_read_status = "not_checked",
+    checkpoint_status = "not_checked",
+    checkpoint_cache_hit = "No",
+    checkpoint_version = .plant_batch_checkpoint_version(),
+    run_signature = run_signature,
+    chunk_signature = vapply(seq_along(species_chunks), function(i) {
+      .plant_batch_chunk_signature(run_signature, i, species_chunks[[i]])
+    }, character(1)),
+    stringsAsFactors = FALSE
+  )
+}
+
+.plant_batch_merge_prior_manifest = function(manifest, out_dir,
+                                              run_signature, resume,
+                                              overwrite) {
+  if (is.null(out_dir) || !isTRUE(resume)) return(manifest)
+  path = file.path(out_dir, "discovery_chunk_manifest.csv")
+  if (!file.exists(path)) return(manifest)
+  prior = tryCatch(
+    utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE),
+    error = function(condition) NULL
+  )
+  if (!is.data.frame(prior) || nrow(prior) < 1) return(manifest)
+  prior_signatures = if ("run_signature" %in% names(prior)) {
+    unique(.uaf_non_empty(prior$run_signature))
+  } else {
+    character()
+  }
+  if (length(prior_signatures) > 0 &&
+      !identical(prior_signatures, run_signature)) {
+    if (!isTRUE(overwrite)) {
+      stop(
+        "Existing discovery manifest was created for different inputs. Use a ",
+        "new `out_dir`, or set `overwrite = TRUE` after reviewing the prior run.",
+        call. = FALSE
+      )
+    }
+    return(manifest)
+  }
+  if (!"chunk_signature" %in% names(prior)) return(manifest)
+  idx = match(manifest$chunk_signature, prior$chunk_signature)
+  matched = which(!is.na(idx))
+  if (length(matched) < 1) return(manifest)
+  if ("status" %in% names(prior)) {
+    manifest$previous_status[matched] = as.character(prior$status[idx[matched]])
+  }
+  if ("retry_count" %in% names(prior)) {
+    retries = suppressWarnings(as.integer(prior$retry_count[idx[matched]]))
+    retries[is.na(retries)] = 0L
+    manifest$retry_count[matched] = retries
+  }
+  manifest
+}
+
+.plant_valid_discovery_result = function(result) {
+  required = c("PlantQueries", "ProviderDiagnostics",
+               "PlantCompoundOccurrences", "LiteratureCandidates")
+  is.list(result) && all(required %in% names(result)) &&
+    all(vapply(result[required], is.data.frame, logical(1)))
+}
+
+.plant_batch_checkpoint_envelope = function(result, run_signature,
+                                             chunk_signature, species) {
+  list(
+    format = "uafR_plant_discovery_checkpoint",
+    checkpoint_version = .plant_batch_checkpoint_version(),
+    run_signature = run_signature,
+    chunk_signature = chunk_signature,
+    query_species = as.character(species),
+    status = "completed",
+    created_at = .plant_timestamp(),
+    result = result
+  )
+}
+
+.plant_read_batch_checkpoint = function(path, expected_run_signature,
+                                        expected_chunk_signature,
+                                        expected_species) {
+  if (!file.exists(path)) {
+    return(list(ok = FALSE, reason = "missing", result = NULL))
+  }
+  object = tryCatch(readRDS(path), error = function(condition) condition)
+  if (inherits(object, "condition")) {
+    return(list(ok = FALSE, reason = "unreadable", result = NULL))
+  }
+  if (!is.list(object) ||
+      !identical(object$format, "uafR_plant_discovery_checkpoint")) {
+    return(list(ok = FALSE, reason = "format_mismatch", result = NULL))
+  }
+  if (!identical(as.character(object$checkpoint_version),
+                 .plant_batch_checkpoint_version())) {
+    return(list(ok = FALSE, reason = "version_mismatch", result = NULL))
+  }
+  if (!identical(as.character(object$run_signature),
+                 as.character(expected_run_signature)) ||
+      !identical(as.character(object$chunk_signature),
+                 as.character(expected_chunk_signature))) {
+    return(list(ok = FALSE, reason = "signature_mismatch", result = NULL))
+  }
+  if (!identical(as.character(object$query_species),
+                 as.character(expected_species))) {
+    return(list(ok = FALSE, reason = "species_mismatch", result = NULL))
+  }
+  if (!identical(as.character(object$status), "completed") ||
+      !.plant_valid_discovery_result(object$result)) {
+    return(list(ok = FALSE, reason = "invalid_result", result = NULL))
+  }
+  list(ok = TRUE, reason = "valid", result = object$result)
+}
+
+.plant_atomic_replace = function(temp_file, path) {
+  renamed = suppressWarnings(file.rename(temp_file, path))
+  if (!isTRUE(renamed)) {
+    copied = file.copy(temp_file, path, overwrite = TRUE, copy.mode = TRUE,
+                       copy.date = TRUE)
+    if (!isTRUE(copied)) {
+      stop("Could not atomically replace file: ", path, call. = FALSE)
+    }
+  }
+  invisible(path)
+}
+
+.plant_atomic_save_rds = function(object, path) {
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  temp_file = tempfile(paste0(".", basename(path), "_"),
+                       tmpdir = dirname(path))
+  on.exit(if (file.exists(temp_file)) unlink(temp_file), add = TRUE)
+  saveRDS(object, temp_file)
+  .plant_atomic_replace(temp_file, path)
+}
+
+.plant_atomic_write_csv = function(x, path) {
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  temp_file = tempfile(paste0(".", basename(path), "_"),
+                       tmpdir = dirname(path))
+  on.exit(if (file.exists(temp_file)) unlink(temp_file), add = TRUE)
+  utils::write.csv(x, temp_file, row.names = FALSE, na = "")
+  .plant_atomic_replace(temp_file, path)
+}
+
+.plant_atomic_write_json = function(x, path, dataframe = "rows",
+                                     pretty = TRUE, auto_unbox = TRUE,
+                                     na = "null") {
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  temp_file = tempfile(paste0(".", basename(path), "_"),
+                       tmpdir = dirname(path))
+  on.exit(if (file.exists(temp_file)) unlink(temp_file), add = TRUE)
+  jsonlite::write_json(
+    x, temp_file, dataframe = dataframe, pretty = pretty,
+    auto_unbox = auto_unbox, na = na
+  )
+  .plant_atomic_replace(temp_file, path)
+}
+
+.plant_atomic_write_text = function(x, path) {
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  temp_file = tempfile(paste0(".", basename(path), "_"),
+                       tmpdir = dirname(path))
+  on.exit(if (file.exists(temp_file)) unlink(temp_file), add = TRUE)
+  writeLines(enc2utf8(as.character(x)), temp_file, useBytes = TRUE)
+  .plant_atomic_replace(temp_file, path)
+}
+
+.plant_categorate_checkpoint_cacheable = function(result,
+                                                   expected_compounds) {
+  if (!is.list(result) || !is.data.frame(result$PubChemIdentity) ||
+      nrow(result$PubChemIdentity) < 1) {
+    return(FALSE)
+  }
+  identity = result$PubChemIdentity
+  if (!"MatchStatus" %in% names(identity)) return(FALSE)
+  status = tolower(.uaf_non_empty(identity$MatchStatus))
+  if (length(status) < 1 ||
+      all(status %in% c("not_run", "error", "failed", "timeout",
+                        "rate_limited", "service_unavailable"))) {
+    return(FALSE)
+  }
+  expected = length(unique(.uaf_non_empty(expected_compounds)))
+  observed = if ("Query" %in% names(identity)) {
+    length(unique(.uaf_non_empty(identity$Query)))
+  } else {
+    nrow(identity)
+  }
+  observed >= expected
+}
+
+.plant_read_categorate_checkpoint = function(path, expected_compounds) {
+  object = tryCatch(readRDS(path), error = function(condition) NULL)
+  if (!.plant_categorate_checkpoint_cacheable(object, expected_compounds)) {
+    return(NULL)
+  }
+  object
+}
+
+.plant_batch_failed_queries = function(manifest) {
+  failed_status = c("failed", "error", "timeout", "timed_out",
+                    "rate_limited", "stopped")
+  out = manifest[tolower(manifest$status) %in% failed_status, , drop = FALSE]
+  row.names(out) = NULL
+  out
+}
+
+.plant_write_batch_operational_files = function(manifest, out_dir) {
+  if (is.null(out_dir)) return(invisible(NULL))
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  failed = .plant_batch_failed_queries(manifest)
+  retry = writePlantChemistryRetryQueue(manifest)
+  .plant_atomic_write_csv(
+    manifest, file.path(out_dir, "discovery_chunk_manifest.csv")
+  )
+  .plant_atomic_write_csv(failed, file.path(out_dir, "failed_queries.csv"))
+  .plant_atomic_write_csv(retry, file.path(out_dir, "retry_queue.csv"))
+  invisible(list(Manifest = manifest, FailedQueries = failed,
+                 RetryQueue = retry))
+}
+
+.plant_batch_result_counts = function(result) {
+  diagnostics = if (is.list(result) &&
+                    is.data.frame(result$ProviderDiagnostics)) {
+    result$ProviderDiagnostics
+  } else {
+    data.frame()
+  }
+  sum_column = function(name) {
+    if (!name %in% names(diagnostics)) return(0L)
+    value = suppressWarnings(as.numeric(diagnostics[[name]]))
+    as.integer(sum(value[is.finite(value)], na.rm = TRUE))
+  }
+  list(
+    occurrence_count = if (is.list(result) &&
+                              is.data.frame(result$PlantCompoundOccurrences)) {
+      nrow(result$PlantCompoundOccurrences)
+    } else 0L,
+    literature_candidate_count = if (is.list(result) &&
+                                        is.data.frame(result$LiteratureCandidates)) {
+      nrow(result$LiteratureCandidates)
+    } else 0L,
+    provider_diagnostic_count = nrow(diagnostics),
+    request_count = sum_column("request_count"),
+    cache_hit_count = sum_column("cache_hit_count"),
+    error_count = sum_column("error_count"),
+    warning_count = sum_column("warning_count")
+  )
+}
+
+.plant_batch_result_health = function(result) {
+  counts = .plant_batch_result_counts(result)
+  diagnostics = result$ProviderDiagnostics
+  messages = character()
+  if (is.data.frame(diagnostics) && nrow(diagnostics) > 0) {
+    error_rows = rep(FALSE, nrow(diagnostics))
+    if ("error_count" %in% names(diagnostics)) {
+      error_rows = suppressWarnings(as.numeric(diagnostics$error_count)) > 0
+      error_rows[is.na(error_rows)] = FALSE
+    }
+    if ("status" %in% names(diagnostics)) {
+      error_rows = error_rows | tolower(as.character(diagnostics$status)) %in%
+        c("error", "failed", "timeout", "timed_out", "rate_limited")
+    }
+    for (column in intersect(c("error_messages", "message"),
+                             names(diagnostics))) {
+      messages = c(messages, as.character(diagnostics[[column]][error_rows]))
+    }
+  }
+  messages = unique(.uaf_non_empty(messages))
+  error_message = if (length(messages) > 0) {
+    paste(messages, collapse = " | ")
+  } else if (counts$error_count > 0) {
+    "One or more selected providers reported an error."
+  } else {
+    NA_character_
+  }
+  service_busy_text = paste(messages, collapse = " ")
+  service_busy = counts$error_count > 0 &&
+    .plant_service_busy_message(service_busy_text)
+  list(error_count = counts$error_count,
+       warning_count = counts$warning_count,
+       service_busy = service_busy,
+       error_message = error_message)
+}
+
 .plant_empty_batch_result = function(species, taxon_fallback,
                                      error_message = NA_character_) {
   plant_queries = .plant_queries(species, taxon_fallback)
@@ -6556,13 +8478,19 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   )
 	  out = list(
 	    PlantQueries = plant_queries,
+	    PlantQueryAliases = .plant_query_aliases(species, plant_queries),
 	    PlantNameResolution = .plant_name_resolution(plant_queries),
 	    ProviderDiagnostics = diagnostics,
+	    ProviderQueryAccounting =
+	      .uaf_empty_table(.plant_provider_query_accounting_cols()),
+	    ProviderResourceManifest =
+	      .uaf_empty_table(.plant_provider_resource_manifest_cols()),
 	    PlantCompoundOccurrences = occurrences,
 	    PlantContextEvidence = .uaf_empty_table(.plant_context_evidence_cols()),
 	    ProviderContextAudit =
 	      .uaf_empty_table(.plant_provider_context_audit_cols()),
 	    LiteratureCandidates = .uaf_empty_table(.plant_literature_cols()),
+    SourceCompoundIdentity = .plant_empty_source_compound_identity(),
     CompoundResolution = .plant_compound_resolution(occurrences, NULL),
     CompoundIdentityReview = .plant_empty_compound_identity_review(),
     CategorateResult = NULL,
@@ -6597,7 +8525,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 }
 
 .plant_combine_batch_results = function(results, plant_queries,
-                                        taxon_fallback) {
+                                        taxon_fallback,
+                                        link_source_context = FALSE) {
   results = results[vapply(results, is.list, logical(1))]
   if (length(results) < 1) {
     return(.plant_empty_batch_result(plant_queries$species, taxon_fallback))
@@ -6609,6 +8538,10 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   )
   occurrences = .plant_match_occurrences_to_queries(occurrences,
                                                     plant_queries)
+  literature = .plant_bind_literature(
+    lapply(results, `[[`, "LiteratureCandidates")
+  )
+  literature = .plant_match_literature_to_queries(literature, plant_queries)
   context_evidence = .plant_bind_tables(
     lapply(results, `[[`, "PlantContextEvidence"),
     .plant_context_evidence_cols()
@@ -6616,15 +8549,25 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   if (nrow(context_evidence) < 1) {
     context_evidence = plantContextEvidence(occurrences)
   }
-	  occurrences = .plant_apply_context_evidence(occurrences, context_evidence)
-	  occurrences = .plant_clean_context_conflicts(occurrences)
-	  provider_context_audit = plantProviderContextAudit(
-	    list(PlantCompoundOccurrences = occurrences,
-	         PlantContextEvidence = context_evidence)
-	  )
-	  literature = .plant_bind_tables(lapply(results, `[[`, "LiteratureCandidates"),
-	                                  .plant_literature_cols())
-  literature = .plant_match_literature_to_queries(literature, plant_queries)
+  if (isTRUE(link_source_context) && nrow(literature) > 0) {
+    source_context = .plant_source_context_evidence(
+      occurrences = occurrences,
+      context_sources = literature,
+      min_confidence = "low"
+    )
+    context_evidence = .plant_normalize_context_evidence(
+      .plant_bind_tables(
+        list(context_evidence, source_context),
+        .plant_context_evidence_cols()
+      )
+    )
+  }
+  occurrences = .plant_apply_context_evidence(occurrences, context_evidence)
+  occurrences = .plant_clean_context_conflicts(occurrences)
+  provider_context_audit = plantProviderContextAudit(
+    list(PlantCompoundOccurrences = occurrences,
+         PlantContextEvidence = context_evidence)
+  )
   diagnostics = .plant_bind_tables(lapply(results, `[[`, "ProviderDiagnostics"),
                                    .plant_provider_diagnostic_cols())
   provenance = .plant_bind_tables(lapply(results, `[[`, "Provenance"),
@@ -6655,14 +8598,26 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     mode = "binary",
     min_comparability_confidence = "medium"
   )
-	  out = list(
-	    PlantQueries = plant_queries,
-	    PlantNameResolution = .plant_name_resolution(plant_queries),
-	    ProviderDiagnostics = diagnostics,
-	    PlantCompoundOccurrences = occurrences,
-	    PlantContextEvidence = context_evidence,
-	    ProviderContextAudit = provider_context_audit,
-	    LiteratureCandidates = literature,
+  out = list(
+    PlantQueries = plant_queries,
+    PlantQueryAliases = .plant_merge_alias_tables(results, plant_queries),
+    PlantNameResolution = .plant_name_resolution(plant_queries),
+    ProviderDiagnostics = diagnostics,
+    ProviderQueryAccounting = .plant_merge_accounting_tables(
+      results, plant_queries
+    ),
+    ProviderResourceManifest = .plant_bind_unique_tables(
+      lapply(results, `[[`, "ProviderResourceManifest"),
+      .plant_provider_resource_manifest_cols(),
+      c("provider", "resource_type", "resource_id", "md5")
+    ),
+    PlantCompoundOccurrences = occurrences,
+    PlantContextEvidence = context_evidence,
+    ProviderContextAudit = provider_context_audit,
+    LiteratureCandidates = literature,
+    SourceCompoundIdentity = .plant_merge_source_identity_tables(
+      lapply(results, `[[`, "SourceCompoundIdentity")
+    ),
     CompoundResolution = compound_resolution,
     CompoundIdentityReview = plantCompoundIdentityReviewTable(
       list(PlantCompoundOccurrences = occurrences,
@@ -6690,6 +8645,24 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   )
   class(out) = c("uaf_plant_phytochemistry", class(out))
   out$Validation = validatePlantPhytochemistryResult(out)
+  out
+}
+
+.plant_bind_literature = function(parts) {
+  out = .plant_normalize_literature(
+    .plant_bind_tables(parts, .plant_literature_cols())
+  )
+  if (nrow(out) < 2L) return(out)
+  key_cols = setdiff(names(out), "retrieved_at")
+  key_data = out[key_cols]
+  key_data[] = lapply(key_data, function(value) {
+    value = .uaf_squish_text(value)
+    value[is.na(value)] = ""
+    value
+  })
+  key = do.call(paste, c(key_data, sep = "||"))
+  out = out[!duplicated(key), , drop = FALSE]
+  row.names(out) = NULL
   out
 }
 
@@ -6746,7 +8719,9 @@ print.uaf_plant_phytochemistry = function(x, ...) {
                                      completed, sources,
                                      compound_resolution_profile,
                                      resolution_occurrences, out_dir,
-                                     cache_dir) {
+                                     cache_dir, discovery_complete,
+                                     compound_stage_status, run_signature,
+                                     pause_reason = NA_character_) {
   elapsed = round(as.numeric(difftime(completed, started, units = "secs")), 3)
   resolution = if (is.data.frame(result$CompoundResolution)) {
     result$CompoundResolution
@@ -6767,6 +8742,18 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   }
   data.frame(
     run_id = paste0("plant_batch_", format(started, "%Y%m%d_%H%M%S")),
+    run_signature = run_signature,
+    checkpoint_version = .plant_batch_checkpoint_version(),
+    run_status = ifelse(discovery_complete, "completed", "incomplete"),
+    discovery_complete = .uaf_yes_no(discovery_complete),
+    completed_chunk_count = sum(chunk_manifest$status == "completed"),
+    failed_chunk_count = sum(chunk_manifest$status %in%
+                               c("failed", "error", "timeout", "timed_out",
+                                 "rate_limited", "stopped")),
+    pending_chunk_count = sum(!chunk_manifest$status %in%
+                                c("completed", "failed", "error", "timeout",
+                                  "timed_out", "rate_limited", "stopped")),
+    pause_reason = .uaf_first_non_empty_text(pause_reason),
     started_at = format(started, "%Y-%m-%dT%H:%M:%S%z"),
     completed_at = format(completed, "%Y-%m-%dT%H:%M:%S%z"),
     elapsed_seconds = elapsed,
@@ -6792,6 +8779,7 @@ print.uaf_plant_phytochemistry = function(x, ...) {
                                        "unknown"]))),
     resolution_input_occurrence_count = nrow(resolution_occurrences),
     compound_resolution_profile = compound_resolution_profile,
+    compound_stage_status = compound_stage_status,
     attempted_compound_count = attempted,
     resolved_compound_count = resolved,
     attempted_unresolved_compound_count = attempted_unresolved,
@@ -6846,6 +8834,22 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       file = file,
       row_count = nrow(tables[[name]]),
       column_count = ncol(tables[[name]]),
+      stringsAsFactors = FALSE
+    )
+  }
+  operational = list(
+    failed_queries = result$FailedQueries,
+    retry_queue = result$RetryQueue,
+    discovery_chunk_manifest = result$BatchChunkManifest
+  )
+  for (name in names(operational)) {
+    file = file.path(out_dir, paste0(name, ".csv"))
+    if (!file.exists(file)) .plant_atomic_write_csv(operational[[name]], file)
+    manifest_rows[[length(manifest_rows) + 1]] = data.frame(
+      artifact = name,
+      file = file,
+      row_count = nrow(operational[[name]]),
+      column_count = ncol(operational[[name]]),
       stringsAsFactors = FALSE
     )
   }
@@ -8419,10 +10423,13 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 }
 
 .plant_export_tables = function(x, tables, include_empty, max_cell_chars) {
-  default = c("PlantQueries", "PlantNameResolution", "ProviderDiagnostics",
+  default = c("PlantQueries", "PlantQueryAliases", "PlantNameResolution",
+              "ProviderDiagnostics", "ProviderQueryAccounting",
+              "ProviderResourceManifest",
               "PlantCompoundOccurrences", "PlantContextEvidence",
               "ProviderContextAudit",
               "LiteratureCandidates",
+              "SourceCompoundIdentity",
               "CompoundResolution", "CompoundIdentityReview",
               "SpeciesChemistrySummary",
               "SpeciesChemistryMatrix", "ChemistryComparability",
@@ -8430,17 +10437,22 @@ print.uaf_plant_phytochemistry = function(x, ...) {
               "ValidationSummary", "ValidationIssues", "DataDictionary",
               "Provenance",
               "BatchRunManifest", "BatchChunkManifest",
+              "FailedQueries", "RetryQueue",
               "BatchExportManifest")
   available = list(
     PlantQueries = x$PlantQueries,
+    PlantQueryAliases = x$PlantQueryAliases,
     PlantNameResolution = x$PlantNameResolution,
     ProviderDiagnostics = x$ProviderDiagnostics,
+    ProviderQueryAccounting = x$ProviderQueryAccounting,
+    ProviderResourceManifest = x$ProviderResourceManifest,
     PlantCompoundOccurrences = .plant_clean_context_conflicts(
       x$PlantCompoundOccurrences
     ),
     PlantContextEvidence = x$PlantContextEvidence,
     ProviderContextAudit = x$ProviderContextAudit,
     LiteratureCandidates = x$LiteratureCandidates,
+    SourceCompoundIdentity = x$SourceCompoundIdentity,
     CompoundResolution = x$CompoundResolution,
     CompoundIdentityReview = x$CompoundIdentityReview,
     SpeciesChemistrySummary = x$SpeciesChemistrySummary,
@@ -8454,6 +10466,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     Provenance = x$Provenance,
     BatchRunManifest = x$BatchRunManifest,
     BatchChunkManifest = x$BatchChunkManifest,
+    FailedQueries = x$FailedQueries,
+    RetryQueue = x$RetryQueue,
     BatchExportManifest = x$BatchExportManifest
   )
   requested = .uaf_non_empty(tables)
@@ -8831,6 +10845,34 @@ print.uaf_plant_phytochemistry = function(x, ...) {
                                     "warning")
                               ]))
   }
+  if (is.data.frame(x$BatchChunkManifest) &&
+      "status" %in% names(x$BatchChunkManifest)) {
+    status = tolower(as.character(x$BatchChunkManifest$status))
+    incomplete = !status %in% c("completed", "complete", "success",
+                                "succeeded", "ok", "pass")
+    if (any(incomplete)) {
+      failed = status %in% c("failed", "error", "timeout", "timed_out",
+                             "rate_limited", "stopped")
+      labels = if ("query_label" %in% names(x$BatchChunkManifest)) {
+        x$BatchChunkManifest$query_label
+      } else if ("species" %in% names(x$BatchChunkManifest)) {
+        x$BatchChunkManifest$species
+      } else {
+        rep(NA_character_, nrow(x$BatchChunkManifest))
+      }
+      rows[[length(rows) + 1]] =
+        .plant_validation_issue(
+          ifelse(any(failed), "error", "warning"),
+          "BatchChunkManifest", "status",
+          paste("Plant discovery is incomplete; unprocessed or failed chunks",
+                "must be resumed before compound enrichment or analysis."),
+          "all completed",
+          .pubchem_collapse(unique(status[incomplete])),
+          nrow(x$BatchChunkManifest),
+          .pubchem_collapse(utils::head(labels[incomplete], 5))
+        )
+    }
+  }
   .plant_bind_tables(rows, .plant_validation_issue_cols())
 }
 
@@ -8904,7 +10946,10 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 }
 
 .plant_pubmed_query = function(species) {
-  paste0('"', species, '"[Title/Abstract] AND (phytochemical* OR metabolite* OR ',
+  species = unique(.uaf_non_empty(species))
+  if (length(species) < 1) return(NA_character_)
+  taxon_query = paste0('"', species, '"[Title/Abstract]', collapse = " OR ")
+  paste0('(', taxon_query, ') AND (phytochemical* OR metabolite* OR ',
          '"secondary metabolite*" OR "chemical profile" OR "metabolic profile" OR ',
          '"natural product*" OR GC-MS OR "GC MS" OR LC-MS OR "LC MS" OR HPLC OR ',
          '"essential oil" OR volatile* OR flavonoid* OR alkaloid* OR terpene* OR ',
@@ -8927,14 +10972,12 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   if (isTRUE(cache) && file.exists(cache_file)) {
     txt = paste(readLines(cache_file, warn = FALSE, encoding = "UTF-8"),
                 collapse = "\n")
-    return(jsonlite::fromJSON(txt, simplifyVector = FALSE))
+    return(.plant_mark_cache_hit(
+      jsonlite::fromJSON(txt, simplifyVector = FALSE), TRUE
+    ))
   }
   result = if (is.null(request_fun)) {
-    .plant_with_timeout(timeout, {
-      con = base::url(url, open = "rb")
-      on.exit(close(con), add = TRUE)
-      paste(readLines(con, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
-    })
+    .plant_read_url_text(url, timeout)
   } else {
     request_fun(url)
   }
@@ -8942,12 +10985,13 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     txt = paste(result, collapse = "\n")
     if (isTRUE(cache)) {
       dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-      writeLines(txt, cache_file, useBytes = TRUE)
+      .pubchem_atomic_write_text(txt, cache_file)
     }
     if (!is.na(throttle) && throttle > 0) Sys.sleep(throttle)
-    jsonlite::fromJSON(txt, simplifyVector = FALSE)
+    .plant_mark_cache_hit(jsonlite::fromJSON(txt, simplifyVector = FALSE),
+                          FALSE)
   } else {
-    result
+    .plant_mark_cache_hit(result, FALSE)
   }
 }
 
@@ -8955,15 +10999,13 @@ print.uaf_plant_phytochemistry = function(x, ...) {
                              timeout = 30) {
   cache_file = file.path(cache_dir, paste0(.pubchem_url_hash(url), ".txt"))
   if (isTRUE(cache) && file.exists(cache_file)) {
-    return(paste(readLines(cache_file, warn = FALSE, encoding = "UTF-8"),
-                 collapse = "\n"))
+    return(.plant_mark_cache_hit(
+      paste(readLines(cache_file, warn = FALSE, encoding = "UTF-8"),
+            collapse = "\n"), TRUE
+    ))
   }
   result = if (is.null(request_fun)) {
-    .plant_with_timeout(timeout, {
-      con = base::url(url, open = "rb")
-      on.exit(close(con), add = TRUE)
-      paste(readLines(con, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
-    })
+    .plant_read_url_text(url, timeout)
   } else {
     request_fun(url)
   }
@@ -8972,12 +11014,54 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   } else {
     paste(as.character(result), collapse = "\n")
   }
-  if (isTRUE(cache)) {
+  cacheable = is.null(request_fun) || is.character(result)
+  if (isTRUE(cache) && isTRUE(cacheable)) {
     dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-    writeLines(txt, cache_file, useBytes = TRUE)
+    .pubchem_atomic_write_text(txt, cache_file)
   }
   if (!is.na(throttle) && throttle > 0) Sys.sleep(throttle)
-  txt
+  .plant_mark_cache_hit(txt, FALSE)
+}
+
+.plant_read_url_text = function(url, timeout = 30) {
+  timeout = suppressWarnings(as.numeric(timeout[[1]]))
+  if (!is.finite(timeout) || timeout <= 0) timeout = 30
+  if (requireNamespace("curl", quietly = TRUE)) {
+    handle = curl::new_handle(
+      followlocation = TRUE, failonerror = FALSE, timeout = timeout,
+      connecttimeout = min(timeout, 20)
+    )
+    curl::handle_setheaders(handle, `User-Agent` = "uafR public-data client")
+    response = curl::curl_fetch_memory(url, handle = handle)
+    status = suppressWarnings(as.integer(response$status_code))
+    if (!is.na(status) && status >= 400L) {
+      stop(
+        "HTTP ", status, " returned for ", .plant_redact_secrets(url),
+        call. = FALSE
+      )
+    }
+    return(rawToChar(response$content))
+  }
+  warning_message = NA_character_
+  tryCatch(
+    withCallingHandlers(
+      .plant_with_timeout(timeout, {
+        con = base::url(url, open = "rb")
+        on.exit(close(con), add = TRUE)
+        paste(readLines(con, warn = FALSE, encoding = "UTF-8"),
+              collapse = "\n")
+      }),
+      warning = function(warning) {
+        warning_message <<- conditionMessage(warning)
+        invokeRestart("muffleWarning")
+      }
+    ),
+    error = function(error) {
+      message = paste(.uaf_non_empty(c(conditionMessage(error),
+                                       warning_message)), collapse = "; ")
+      stop(.plant_redact_secrets(message), call. = FALSE)
+    }
+  )
 }
 
 .plant_fetch_lotus_json = function(url, cache, cache_dir, throttle,
@@ -8996,7 +11080,9 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   if (isTRUE(cache) && file.exists(cache_file)) {
     txt = paste(readLines(cache_file, warn = FALSE, encoding = "UTF-8"),
                 collapse = "\n")
-    return(jsonlite::fromJSON(txt, simplifyVector = FALSE))
+    return(.plant_mark_cache_hit(
+      jsonlite::fromJSON(txt, simplifyVector = FALSE), TRUE
+    ))
   }
   result = if (is.null(request_fun)) {
     .plant_read_lotus_json_prefix(url, max_records, timeout)
@@ -9010,10 +11096,21 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       writeLines(txt, cache_file, useBytes = TRUE)
     }
     if (!is.na(throttle) && throttle > 0) Sys.sleep(throttle)
-    jsonlite::fromJSON(txt, simplifyVector = FALSE)
+    .plant_mark_cache_hit(jsonlite::fromJSON(txt, simplifyVector = FALSE),
+                          FALSE)
   } else {
-    result
+    .plant_mark_cache_hit(result, FALSE)
   }
+}
+
+.plant_mark_cache_hit = function(x, cache_hit) {
+  if (is.null(x)) return(x)
+  attr(x, "uaf_cache_hit") = isTRUE(cache_hit)
+  x
+}
+
+.plant_cache_hit = function(x) {
+  isTRUE(attr(x, "uaf_cache_hit", exact = TRUE))
 }
 
 .plant_read_lotus_json_prefix = function(url, max_records, timeout = 30,
@@ -9551,12 +11648,25 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   .uaf_non_empty(unlist(ids, use.names = FALSE))
 }
 
-.plant_pubmed_summary_rows = function(query_row, ids, summary) {
+.plant_pubmed_total_hits = function(search, fallback = 0L) {
+  value = tryCatch(search$esearchresult$count, error = function(error) NULL)
+  value = suppressWarnings(as.integer(.uaf_first_non_empty_text(value)))
+  if (!is.finite(value)) suppressWarnings(as.integer(fallback)) else value
+}
+
+.plant_pubmed_summary_rows = function(query_row, ids, summary,
+                                      abstracts = character(),
+                                      total_hits = length(ids),
+                                      truncated = FALSE,
+                                      query = NA_character_) {
   rows = list()
   for (id in ids) {
     item = tryCatch(summary$result[[id]], error = function(error) NULL)
     title = .uaf_first_non_empty_text(item$title)
     doi = .plant_article_id(item, "doi")
+    abstract = if (!is.null(names(abstracts)) && id %in% names(abstracts)) {
+      .uaf_first_non_empty_text(abstracts[[id]])
+    } else NA_character_
     rows[[length(rows) + 1]] = data.frame(
       query_plant = query_row$query_plant,
       query_plant_clean = query_row$query_plant_clean,
@@ -9568,11 +11678,16 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       pmid = id,
       doi = doi,
       title = title,
-      abstract = NA_character_,
+      abstract = abstract,
       chemical_mention = NA_character_,
       species_mention = query_row$species,
-      evidence_text = title,
+      evidence_text = .uaf_first_non_empty_text(abstract, title),
       evidence_url = paste0("https://pubmed.ncbi.nlm.nih.gov/", id, "/"),
+      literature_query = query,
+      literature_total_hit_count = suppressWarnings(as.integer(total_hits)),
+      literature_search_truncated = .uaf_yes_no(truncated),
+      abstract_retrieval_status = ifelse(is.na(abstract), "not_available",
+                                         "retrieved"),
       retrieved_at = .plant_timestamp(),
       confidence = "low",
       curation_flag = "literature_candidate",
@@ -9583,7 +11698,56 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   .plant_bind_tables(rows, .plant_literature_cols())
 }
 
-.plant_taxon_query_terms = function(query_row) {
+.plant_pubmed_abstracts = function(xml) {
+  xml = paste(.uaf_non_empty(xml), collapse = "\n")
+  if (!nzchar(xml) || !grepl("<PubmedArticle", xml, fixed = TRUE)) {
+    return(character())
+  }
+  matches = gregexpr(
+    "(?s)<PubmedArticle(?:\\s[^>]*)?>.*?</PubmedArticle>", xml,
+                     perl = TRUE)
+  articles = regmatches(xml, matches)[[1]]
+  if (length(articles) < 1 || identical(articles, "")) return(character())
+  out = character()
+  for (article in articles) {
+    pmid = .plant_xml_first_text(article, "PMID")
+    abstract_matches = gregexpr(
+      "(?s)<AbstractText(?:\\s[^>]*)?>(.*?)</AbstractText>", article,
+      perl = TRUE
+    )
+    abstract_parts = regmatches(article, abstract_matches)[[1]]
+    abstract_parts = vapply(abstract_parts, function(value) {
+      value = sub("^<AbstractText(?:\\s[^>]*)?>", "", value, perl = TRUE)
+      value = sub("</AbstractText>$", "", value, perl = TRUE)
+      .plant_xml_text(value)
+    }, character(1))
+    abstract = .uaf_first_non_empty_text(
+      paste(.uaf_non_empty(abstract_parts), collapse = " ")
+    )
+    if (!is.na(pmid) && !is.na(abstract)) out[[pmid]] = abstract
+  }
+  out
+}
+
+.plant_xml_first_text = function(xml, tag) {
+  pattern = paste0("<", tag, "(?:\\s[^>]*)?>(.*?)</", tag, ">")
+  hit = regmatches(xml, regexpr(pattern, xml, perl = TRUE))
+  if (length(hit) < 1 || identical(hit, "")) return(NA_character_)
+  hit = sub(paste0("^<", tag, "(?:\\s[^>]*)?>"), "", hit, perl = TRUE)
+  hit = sub(paste0("</", tag, ">$"), "", hit, perl = TRUE)
+  .plant_xml_text(hit)
+}
+
+.plant_xml_text = function(x) {
+  x = gsub("<[^>]+>", " ", x, perl = TRUE)
+  replacements = c("&lt;" = "<", "&gt;" = ">", "&amp;" = "&",
+                   "&quot;" = "\"", "&apos;" = "'")
+  for (from in names(replacements)) x = gsub(from, replacements[[from]], x,
+                                               fixed = TRUE)
+  .uaf_squish_text(x)
+}
+
+.plant_taxon_query_terms = function(query_row, plant_aliases = NULL) {
   fallbacks = .uaf_non_empty(strsplit(
     .uaf_first_non_empty_text(query_row$taxon_fallback),
     ";",
@@ -9593,12 +11757,14 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   ranks = unique(c("species", fallbacks))
   rows = list()
   if ("species" %in% ranks) {
-    rows[[length(rows) + 1]] = data.frame(
-      term = .uaf_first_non_empty_text(query_row$species,
-                                       query_row$query_plant),
-      rank = "species",
-      stringsAsFactors = FALSE
-    )
+    species_terms = .plant_verified_species_aliases(plant_aliases, query_row)
+    for (term in species_terms) {
+      rows[[length(rows) + 1]] = data.frame(
+        term = term,
+        rank = "species",
+        stringsAsFactors = FALSE
+      )
+    }
   }
   if ("genus" %in% ranks && length(.uaf_non_empty(query_row$genus)) > 0) {
     rows[[length(rows) + 1]] = data.frame(
@@ -9619,7 +11785,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   unique(out)
 }
 
-.plant_lotus_rows = function(query_row, result, url, max_records) {
+.plant_lotus_rows = function(query_row, result, url, max_records,
+                             accepted_species = NULL) {
   items = .plant_json_records(result)
   if (length(items) < 1) return(.plant_empty_occurrences())
   max_records = .plant_max_records(max_records)
@@ -9632,9 +11799,13 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     taxon_values = flat[grepl("organism|taxon|species|genus|family",
                               names(flat), ignore.case = TRUE)]
     taxon_text = .pubchem_collapse(taxon_values)
-    matched_rank = .plant_matched_rank_from_text(query_row, taxon_text)
+    matched_rank = .plant_matched_rank_from_text(
+      query_row, taxon_text, accepted_species
+    )
     if (is.na(matched_rank)) {
-      matched_rank = .plant_matched_rank_from_text(query_row, evidence_text)
+      matched_rank = .plant_matched_rank_from_text(
+        query_row, evidence_text, accepted_species
+      )
     }
     if (is.na(matched_rank)) next
     compound_name = .plant_lotus_compound_name(flat, query_row)
@@ -9643,9 +11814,13 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     rows[[length(rows) + 1]] = data.frame(
       query_plant = query_row$query_plant,
       query_plant_clean = query_row$query_plant_clean,
-      matched_taxon = ifelse(matched_rank == "genus", query_row$genus,
-                             ifelse(matched_rank == "family",
-                                    query_row$family, query_row$species)),
+      matched_taxon = ifelse(
+        matched_rank == "genus", query_row$genus,
+        ifelse(matched_rank == "family", query_row$family,
+               .plant_matched_species_from_text(
+                 taxon_text, accepted_species, query_row$species
+               ))
+      ),
       matched_rank = matched_rank,
       species = query_row$species,
       genus = query_row$genus,
@@ -9691,6 +11866,9 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   for (row in table_rows) {
     cells = row$cells
     if (length(cells) < 2) next
+    returned_taxon = .plant_knapsack_returned_taxon(cells)
+    if (!.plant_knapsack_taxon_matches(returned_taxon, matched_taxon,
+                                       matched_rank)) next
     c_id = .uaf_first_non_empty_text(cells[grepl("^C\\d{6,}$", cells)])
     compound_name = .plant_knapsack_compound_name(cells, query_row)
     if (is.na(compound_name)) next
@@ -9699,7 +11877,7 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     rows[[length(rows) + 1]] = data.frame(
       query_plant = query_row$query_plant,
       query_plant_clean = query_row$query_plant_clean,
-      matched_taxon = matched_taxon,
+      matched_taxon = returned_taxon,
       matched_rank = matched_rank,
       species = query_row$species,
       genus = query_row$genus,
@@ -9721,7 +11899,9 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 	      occurrence_type = "organism_metabolite_record",
       retrieved_at = .plant_timestamp(),
       confidence = ifelse(matched_rank == "species", "high", "medium"),
-      curation_flag = "database_record_review_recommended",
+      curation_flag = ifelse(matched_rank == "species",
+                             "source_database_record",
+                             "taxon_fallback_review_required"),
       evidence_tier = ifelse(matched_rank == "species",
                              "direct_species_database",
                              paste0(matched_rank, "_database_fallback")),
@@ -9731,6 +11911,49 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   .plant_bind_occurrences(rows)
 }
 
+.plant_knapsack_result_url = function(html, query_term) {
+  html = paste(.uaf_non_empty(html), collapse = "\n")
+  if (!nzchar(html) || grepl("<table", html, ignore.case = TRUE)) {
+    return(NA_character_)
+  }
+  pattern = "result[.]php[?][^'\"]+"
+  hit = regmatches(html, regexpr(pattern, html, ignore.case = TRUE,
+                                perl = TRUE))
+  hit = .uaf_first_non_empty_text(hit)
+  if (is.na(hit)) {
+    return(paste0(
+      "https://www.knapsackfamily.com/knapsack_core/result.php?sname=organism&word=",
+      utils::URLencode(query_term, reserved = TRUE)
+    ))
+  }
+  hit = gsub("&#32;", "%20", hit, fixed = TRUE)
+  .plant_knapsack_absolute_url(hit)
+}
+
+.plant_knapsack_returned_taxon = function(cells) {
+  cells = .uaf_non_empty(.uaf_squish_text(cells))
+  if (length(cells) < 1) return(NA_character_)
+  .uaf_first_non_empty_text(utils::tail(cells, 1L))
+}
+
+.plant_knapsack_taxon_matches = function(returned_taxon, requested_taxon,
+                                         requested_rank) {
+  if (requested_rank == "genus") {
+    returned = .plant_clean_name(returned_taxon)
+    requested = .plant_clean_name(requested_taxon)
+    if (is.na(returned) || is.na(requested) || returned == "" ||
+        requested == "") return(FALSE)
+    return(identical(strsplit(returned, " ", fixed = TRUE)[[1]][[1]],
+                     strsplit(requested, " ", fixed = TRUE)[[1]][[1]]))
+  }
+  if (requested_rank != "species") return(FALSE)
+  returned = .plant_clean_name(.plant_taxon_core_name(returned_taxon))
+  requested = .plant_clean_name(.plant_taxon_core_name(requested_taxon))
+  if (is.na(returned) || is.na(requested) || returned == "" ||
+      requested == "") return(FALSE)
+  identical(returned, requested)
+}
+
 .plant_ncbi_taxonomy_search = function(species, cache, cache_dir, throttle,
                                        ncbi_email, ncbi_tool, ncbi_api_key,
                                        request_fun, request_timeout) {
@@ -9738,11 +11961,63 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   url = .plant_ncbi_url(
     endpoint = "esearch.fcgi",
     params = c(db = "taxonomy", term = term, retmode = "json",
-               retmax = "1", tool = ncbi_tool, email = ncbi_email),
+               retmax = "5", tool = ncbi_tool, email = ncbi_email),
     api_key = ncbi_api_key
   )
   .plant_fetch_json(url, cache, file.path(cache_dir, "ncbi_taxonomy"),
                     throttle, request_fun, timeout = request_timeout)
+}
+
+.plant_ncbi_taxonomy_summary = function(taxids, cache, cache_dir, throttle,
+                                         ncbi_email, ncbi_tool, ncbi_api_key,
+                                         request_fun, request_timeout) {
+  taxids = unique(.uaf_non_empty(as.character(taxids)))
+  if (length(taxids) < 1) return(NULL)
+  url = .plant_ncbi_url(
+    endpoint = "esummary.fcgi",
+    params = c(db = "taxonomy", id = paste(taxids, collapse = ","),
+               retmode = "json", tool = ncbi_tool, email = ncbi_email),
+    api_key = ncbi_api_key
+  )
+  .plant_fetch_json(url, cache, file.path(cache_dir, "ncbi_taxonomy"),
+                    throttle, request_fun, timeout = request_timeout)
+}
+
+.plant_verified_taxonomy_matches = function(summary, taxids,
+                                             accepted_species) {
+  columns = c("taxid", "scientific_name", "rank")
+  if (!is.list(summary) || is.null(summary$result)) {
+    return(.uaf_empty_table(columns))
+  }
+  accepted = .plant_clean_name(.plant_taxon_core_name(accepted_species))
+  accepted = unique(.uaf_non_empty(accepted))
+  if (length(accepted) < 1) return(.uaf_empty_table(columns))
+  result = summary$result
+  rows = list()
+  for (taxid in unique(.uaf_non_empty(as.character(taxids)))) {
+    record = result[[taxid]]
+    if (is.null(record)) next
+    scientific_name = .uaf_first_non_empty_text(
+      record$scientificname, record$scientific_name,
+      record$scientificName, record$title
+    )
+    rank = tolower(.uaf_first_non_empty_text(record$rank, ""))
+    scientific_key = .plant_clean_name(
+      .plant_taxon_core_name(scientific_name)
+    )
+    rank_ok = !nzchar(rank) || rank %in%
+      c("species", "subspecies", "varietas", "forma", "hybrid")
+    if (is.na(scientific_key) || !scientific_key %in% accepted || !rank_ok) {
+      next
+    }
+    rows[[length(rows) + 1L]] = data.frame(
+      taxid = taxid,
+      scientific_name = scientific_name,
+      rank = ifelse(nzchar(rank), rank, NA_character_),
+      stringsAsFactors = FALSE
+    )
+  }
+  .plant_bind_tables(rows, columns)
 }
 
 .plant_pubchem_taxonomy_rows = function(query_row, taxid, result, url,
@@ -9791,9 +12066,10 @@ print.uaf_plant_phytochemistry = function(x, ...) {
                                                 url),
         reference_id = .uaf_first_non_empty_text(annotation$Source,
                                                 annotation$SourceURL),
-        pmid = .plant_first_pattern(annotation, "\\b\\d{7,9}\\b"),
-        doi = .plant_first_pattern(annotation,
-                                   "10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+"),
+	        pmid = .plant_explicit_pmid(c(annotation$CleanValue,
+	                                      annotation$SourceURL)),
+	        doi = .plant_explicit_doi(c(annotation$CleanValue,
+	                                   annotation$SourceURL)),
 	        plant_part = .plant_provider_text_context_value(
 	          annotation$CleanValue, "plant_part"
 	        ),
@@ -9934,6 +12210,11 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       next
     }
     cid = .uaf_first_non_empty_text(row$cid)
+    source_reference = .plant_pubchem_external_reference(
+      row = row,
+      query_row = query_row,
+      compound_name = compound_name
+    )
     evidence_parts = c(
       paste0("PubChem taxonomy external table: ",
              .uaf_first_non_empty_text(spec$section_heading,
@@ -9943,10 +12224,13 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       paste0("source=", .uaf_first_non_empty_text(row$dsn)),
       paste0("taxon=", .uaf_first_non_empty_text(row$taxname)),
       paste0("evidence_ids=", .uaf_first_non_empty_text(row$evids)),
-      .uaf_first_non_empty_text(row$citations)
+      paste0("source_pmid_count=", source_reference$pmid_count),
+      paste0("source_doi_count=", source_reference$doi_count),
+      paste0("source_literature_link_status=", source_reference$status)
     )
-    text_for_context = .pubchem_collapse(c(row$srcpart, row$citations,
-                                           row$evids, row$dsn))
+    # Only provider-supplied source-part fields support biological context.
+    # Collection citations and database names are not plant-part evidence.
+    text_for_context = .uaf_first_non_empty_text(row$srcpart)
     rows[[length(rows) + 1]] = data.frame(
       query_plant = query_row$query_plant,
       query_plant_clean = query_row$query_plant_clean,
@@ -9974,14 +12258,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       ),
       reference_id = .uaf_first_non_empty_text(row$evids, row$dsn,
                                               spec$external_table_name),
-      pmid = .uaf_first_non_empty_text(.plant_first_pipe(row$pmids),
-                                       .plant_first_pattern(row,
-                                                           "\\b\\d{7,9}\\b")),
-      doi = .uaf_first_non_empty_text(
-        .plant_first_pipe(row$dois),
-        .plant_first_pattern(row,
-                             "10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+")
-      ),
+      pmid = source_reference$pmid,
+      doi = source_reference$doi,
       plant_part = .plant_provider_text_context_value(text_for_context,
                                                       "plant_part"),
       tissue = .plant_provider_text_context_value(text_for_context, "tissue"),
@@ -9989,12 +12267,46 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       occurrence_type = spec$occurrence_type,
       retrieved_at = .plant_timestamp(),
       confidence = spec$confidence,
-      curation_flag = spec$curation_flag,
+      curation_flag = .pubchem_collapse(c(
+        spec$curation_flag,
+        if (source_reference$status != "row_text_verified") {
+          "source_literature_links_not_independently_assigned"
+        }
+      )),
       evidence_tier = "direct_species_database",
       stringsAsFactors = FALSE
     )
   }
   .plant_bind_occurrences(rows)
+}
+
+.plant_pubchem_external_reference = function(row, query_row, compound_name) {
+  pmids = .plant_pipe_values(row$pmids)
+  dois = .plant_pipe_values(row$dois)
+  citation = .uaf_first_non_empty_text(row$citations)
+  species = .uaf_first_non_empty_text(query_row$species,
+                                      query_row$query_plant)
+  citation_links_row = !is.na(citation) &&
+    .plant_text_has_term(citation, species) &&
+    .plant_text_has_compound(citation, compound_name)
+  unambiguous = isTRUE(citation_links_row) &&
+    length(pmids) <= 1L && length(dois) <= 1L &&
+    (length(pmids) + length(dois)) > 0L
+  list(
+    pmid = if (unambiguous && length(pmids) == 1L) pmids[[1]] else
+      NA_character_,
+    doi = if (unambiguous && length(dois) == 1L) dois[[1]] else
+      NA_character_,
+    pmid_count = length(pmids),
+    doi_count = length(dois),
+    status = if (unambiguous) {
+      "row_text_verified"
+    } else if (length(pmids) + length(dois) > 0L || !is.na(citation)) {
+      "not_independently_assigned"
+    } else {
+      "not_supplied"
+    }
+  )
 }
 
 .plant_pubchem_sphinx_rows = function(result) {
@@ -10040,8 +12352,37 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 }
 
 .plant_first_pipe = function(x) {
-  values = unlist(strsplit(.pubchem_collapse(x), "\\|"), use.names = FALSE)
-  .uaf_first_non_empty_text(values)
+  .uaf_first_non_empty_text(.plant_pipe_values(x))
+}
+
+.plant_pipe_values = function(x) {
+  text = .pubchem_collapse(x)
+  if (is.na(text) || text == "") return(character())
+  unique(.uaf_non_empty(unlist(strsplit(text, "\\|"), use.names = FALSE)))
+}
+
+.plant_explicit_pmid = function(x) {
+  text = .pubchem_collapse(x)
+  if (is.na(text) || text == "") return(NA_character_)
+  patterns = c(
+    "(?i)\\bPMID\\s*[:#]?\\s*(\\d{7,9})\\b",
+    "(?i)pubmed\\.ncbi\\.nlm\\.nih\\.gov/(\\d{7,9})(?:/|\\b)"
+  )
+  for (pattern in patterns) {
+    hit = regexec(pattern, text, perl = TRUE)
+    values = regmatches(text, hit)[[1]]
+    if (length(values) >= 2L) return(values[[2]])
+  }
+  NA_character_
+}
+
+.plant_explicit_doi = function(x) {
+  text = .pubchem_collapse(x)
+  if (is.na(text) || text == "") return(NA_character_)
+  hit = regexpr("10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+", text,
+                ignore.case = TRUE, perl = TRUE)
+  if (hit[[1]] < 0) return(NA_character_)
+  sub("[.,;:)]+$", "", regmatches(text, hit))
 }
 
 .plant_article_id = function(item, id_type) {
@@ -10056,13 +12397,22 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   NA_character_
 }
 
-.plant_pubtator_rows = function(query_row, result) {
+.plant_pubtator_rows = function(query_row, result,
+                                accepted_species = NULL) {
   docs = .plant_pubtator_docs(result)
+  accepted_species = unique(.uaf_non_empty(c(query_row$species,
+                                              accepted_species)))
   rows = list()
   for (doc in docs) {
     pmid = .uaf_first_non_empty_text(doc$pmid, doc$id, doc$sourceid)
-    text = .pubchem_collapse(c(doc$title, doc$abstract,
-                               doc$text_hl, doc$passages[[1]]$text))
+    title = .uaf_first_non_empty_text(doc$title,
+                                      .plant_pubtator_passage_text(doc,
+                                                                  "title"))
+    abstract = .uaf_first_non_empty_text(
+      doc$abstract, .plant_pubtator_passage_text(doc, "abstract")
+    )
+    text = .pubchem_collapse(c(title, abstract, doc$text_hl,
+                               .plant_pubtator_all_passage_text(doc)))
     chemicals = unique(.uaf_non_empty(c(
       .plant_pubtator_mentions(doc, c("Chemical", "chemical")),
       .plant_pubtator_highlight_mentions(doc, "CHEMICAL")
@@ -10073,14 +12423,23 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       .plant_pubtator_highlight_mentions(doc, "SPECIES")
     )))
     if (length(species_mentions) < 1 &&
-        .plant_text_contains(text, query_row$species)) {
-      species_mentions = query_row$species
+        .plant_text_contains(text, accepted_species)) {
+      species_mentions = accepted_species[vapply(
+        accepted_species, function(value) .plant_text_contains(text, value),
+        logical(1)
+      )]
     }
     if (length(species_mentions) < 1 ||
         !.plant_text_contains(.pubchem_collapse(species_mentions),
-                              query_row$species)) {
+                              accepted_species)) {
       next
     }
+    matched_species = accepted_species[vapply(
+      accepted_species,
+      function(value) .plant_text_contains(
+        .pubchem_collapse(species_mentions), value
+      ), logical(1)
+    )]
     if (length(chemicals) < 1) chemicals = NA_character_
     for (chemical in chemicals) {
       rows[[length(rows) + 1]] = data.frame(
@@ -10093,11 +12452,14 @@ print.uaf_plant_phytochemistry = function(x, ...) {
         source_record_id = pmid,
         pmid = pmid,
         doi = NA_character_,
-        title = .uaf_first_non_empty_text(doc$title),
-        abstract = .uaf_first_non_empty_text(doc$abstract),
+        title = title,
+        abstract = abstract,
         chemical_mention = chemical,
         species_mention = .pubchem_collapse(species_mentions),
-        evidence_text = text,
+        evidence_text = .plant_pubtator_evidence_snippet(
+          text, .uaf_first_non_empty_text(matched_species,
+                                          query_row$species), chemical
+        ),
         evidence_url = ifelse(is.na(pmid), NA_character_,
                               paste0("https://pubmed.ncbi.nlm.nih.gov/",
                                      pmid, "/")),
@@ -10126,7 +12488,54 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   if (!is.null(result$passages) || !is.null(result$annotations)) {
     return(list(result))
   }
+  if (is.list(result) && length(result) > 0 && is.null(names(result))) {
+    is_doc = vapply(result, function(item) {
+      is.list(item) && (!is.null(item$id) || !is.null(item$pmid) ||
+                          !is.null(item$passages) || !is.null(item$annotations))
+    }, logical(1))
+    if (all(is_doc)) return(result)
+  }
   list()
+}
+
+.plant_pubtator_all_passage_text = function(doc) {
+  passages = tryCatch(doc$passages, error = function(error) NULL)
+  if (!is.list(passages)) return(NA_character_)
+  .pubchem_collapse(vapply(passages, function(passage) {
+    .uaf_first_non_empty_text(passage$text)
+  }, character(1)))
+}
+
+.plant_pubtator_passage_text = function(doc, type) {
+  passages = tryCatch(doc$passages, error = function(error) NULL)
+  if (!is.list(passages)) return(NA_character_)
+  values = vapply(passages, function(passage) {
+    passage_type = tolower(.uaf_first_non_empty_text(
+      passage$infons$type, passage$infons$section_type, passage$type, ""
+    ))
+    if (!identical(passage_type, tolower(type))) return(NA_character_)
+    .uaf_first_non_empty_text(passage$text)
+  }, character(1))
+  .uaf_first_non_empty_text(values)
+}
+
+.plant_pubtator_evidence_snippet = function(text, species, chemical) {
+  text = .uaf_first_non_empty_text(text)
+  if (is.na(text)) return(NA_character_)
+  sentences = unlist(strsplit(text, "(?<=[.!?])\\s+", perl = TRUE),
+                     use.names = FALSE)
+  has_species = vapply(sentences, .plant_text_contains, logical(1),
+                       value = species)
+  if (!is.na(chemical)) {
+    has_chemical = vapply(sentences, .plant_text_contains, logical(1),
+                          value = chemical)
+    both = sentences[has_species & has_chemical]
+    if (length(.uaf_non_empty(both)) > 0) {
+      return(.plant_truncate(.uaf_first_non_empty_text(both), 1200))
+    }
+  }
+  species_sentences = sentences[has_species]
+  .plant_truncate(.uaf_first_non_empty_text(species_sentences, text), 1200)
 }
 
 .plant_pubtator_mentions = function(doc, types) {
@@ -10516,11 +12925,24 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   NA_character_
 }
 
-.plant_matched_rank_from_text = function(query_row, text) {
-  if (.plant_text_contains(text, query_row$species)) return("species")
+.plant_matched_rank_from_text = function(query_row, text,
+                                         accepted_species = NULL) {
+  species = unique(.uaf_non_empty(c(query_row$species, accepted_species)))
+  if (.plant_text_contains(text, species)) return("species")
   if (.plant_text_contains(text, query_row$genus)) return("genus")
   if (.plant_text_contains(text, query_row$family)) return("family")
   NA_character_
+}
+
+.plant_matched_species_from_text = function(text, accepted_species,
+                                            fallback) {
+  candidates = unique(.uaf_non_empty(c(accepted_species, fallback)))
+  if (length(candidates) < 1) return(NA_character_)
+  hit = vapply(candidates, function(value) {
+    .plant_text_contains(text, value)
+  }, logical(1))
+  if (!any(hit)) return(.uaf_first_non_empty_text(fallback))
+  candidates[hit][order(nchar(candidates[hit]), decreasing = TRUE)][[1]]
 }
 
 .plant_text_has_taxon = function(text, query_row) {
@@ -11266,11 +13688,15 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   evidence_relaxed_keys = .plant_context_occurrence_key(
     best, include_source_detail = FALSE
   )
+  occurrence_index = split(seq_along(occurrence_keys), occurrence_keys)
+  relaxed_index = split(seq_along(occurrence_relaxed_keys),
+                        occurrence_relaxed_keys)
   for (i in seq_len(nrow(best))) {
-    idx = which(occurrence_keys == evidence_keys[[i]])
-    if (length(idx) < 1) {
-      idx = which(occurrence_relaxed_keys == evidence_relaxed_keys[[i]])
+    idx = occurrence_index[[evidence_keys[[i]]]]
+    if (is.null(idx) || length(idx) < 1L) {
+      idx = relaxed_index[[evidence_relaxed_keys[[i]]]]
     }
+    if (is.null(idx)) idx = integer()
     if (length(idx) < 1) next
     context_type = best$context_type[[i]]
     normalized = best$normalized_context[[i]]

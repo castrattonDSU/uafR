@@ -1,4 +1,4 @@
-# uafR 0.2.0
+# uafR 0.4.0.9000 (development)
 
 ## Major improvements
 
@@ -22,6 +22,47 @@
   resumable species-first discovery across larger plant lists with checkpoint
   files, analysis-ready exports, review-required exports, run manifests, and
   optional richer compound enrichment after filtering.
+- Hardened large plant runs with versioned atomic discovery checkpoints,
+  incremental chunk manifests, failed-query and retry queues, exact run
+  signatures, corrupt-checkpoint rebuilding, incomplete-discovery enrichment
+  deferral, live-run safety gates for 100+ species, and provider circuit
+  breakers for repeated 429/503 responses. Offline acceptance tests now cover
+  interruption and exact resume behavior across 705 synthetic species.
+  `planPlantChemistryRun()` now also returns an input-name audit and blocks a
+  species-level ready verdict when genus-only, `sp.`/`spp.`, blank, or
+  duplicate names require curation. Provider and batch error diagnostics now
+  redact credential-like URL/query values before printing or export.
+- Reduced large-panel discovery recomputation with checkpoint schema `3.3.0`.
+  Species chunks now checkpoint only normalized provider outputs; literature
+  context, comparability, summaries, matrices, identity review, and validation
+  are derived once after all chunks are combined. Exact duplicate literature
+  records are collapsed independently of retrieval timestamps, while distinct
+  provider records, citations, evidence sentences, and chemical mentions are
+  preserved.
+- Corrected production panel lifecycle and merge contracts. A successful or
+  validated-reused stage now clears stale root failure/service-pause markers
+  while retaining failure history in the progress ledger. Merging direct and
+  fallback provider stages now emits one canonical `PlantQueries` row per
+  submitted query with stable global query IDs instead of appending
+  provider-local fallback query IDs.
+- Strengthened production input provenance so preflight manifests distinguish
+  the canonical plant input, distinct plant metadata, exclusion ledgers, and
+  supporting taxonomy/normalization ledgers instead of labeling every
+  secondary file as generic supporting material.
+- Bound production panel runs to checked software artifacts. The panel runner
+  can now require a clean-commit release-manifest JSON and matching source
+  tarball; package version, Git commit, filename, byte count, MD5, and SHA-256
+  are validated and included in the run signature. Both artifacts and portable
+  source manifests are copied into the Tanimoto server handoff, whose commands
+  install the exact tarball and validate the release manifest before live work.
+- Hardened plant biological-context extraction by parsing each unique source
+  record once and retaining sentence-local method distinctions. PubChem
+  taxonomy rows no longer interpret CIDs as PMIDs, copy broad collection
+  citation lists into occurrence evidence, or infer plant context from
+  unrelated citation prose. Aggregate PubChem taxonomy associations remain
+  review-required; exact local LOTUS, official NPASS, and exact-taxon
+  KNApSAcK records can enter direct-evidence filters without being silently
+  promoted beyond their source record.
 - Hardened plant compound identity resolution so normalized compound keys
   preserve chemically meaningful Greek-letter and plus/minus prefixes, while
   PubChem lookups retry conservative deterministic aliases and report
@@ -38,6 +79,58 @@
   group pair summaries, and optional streamed cross-group compound-pair files
   for downstream analyses such as plant chemistry and phylogenetic similarity
   comparisons.
+- Corrected a critical legacy PubChem cache-key collision risk by replacing the
+  former weighted-text hash with an MD5 key bound to the exact request URL.
+  Legacy cache files are ignored automatically. PubChem fingerprint results are
+  now checked against input InChIKeys, mismatches are excluded, verified aliases
+  collapse to one canonical structure, and identity audit tables remain in the
+  result. PubChem-derived identity and Tanimoto outputs created with the legacy
+  cache implementation should be regenerated rather than reused.
+- Added `preparePlantTanimotoInput()` and source-only behavior in
+  `resolvePlantCompoundIdentities()`. The new offline preparation stage joins
+  exact LOTUS source-record structures, keeps repeated evidence separate from
+  unique plant-structure membership, removes inherited fingerprint payloads,
+  excludes unresolved or review-required identities by default, and writes a
+  checksummed, portable server handoff without computing any pairwise values.
+- Added production server execution gates for plant Tanimoto handoffs.
+  `tools/run_plant_tanimoto_server.R` now supports explicit `preflight`,
+  `smoke`, `summary`, and `full` modes; deterministic plant-balanced smoke
+  samples; durable status/progress/completion artifacts; release-manifest and
+  disk checks; cache-preserving PubChem service-busy pauses; atomic staging;
+  row-count validation; and compressed pair-output sharding.
+  `chemicalTanimotoSimilarity()` now exposes optional progress callbacks,
+  service-busy circuit breaking, and shard row limits while preserving prior
+  defaults. Private release manifests can be generated only from a clean Git
+  worktree after package tests, source checks, and clean-library installation.
+- Added the canonical resumable `runPlantChemistryPanel()` workflow and
+  installed `run_plant_chemistry_panel.R` CLI for staged preflight, local-index
+  preparation, all-provider pilot/discovery, identity resolution, research and
+  priority-full enrichment, Tanimoto handoff, and final bundle reconciliation.
+  Production handoffs retain the complete plant universe, and server summaries
+  now include explicit insufficient-support plant pairs plus exact comparable
+  scope/group summaries.
+- Hardened the all-provider pilot so discovery is record-bounded, the research
+  gate accepts only source-backed CID/full-InChIKey identities, and its replay
+  fails if any live request escapes the validated checkpoint/cache path.
+  Interrupted pilot runs now regenerate disposable exports without deleting
+  successful checkpoints.
+- Hardened KEGG name resolution for production enrichment. Chemical names with
+  commas use KEGG's documented `+` keyword form; only exact normalized KEGG
+  synonyms enter biochemical tables; broad substring hits remain auditable in
+  `KEGGSearchCandidates`; stale linked-entry 404s are cached as no-record; and
+  429/503 or other transport failures propagate to resumable batch handling.
+- Added `buildNpassIndex()`, `queryNpassIndex()`, provider availability
+  manifests, and a lossless sharded NPASS 3.0/NPASS-2026 local adapter. The
+  resource downloader validates remote byte counts, preserves interrupted
+  partial transfers, resumes byte-range downloads, and records source and
+  shard checksums. Temporary index shards use RDS rather than quoted text so
+  provider fields cannot be truncated by delimiter/quote parsing.
+- Added `tools/run_representative_lotus_pilot.R` for deterministic large-panel
+  scale-up checks. It selects exact-species-key, genus-key/no-exact-key, and
+  no-key strata; runs species-level discovery against a supplied local LOTUS
+  index only; preserves explicit no-hit accounting; validates manifests and
+  source-record identifiers; and writes a checksummed pilot bundle without
+  starting the full panel or any live enrichment provider.
 - Hardened PubChem enrichment for larger DSI-style plant chemistry runs by
   allowing explicit `cid:<PubChem CID>` query tokens in `pubchemProfile()`,
   adding adaptive live-request spacing, respecting PubChem throttling headers
@@ -73,6 +166,30 @@
   `estimateTanimotoOutput()`. Plant chemistry bundle manifests now include
   schema/package metadata, and model-ready feature exports support count,
   binary, fraction, and confidence-weighted matrices.
+- Added production release and recovery hardening with
+  `validatePlantChemistryRunManifest()`, `writePlantChemistryRetryQueue()`,
+  `rerunFailedPlantQueries()`, `standardizeCompoundIdentityAudit()`,
+  `validateCompoundIdentityAudit()`,
+  `exportCompoundIdentityReviewTemplate()`, and
+  `applyCompoundIdentityReview()`. The release-check wrapper now installs the
+  built source tarball into a clean temporary library by default and can run a
+  private student-bundle acceptance test when supplied a bundle path.
+- Added a simulated offline plant chemistry example under
+  `inst/extdata/offline_plant_chemistry` plus
+  `tools/build_offline_plant_chemistry_example.R` so users and CI can generate
+  a finalized plant chemistry bundle without live provider access.
+- Hardened the production plant-chemistry path so manifest-backed LOTUS lookup
+  directories work through `runPlantPhytochemistryBatch()`, feature matrices
+  retain one ordered project species universe, nested feature-manifest paths
+  are validated, and generic database provenance is no longer counted as
+  biological plant-part/tissue or analytical-method context. Review-required
+  exports now report separate evidence, identity, structure, context,
+  comparability, and citation reasons with actionable next steps.
+- Unified `chemistryComparisonDictionary()` and classification overrides with
+  the comparison scopes, metabolism domains, biosynthetic families, behaviors,
+  and groups emitted by the plant comparability engine. Common legacy aliases
+  are normalized, while invalid or inconsistent override values now fail
+  explicitly instead of entering comparable matrices.
 - Added a comparable-chemistry layer for plant workflows with
   `plantChemistryComparability()` and `plantComparableChemistryMatrix()` so
   primary metabolites, specialized metabolites, volatile-specialized chemistry,
@@ -147,6 +264,16 @@
 
 ## Reliability and packaging
 
+- Replaced the legacy package vignette with a verified offline end-to-end
+  workflow and expanded the pkgdown reference index to cover the full public
+  API.
+- Made finalized plant chemistry manifests portable across machines with
+  bundle-relative artifact paths, file sizes, MD5 checksums, and checksum
+  validation. External file references now omit source-machine absolute paths
+  and document when large-file hashing is intentionally skipped.
+- Established schema version `1.0.0`, development package version metadata,
+  package citation guidance, and a conservative third-party provider-source
+  notice for private release preparation.
 - Restored compatibility between `categorate()` output, bundled categorate data,
   `exactoThese()`, examples, and tests.
 - Fixed external-standard calibration coefficient handling in `standardifyIt()`.

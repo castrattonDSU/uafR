@@ -115,6 +115,83 @@ test_that("keggProfile validates empty input", {
                "Provide at least one")
 })
 
+test_that("keggProfile uses KEGG-safe keyword paths for punctuated names", {
+  requested = character()
+  fixture = function(url) {
+    requested <<- c(requested, url)
+    if (grepl("/find/compound/1\\+2\\+4-Trimethylbenzene$", url)) {
+      return("cpd:C14533\t1,2,4-Trimethylbenzene; Pseudocumene")
+    }
+    ""
+  }
+
+  profile = keggProfile(
+    "1,2,4-Trimethylbenzene", cache = FALSE, throttle = 0,
+    link_targets = character(), request_fun = fixture
+  )
+
+  expect_true(any(profile$matches$KEGG_ID == "C14533"))
+  expect_true(any(grepl("/find/compound/1\\+2\\+4-Trimethylbenzene$",
+                        requested)))
+  expect_false(any(grepl("%2C", requested, fixed = TRUE)))
+  expect_equal(.kegg_encode_find_query("alpha beta"), "alpha+beta")
+})
+
+test_that("KEGG broad substring hits remain rejected search candidates", {
+  fixture = function(url) {
+    if (grepl("/find/compound/1-Hexanol$", url)) {
+      return(paste(
+        "cpd:C02498\t2-Ethylhexan-1-ol; 2-Ethyl-1-hexanol",
+        "cpd:C00854\t1-Hexanol; Hexan-1-ol",
+        sep = "\n"
+      ))
+    }
+    ""
+  }
+
+  profile = keggProfile(
+    "1-Hexanol", cache = FALSE, throttle = 0,
+    link_targets = character(), request_fun = fixture
+  )
+
+  expect_equal(profile$matches$KEGG_ID, "C00854")
+  expect_equal(profile$matches$MatchStatus, "exact_name_match")
+  rejected = profile$search_candidates[
+    profile$search_candidates$KEGG_ID == "C02498", , drop = FALSE
+  ]
+  expect_equal(rejected$Accepted, "No")
+  expect_equal(rejected$RejectionReason, "broad_name_match_not_exact")
+  expect_true(is.na(rejected$MatchRank))
+})
+
+test_that("KEGG fetcher caches no-record 404 and propagates service failures", {
+  cache_dir = tempfile("kegg_http_cache_")
+  on.exit(unlink(cache_dir, recursive = TRUE, force = TRUE), add = TRUE)
+  calls = 0L
+  no_record = function(url) {
+    calls <<- calls + 1L
+    stop("HTTP 404 returned for ", url, call. = FALSE)
+  }
+  fetch = .kegg_fetcher(
+    cache = TRUE, cache_dir = cache_dir, throttle = 0,
+    request_fun = no_record
+  )
+
+  expect_identical(fetch("https://rest.kegg.jp/get/br:br08011"), "")
+  expect_identical(fetch("https://rest.kegg.jp/get/br:br08011"), "")
+  expect_equal(calls, 1L)
+
+  busy = .kegg_fetcher(
+    cache = FALSE, cache_dir = cache_dir, throttle = 0,
+    request_fun = function(url) {
+      stop("HTTP 503 returned for ", url, call. = FALSE)
+    }
+  )
+  expect_error(busy("https://rest.kegg.jp/info/kegg"), "HTTP 503")
+  expect_equal(.kegg_http_status("HTTP status was '429 Too Many Requests'"),
+               429L)
+})
+
 test_that("keggProfile limits broad name-search expansion", {
   requested = new.env(parent = emptyenv())
   requested$urls = character()

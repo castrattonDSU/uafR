@@ -20,13 +20,14 @@ standard `csv.reader` when `python3` is available.}
 `pandas.read_csv()` when Python and pandas are available.}
 }
 \value{
-A list with `Summary`, `CSVValidation`, `RequiredColumns`, and
-`Manifest` tables.
+A list with `Summary`, `CSVValidation`, `RequiredColumns`,
+`ArtifactValidation`, `ManifestReferences`, and `Manifest` tables.
 }
 \description{
 `validatePlantChemistryAnalysisBundle()` checks a CSV bundle for parser
-consistency, manifest row/column agreement, accidental row-index columns,
-and required columns in the main analysis tables. Python `csv.reader` and
-pandas checks are optional so package tests do not depend on a Python
-installation, but the function records whether those checks were run.
+consistency, manifest row/column agreement, portable artifact paths,
+file sizes and checksums, accidental row-index columns, and required columns
+in the main analysis tables. Python `csv.reader` and pandas checks are
+optional so package tests do not depend on a Python installation, but the
+function records whether those checks were run.
 }

@@ -28,7 +28,9 @@ including `out_dir`, `cache_dir`, `return_group_compound_pairs`, and
 \value{
 A `"uaf_plant_tanimoto_similarity"` list containing the generic
 Tanimoto tables plus plant-labeled aliases: `PlantCompoundMembership`,
-`PlantPairTanimotoSummary`, and `PlantCompoundTanimoto`.
+`PlantPairTanimotoSummary`, and `PlantCompoundTanimoto`. Generic exact
+comparable-scope and comparable-group summaries remain available as
+`ComparableScopeTanimotoSummary` and `ComparableGroupTanimotoSummary`.
 }
 \description{
 `plantChemicalTanimotoSimilarity()` converts a plant phytochemistry result

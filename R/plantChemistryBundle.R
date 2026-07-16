@@ -124,7 +124,17 @@ finalizePlantChemistryAnalysisBundle = function(path,
                       overwrite = overwrite, max_cell_chars = max_cell_chars)
 
   if (isTRUE(include_feature_exports)) {
-    features = exportPlantChemistryFeatureSet(enriched)
+    feature_universe = if (is.data.frame(plant_list) &&
+                           nrow(plant_list) > 0) {
+      plant_list$species
+    } else {
+      enriched$species
+    }
+    features = exportPlantChemistryFeatureSet(
+      enriched,
+      species_universe = feature_universe,
+      plant_metadata = metadata
+    )
     .bundle_write_table(path, "18_FeatureComparisonGroupCountMatrix.csv",
                         features$ComparisonGroupCountMatrix,
                         overwrite = overwrite, max_cell_chars = max_cell_chars)
@@ -149,8 +159,9 @@ finalizePlantChemistryAnalysisBundle = function(path,
     .bundle_write_table(path, "27_FeatureMethodCountMatrix.csv",
                         features$MethodCountMatrix,
                         overwrite = overwrite, max_cell_chars = max_cell_chars)
+    feature_manifest = .bundle_finalize_feature_manifest(features$Manifest)
     .bundle_write_table(path, "28_FeatureMatrixManifest.csv",
-                        features$Manifest,
+                        feature_manifest,
                         overwrite = overwrite, max_cell_chars = max_cell_chars)
   }
 
@@ -193,10 +204,11 @@ finalizePlantChemistryAnalysisBundle = function(path,
 #'
 #' @description
 #' `validatePlantChemistryAnalysisBundle()` checks a CSV bundle for parser
-#' consistency, manifest row/column agreement, accidental row-index columns,
-#' and required columns in the main analysis tables. Python `csv.reader` and
-#' pandas checks are optional so package tests do not depend on a Python
-#' installation, but the function records whether those checks were run.
+#' consistency, manifest row/column agreement, portable artifact paths,
+#' file sizes and checksums, accidental row-index columns, and required columns
+#' in the main analysis tables. Python `csv.reader` and pandas checks are
+#' optional so package tests do not depend on a Python installation, but the
+#' function records whether those checks were run.
 #'
 #' @param path CSV bundle directory.
 #' @param use_python Logical. If `TRUE`, also validate every CSV with Python's
@@ -204,8 +216,8 @@ finalizePlantChemistryAnalysisBundle = function(path,
 #' @param use_pandas Logical. If `TRUE`, also validate every CSV with
 #' `pandas.read_csv()` when Python and pandas are available.
 #'
-#' @return A list with `Summary`, `CSVValidation`, `RequiredColumns`, and
-#' `Manifest` tables.
+#' @return A list with `Summary`, `CSVValidation`, `RequiredColumns`,
+#' `ArtifactValidation`, `ManifestReferences`, and `Manifest` tables.
 #'
 #' @export
 validatePlantChemistryAnalysisBundle = function(path,
@@ -225,16 +237,26 @@ validatePlantChemistryAnalysisBundle = function(path,
   })
   csv_validation = .bundle_bind(rows)
   required = .bundle_validate_required_columns(path, manifest)
+  artifacts = .bundle_validate_export_artifacts(path, manifest)
+  manifest_references = .bundle_validate_manifest_references(path, manifest)
   blocking = any(csv_validation$Status == "fail") ||
-    any(required$Status == "fail")
+    any(required$Status == "fail") ||
+    any(artifacts$Status == "fail") ||
+    any(manifest_references$Status == "fail")
   warnings = any(csv_validation$Status == "warn") ||
-    any(required$Status == "warn")
+    any(required$Status == "warn") ||
+    any(artifacts$Status == "warn") ||
+    any(manifest_references$Status == "warn")
   summary = data.frame(
     CSVFileCount = length(csv_files),
     CSVPassCount = sum(csv_validation$Status == "pass", na.rm = TRUE),
     CSVWarnCount = sum(csv_validation$Status == "warn", na.rm = TRUE),
     CSVFailCount = sum(csv_validation$Status == "fail", na.rm = TRUE),
     RequiredColumnFailCount = sum(required$Status == "fail", na.rm = TRUE),
+    ArtifactWarnCount = sum(artifacts$Status == "warn", na.rm = TRUE),
+    ArtifactFailCount = sum(artifacts$Status == "fail", na.rm = TRUE),
+    ManifestReferenceFailCount = sum(manifest_references$Status == "fail",
+                                     na.rm = TRUE),
     PythonCsvChecked = .bundle_yes_no(isTRUE(use_python)),
     PandasChecked = .bundle_yes_no(isTRUE(use_pandas)),
     ExportReadyStatus = if (blocking) {
@@ -250,6 +272,8 @@ validatePlantChemistryAnalysisBundle = function(path,
     Summary = summary,
     CSVValidation = csv_validation,
     RequiredColumns = required,
+    ArtifactValidation = artifacts,
+    ManifestReferences = manifest_references,
     Manifest = manifest
   )
 }
@@ -552,6 +576,12 @@ plantComparableTanimotoSummary = function(plant_pair_tanimoto = NULL,
 #' @param include_context Logical. If `TRUE`, include plant-part, tissue, and
 #' method matrices when those fields are present.
 #' @param include_evidence Logical. If `TRUE`, include evidence-grade matrices.
+#' @param species_universe Optional character vector or data frame defining the
+#' complete species set and row order for every feature matrix. Species present
+#' in `membership` but absent from this input are appended. The default uses all
+#' species in `membership`.
+#' @param plant_metadata Optional plant metadata table used to populate
+#' taxonomy fields for species with no membership rows.
 #'
 #' @return Named list of feature tables and manifest.
 #'
@@ -561,7 +591,9 @@ exportPlantChemistryFeatureSet = function(membership,
                                           overwrite = FALSE,
                                           modes = "count",
                                           include_context = TRUE,
-                                          include_evidence = TRUE) {
+                                          include_evidence = TRUE,
+                                          species_universe = NULL,
+                                          plant_metadata = NULL) {
   if (!is.data.frame(membership)) {
     stop("`membership` must be an enriched plant-compound membership table.",
          call. = FALSE)
@@ -572,6 +604,10 @@ exportPlantChemistryFeatureSet = function(membership,
                 "comparable_for_matrix", "plant_part_group",
                 "tissue_group", "method_group", "confidence")) {
     if (!col %in% names(membership)) membership[[col]] = NA_character_
+  }
+  species_universe = .feature_species_universe(membership, species_universe)
+  if (!is.null(plant_metadata)) {
+    plant_metadata = standardizePlantMetadata(plant_metadata)
   }
   modes = unique(tolower(.uaf_non_empty(modes)))
   modes = modes[modes %in% c("count", "binary", "fraction", "confidence")]
@@ -601,6 +637,7 @@ exportPlantChemistryFeatureSet = function(membership,
       ColumnCount = ncol(table),
       FeatureField = field,
       Mode = mode,
+      SpeciesUniverseCount = length(species_universe),
       EvidenceFilter = if (field %in% c("comparison_group",
                                         "comparison_scope")) {
         "comparable_for_matrix == Yes and non-unknown scope/group"
@@ -615,34 +652,41 @@ exportPlantChemistryFeatureSet = function(membership,
   for (mode in modes) {
     suffix = mode_label(mode)
     add_matrix(paste0("ComparisonGroup", suffix, "Matrix"),
-               .feature_matrix(comparable, "comparison_group", mode),
+               .feature_matrix(comparable, "comparison_group", mode,
+                               species_universe),
                "comparison_group", mode,
                "Comparable chemistry group features are source-backed or explicitly classified; unknown chemistry is excluded.")
     add_matrix(paste0("ComparisonScope", suffix, "Matrix"),
-               .feature_matrix(comparable, "comparison_scope", mode),
+               .feature_matrix(comparable, "comparison_scope", mode,
+                               species_universe),
                "comparison_scope", mode,
                "Comparable chemistry scope features separate unlike chemistry before downstream modeling.")
     add_matrix(paste0("SourceCoverage", suffix, "Matrix"),
-               .feature_matrix(membership, "source_database", mode),
+               .feature_matrix(membership, "source_database", mode,
+                               species_universe),
                "source_database", mode,
                "Source coverage reflects public/source records, not biological completeness.")
     if (isTRUE(include_evidence)) {
       add_matrix(paste0("EvidenceGrade", suffix, "Matrix"),
-                 .feature_matrix(membership, "evidence_grade", mode),
+                 .feature_matrix(membership, "evidence_grade", mode,
+                                 species_universe),
                  "evidence_grade", mode,
                  "Evidence grades are conservative analysis tiers, not experimental confirmation.")
     }
     if (isTRUE(include_context)) {
       add_matrix(paste0("PlantPart", suffix, "Matrix"),
-                 .feature_matrix(membership, "plant_part_group", mode),
+                 .feature_matrix(membership, "plant_part_group", mode,
+                                 species_universe),
                  "plant_part_group", mode,
                  "Plant-part context is included only when reported or extracted from sources.")
       add_matrix(paste0("Tissue", suffix, "Matrix"),
-                 .feature_matrix(membership, "tissue_group", mode),
+                 .feature_matrix(membership, "tissue_group", mode,
+                                 species_universe),
                  "tissue_group", mode,
                  "Tissue context is included only when reported or extracted from sources.")
       add_matrix(paste0("Method", suffix, "Matrix"),
-                 .feature_matrix(membership, "method_group", mode),
+                 .feature_matrix(membership, "method_group", mode,
+                                 species_universe),
                  "method_group", mode,
                  "Method context reflects source metadata and is often incomplete.")
     }
@@ -650,7 +694,8 @@ exportPlantChemistryFeatureSet = function(membership,
   group_count = out$ComparisonGroupCountMatrix
   scope_count = out$ComparisonScopeCountMatrix
   source_count = out$SourceCoverageCountMatrix
-  metadata = .feature_species_metadata(membership)
+  metadata = .feature_species_metadata(membership, species_universe,
+                                       plant_metadata)
   out$SourceCoverageMatrix = source_count
   out$SpeciesMetadata = metadata
   manifest_rows[[length(manifest_rows) + 1L]] = data.frame(
@@ -660,6 +705,7 @@ exportPlantChemistryFeatureSet = function(membership,
     ColumnCount = ncol(metadata),
     FeatureField = "species_quality_metadata",
     Mode = "metadata",
+    SpeciesUniverseCount = length(species_universe),
     EvidenceFilter = "all supplied membership rows",
     Caveat = "Quality metadata summarize evidence coverage and should not be interpreted as biological completeness.",
     stringsAsFactors = FALSE
@@ -1041,23 +1087,113 @@ runPlantChemistryProject = function(plant_list,
 .bundle_review_required_occurrences = function(enriched, evidence_grades) {
   cols = c("row_id", "species", "compound_id", "compound_name",
            "source_database", "source_record_id", "evidence_tier",
-           "matched_rank", "evidence_grade", "review_reason",
+           "matched_rank", "evidence_grade", "review_category",
+           "review_reason", "recommended_action",
+           "evidence_review_required", "identity_review_required",
+           "structure_review_required", "context_review_required",
+           "comparability_review_required", "citation_review_required",
            "recommended_use", "evidence_url", "pmid", "doi")
   if (!is.data.frame(evidence_grades) || nrow(evidence_grades) < 1) {
     return(.bundle_empty(cols))
   }
-  review = evidence_grades[.bundle_truthy(evidence_grades$review_required) |
-                             evidence_grades$evidence_grade %in%
-                             c("unresolved_or_review_required",
-                               "pubtator_pubmed_candidate_only",
-                               "source_backed_genus_family_fallback"),
-                           , drop = FALSE]
-  if (nrow(review) < 1) return(.bundle_empty(cols))
   enriched = as.data.frame(enriched, stringsAsFactors = FALSE)
-  for (col in c("evidence_url", "pmid", "doi")) {
+  for (col in c("evidence_url", "pmid", "doi", "identity_review_required",
+                "identity_ambiguity_flag", "identity_review_reason",
+                "identity_recommended_action", "biological_context_known",
+                "context_known_record", "comparison_scope")) {
     if (!col %in% names(enriched)) enriched[[col]] = NA_character_
   }
-  idx = suppressWarnings(as.integer(review$row_id))
+  all_idx = suppressWarnings(as.integer(evidence_grades$row_id))
+  identity_flag = .bundle_truthy(.bundle_index(
+    enriched, all_idx, "identity_review_required"
+  )) | .bundle_truthy(.bundle_index(
+    enriched, all_idx, "identity_ambiguity_flag"
+  ))
+  structure_flag = !.bundle_truthy(evidence_grades$structure_resolved)
+  biological_context = .bundle_first_non_empty(
+    .bundle_index(enriched, all_idx, "biological_context_known"),
+    .bundle_index(enriched, all_idx, "context_known_record")
+  )
+  context_flag = !.bundle_truthy(biological_context)
+  scope = tolower(.bundle_squish(.bundle_index(
+    enriched, all_idx, "comparison_scope"
+  )))
+  comparability_flag = is.na(scope) | scope == "" | scope %in%
+    c("unknown", "broad_or_uncertain", "xenobiotic_or_contaminant")
+  evidence_flag = .bundle_truthy(evidence_grades$review_required) |
+    evidence_grades$evidence_grade %in%
+    c("unresolved_or_review_required", "pubtator_pubmed_candidate_only",
+      "source_backed_genus_family_fallback", "excluded_by_review")
+  has_citation = .bundle_known(.bundle_index(enriched, all_idx,
+                                             "source_record_id")) |
+    .bundle_known(.bundle_index(enriched, all_idx, "evidence_url")) |
+    .bundle_known(.bundle_index(enriched, all_idx, "pmid")) |
+    .bundle_known(.bundle_index(enriched, all_idx, "doi"))
+  citation_flag = evidence_grades$source_backed == "Yes" & !has_citation
+  keep = evidence_flag | identity_flag | structure_flag | context_flag |
+    comparability_flag | citation_flag
+  review = evidence_grades[keep, , drop = FALSE]
+  if (nrow(review) < 1) return(.bundle_empty(cols))
+  identity_flag = identity_flag[keep]
+  structure_flag = structure_flag[keep]
+  context_flag = context_flag[keep]
+  comparability_flag = comparability_flag[keep]
+  evidence_flag = evidence_flag[keep]
+  citation_flag = citation_flag[keep]
+  idx = all_idx[keep]
+  details = lapply(seq_len(nrow(review)), function(i) {
+    categories = reasons = actions = character()
+    if (evidence_flag[[i]]) {
+      categories = c(categories, "evidence")
+      reasons = c(reasons, if (review$evidence_grade[[i]] %in%
+                                c("direct_species_database_record",
+                                  "direct_species_literature_supported_record")) {
+        "A source curation flag recommends checking the species-compound record."
+      } else {
+        review$evidence_grade_basis[[i]]
+      })
+      actions = c(actions, "Verify the source record and retain the original evidence grade unless stronger evidence is documented.")
+    }
+    if (identity_flag[[i]]) {
+      categories = c(categories, "identity")
+      reasons = c(reasons, .uaf_first_non_empty_text(
+        .bundle_index(enriched, idx[[i]], "identity_review_reason"),
+        "The compound identity is ambiguous or explicitly marked for review."
+      ))
+      actions = c(actions, .uaf_first_non_empty_text(
+        .bundle_index(enriched, idx[[i]], "identity_recommended_action"),
+        "Resolve, replace, exclude, or caveat the identity in a reproducible review table."
+      ))
+    }
+    if (structure_flag[[i]]) {
+      categories = c(categories, "structure")
+      reasons = c(reasons, "No usable SMILES, InChIKey, or PubChem CID is available for structure-based analysis.")
+      actions = c(actions, "Exclude from Tanimoto analysis unless a source-backed structure is resolved.")
+    }
+    if (context_flag[[i]]) {
+      categories = c(categories, "biological_context")
+      reasons = c(reasons, "No source-backed plant-part or tissue context is available.")
+      actions = c(actions, "Exclude from plant-part or tissue-specific comparisons unless context is curated from a source.")
+    }
+    if (comparability_flag[[i]]) {
+      categories = c(categories, "comparability")
+      reasons = c(reasons, "The chemistry comparison scope is unknown, broad/uncertain, or non-comparable by default.")
+      actions = c(actions, "Exclude from comparable chemistry matrices unless a source-backed classification override is recorded.")
+    }
+    if (citation_flag[[i]]) {
+      categories = c(categories, "citation")
+      reasons = c(reasons, "The source-backed grade lacks a record identifier, URL, PMID, or DOI in this bundle.")
+      actions = c(actions, "Add a traceable source reference or downgrade the evidence grade.")
+    }
+    data.frame(
+      review_category = paste(unique(categories), collapse = "; "),
+      review_reason = paste(unique(.uaf_non_empty(reasons)), collapse = "; "),
+      recommended_action = paste(unique(.uaf_non_empty(actions)),
+                                 collapse = "; "),
+      stringsAsFactors = FALSE
+    )
+  })
+  details = .bundle_bind(details)
   out = data.frame(
     row_id = review$row_id,
     species = review$species,
@@ -1068,8 +1204,25 @@ runPlantChemistryProject = function(plant_list,
     evidence_tier = review$evidence_tier,
     matched_rank = review$matched_rank,
     evidence_grade = review$evidence_grade,
-    review_reason = review$evidence_grade_basis,
-    recommended_use = review$recommended_use,
+    review_category = details$review_category,
+    review_reason = details$review_reason,
+    recommended_action = details$recommended_action,
+    evidence_review_required = .bundle_yes_no(evidence_flag),
+    identity_review_required = .bundle_yes_no(identity_flag),
+    structure_review_required = .bundle_yes_no(structure_flag),
+    context_review_required = .bundle_yes_no(context_flag),
+    comparability_review_required = .bundle_yes_no(comparability_flag),
+    citation_review_required = .bundle_yes_no(citation_flag),
+    recommended_use = ifelse(
+      identity_flag | structure_flag | comparability_flag |
+        review$evidence_grade %in%
+        c("unresolved_or_review_required", "pubtator_pubmed_candidate_only",
+          "excluded_by_review"),
+      "Retain for audit; exclude from the affected analysis until review is completed.",
+      ifelse(context_flag,
+             "May support non-contextual occurrence summaries; exclude from plant-part or tissue-specific analysis until context is resolved.",
+             review$recommended_use)
+    ),
     evidence_url = .bundle_index(enriched, idx, "evidence_url"),
     pmid = .bundle_index(enriched, idx, "pmid"),
     doi = .bundle_index(enriched, idx, "doi"),
@@ -1255,22 +1408,29 @@ runPlantChemistryProject = function(plant_list,
 }
 
 .feature_matrix = function(x, field, mode = c("count", "binary",
-                                              "fraction", "confidence")) {
+                                              "fraction", "confidence"),
+                            species_universe = NULL) {
   mode = match.arg(mode)
   cols = c("species_id", "species")
-  if (!is.data.frame(x) || nrow(x) < 1 || !field %in% names(x)) {
-    return(.bundle_empty(cols))
+  if (!is.data.frame(x)) x = data.frame()
+  species = .feature_species_universe(x, species_universe)
+  if (length(species) < 1) return(.bundle_empty(cols))
+  if (nrow(x) < 1 || !all(c("species", field) %in% names(x))) {
+    return(data.frame(species_id = .feature_species_id(species),
+                      species = species, stringsAsFactors = FALSE))
   }
   x = as.data.frame(x, stringsAsFactors = FALSE)
   x = x[.bundle_known(x$species) & .bundle_known(x[[field]]), , drop = FALSE]
-  if (nrow(x) < 1) return(.bundle_empty(cols))
+  if (nrow(x) < 1) {
+    return(data.frame(species_id = .feature_species_id(species),
+                      species = species, stringsAsFactors = FALSE))
+  }
   x$value = .feature_key(field, x[[field]])
   x$confidence_weight = if ("confidence" %in% names(x)) {
     .plant_confidence_score(x$confidence)
   } else {
     rep(1, nrow(x))
   }
-  species = sort(unique(x$species))
   values = sort(unique(x$value))
   mat = matrix(0, nrow = length(species), ncol = length(values),
                dimnames = list(species, values))
@@ -1309,6 +1469,26 @@ runPlantChemistryProject = function(plant_list,
   tolower(gsub("^_+|_+$", "", x))
 }
 
+.bundle_finalize_feature_manifest = function(manifest) {
+  if (!is.data.frame(manifest) || nrow(manifest) < 1) return(manifest)
+  files = c(
+    ComparisonGroupCountMatrix =
+      "18_FeatureComparisonGroupCountMatrix.csv",
+    ComparisonScopeCountMatrix =
+      "19_FeatureComparisonScopeCountMatrix.csv",
+    SourceCoverageCountMatrix = "20_FeatureSourceCoverageMatrix.csv",
+    SpeciesMetadata = "21_FeatureSpeciesMetadata.csv",
+    EvidenceGradeCountMatrix = "24_FeatureEvidenceGradeCountMatrix.csv",
+    PlantPartCountMatrix = "25_FeaturePlantPartCountMatrix.csv",
+    TissueCountMatrix = "26_FeatureTissueCountMatrix.csv",
+    MethodCountMatrix = "27_FeatureMethodCountMatrix.csv"
+  )
+  idx = match(manifest$Table, names(files))
+  hit = !is.na(idx)
+  manifest$FileName[hit] = unname(files[idx[hit]])
+  manifest
+}
+
 .feature_key = function(prefix, value) {
   value = tolower(.bundle_squish(value))
   value = gsub("[^a-z0-9]+", "_", value)
@@ -1324,31 +1504,78 @@ runPlantChemistryProject = function(plant_list,
   paste0("species__", out)
 }
 
-.feature_species_metadata = function(membership) {
+.feature_species_universe = function(membership, species_universe = NULL) {
+  supplied = if (is.data.frame(species_universe)) {
+    names(species_universe) = .plant_normalize_column_names(
+      names(species_universe)
+    )
+    if ("species" %in% names(species_universe)) {
+      species_universe$species
+    } else if (ncol(species_universe) > 0) {
+      species_universe[[1]]
+    } else {
+      character()
+    }
+  } else {
+    species_universe
+  }
+  supplied = unique(.uaf_non_empty(.bundle_squish(supplied)))
+  observed = if (is.data.frame(membership) &&
+                 "species" %in% names(membership)) {
+    sort(unique(.uaf_non_empty(.bundle_squish(membership$species))))
+  } else {
+    character()
+  }
+  if (length(supplied) < 1) return(observed)
+  c(supplied, setdiff(observed, supplied))
+}
+
+.feature_species_metadata = function(membership, species_universe = NULL,
+                                      plant_metadata = NULL) {
   cols = c("species_id", "species", "accepted_species_name", "genus",
            "family", "taxonomy_family_status", "occurrence_count",
            "compound_count", "comparable_compound_count",
            "source_database_count", "direct_species_database_count",
            "direct_species_literature_count", "fallback_count",
-           "candidate_only_count", "unresolved_or_review_required_count")
-  if (!is.data.frame(membership) || nrow(membership) < 1) {
+           "candidate_only_count", "unresolved_or_review_required_count",
+           "chemistry_record_status")
+  species_universe = .feature_species_universe(membership, species_universe)
+  if (length(species_universe) < 1) {
     return(.bundle_empty(cols))
   }
+  if (!is.data.frame(membership)) membership = data.frame()
+  if (!"species" %in% names(membership)) membership$species = character()
   grades = plantOccurrenceEvidenceGrade(membership)
-  rows = lapply(split(membership, membership$species), function(x) {
-    sp = x$species[[1]]
+  rows = lapply(species_universe, function(sp) {
+    x = membership[membership$species == sp, , drop = FALSE]
     gx = grades[grades$species == sp, , drop = FALSE]
+    mx = if (is.data.frame(plant_metadata) &&
+             "species" %in% names(plant_metadata)) {
+      plant_metadata[plant_metadata$species == sp, , drop = FALSE]
+    } else {
+      data.frame()
+    }
     data.frame(
       species_id = .feature_species_id(sp),
       species = sp,
       accepted_species_name =
-        .bundle_first_value(.bundle_col_or(x, "accepted_species_name",
-                                           NA_character_)),
-      genus = .bundle_first_value(.bundle_col_or(x, "genus", NA_character_)),
-      family = .bundle_first_value(.bundle_col_or(x, "family", NA_character_)),
+        .bundle_first_value(.bundle_first_non_empty(
+          .bundle_col_or(x, "accepted_species_name", NA_character_),
+          .bundle_col_or(mx, "accepted_species_name", NA_character_)
+        )),
+      genus = .bundle_first_value(.bundle_first_non_empty(
+        .bundle_col_or(x, "genus", NA_character_),
+        .bundle_col_or(mx, "genus", NA_character_), .bundle_genus(sp)
+      )),
+      family = .bundle_first_value(.bundle_first_non_empty(
+        .bundle_col_or(x, "family", NA_character_),
+        .bundle_col_or(mx, "family", NA_character_)
+      )),
       taxonomy_family_status =
-        .bundle_first_value(.bundle_col_or(x, "taxonomy_family_status",
-                                           NA_character_)),
+        .bundle_first_value(.bundle_first_non_empty(
+          .bundle_col_or(x, "taxonomy_family_status", NA_character_),
+          .bundle_col_or(mx, "family_status", NA_character_)
+        )),
       occurrence_count = nrow(x),
       compound_count = length(unique(.uaf_non_empty(x$compound_id))),
       comparable_compound_count = length(unique(.uaf_non_empty(
@@ -1375,6 +1602,11 @@ runPlantChemistryProject = function(plant_list,
       unresolved_or_review_required_count = sum(
         gx$evidence_grade == "unresolved_or_review_required", na.rm = TRUE
       ),
+      chemistry_record_status = if (nrow(x) > 0) {
+        "records_present"
+      } else {
+        "no_records_in_membership"
+      },
       stringsAsFactors = FALSE
     )
   })
@@ -1442,7 +1674,8 @@ runPlantChemistryProject = function(plant_list,
       RowCount = nrow(membership),
       ColumnCount = ncol(membership),
       Format = "csv",
-      OutputPath = bundle_dir,
+      OutputPath = ".",
+      PathType = "bundle_relative",
       CreatedAt = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"),
       ProjectID = .uaf_first_non_empty_text(project_id, NA_character_),
       stringsAsFactors = FALSE
@@ -1645,6 +1878,22 @@ runPlantChemistryProject = function(plant_list,
       .bundle_col_or(out, "identity_review_required", NA_character_),
       .bundle_index(resolved, idx, "identity_review_required")
     )
+    out$identity_issue_type = .bundle_first_non_empty(
+      .bundle_col_or(out, "identity_issue_type", NA_character_),
+      .bundle_index(resolved, idx, "identity_issue_type")
+    )
+    out$identity_review_reason = .bundle_first_non_empty(
+      .bundle_col_or(out, "identity_review_reason", NA_character_),
+      .bundle_index(resolved, idx, "review_reason")
+    )
+    out$identity_recommended_action = .bundle_first_non_empty(
+      .bundle_col_or(out, "identity_recommended_action", NA_character_),
+      .bundle_index(resolved, idx, "recommended_action")
+    )
+    out$identity_ambiguity_flag = .bundle_first_non_empty(
+      .bundle_col_or(out, "identity_ambiguity_flag", NA_character_),
+      .bundle_index(resolved, idx, "ambiguity_flag")
+    )
   }
 
   if (nrow(fingerprints) > 0) {
@@ -1714,20 +1963,26 @@ runPlantChemistryProject = function(plant_list,
   )
   for (col in derived_cols) out[[col]] = .bundle_index(derived, der_idx, col)
 
-  out$context_known_record = .bundle_yes_no(
-    .bundle_known(.bundle_col_or(out, "plant_part_group", NA_character_)) |
-      .bundle_known(.bundle_col_or(out, "tissue_group", NA_character_)) |
-      .bundle_known(.bundle_col_or(out, "method_group", NA_character_))
-  )
-  out$plant_part_known = .bundle_yes_no(.bundle_known(
+  plant_part_known = .bundle_known(
     .bundle_col_or(out, "plant_part_group", NA_character_)
-  ))
-  out$tissue_known = .bundle_yes_no(.bundle_known(
+  )
+  tissue_known = .bundle_known(
     .bundle_col_or(out, "tissue_group", NA_character_)
-  ))
-  out$method_known = .bundle_yes_no(.bundle_known(
+  )
+  analytical_method_known = .bundle_analytical_method_known(
     .bundle_col_or(out, "method_group", NA_character_)
-  ))
+  )
+  source_provenance_record = .bundle_source_provenance_record(
+    .bundle_col_or(out, "method_group", NA_character_)
+  )
+  biological_context_known = plant_part_known | tissue_known
+  out$context_known_record = .bundle_yes_no(biological_context_known)
+  out$biological_context_known = .bundle_yes_no(biological_context_known)
+  out$plant_part_known = .bundle_yes_no(plant_part_known)
+  out$tissue_known = .bundle_yes_no(tissue_known)
+  out$method_known = .bundle_yes_no(analytical_method_known)
+  out$analytical_method_known = .bundle_yes_no(analytical_method_known)
+  out$source_provenance_record = .bundle_yes_no(source_provenance_record)
 
   comparability = .bundle_membership_comparability(out, derived)
   if (nrow(comparability) > 0) {
@@ -1763,8 +2018,12 @@ runPlantChemistryProject = function(plant_list,
     "occurrence_basis", "plant_part_group", "tissue_group", "method_group",
     "biological_context_status", "evidence_quality_score", "evidence_url",
     "doi", "pmid", "resolution_source", "identity_review_required",
-    "context_known_record", "plant_part_known", "tissue_known",
-    "method_known", "has_fingerprint", "metabolism_domain",
+    "identity_issue_type", "identity_review_reason",
+    "identity_recommended_action", "identity_ambiguity_flag",
+    "context_known_record", "biological_context_known",
+    "plant_part_known", "tissue_known", "method_known",
+    "analytical_method_known", "source_provenance_record",
+    "has_fingerprint", "metabolism_domain",
     "biosynthetic_family", "chemical_behavior", "comparison_scope",
     "comparison_group", "comparison_subgroup", "comparability_confidence",
     "comparability_basis", "comparable_for_matrix", "comparison_caveat",
@@ -1886,7 +2145,11 @@ runPlantChemistryProject = function(plant_list,
   cols = c("species", "genus", "family", "reported_compound_count",
            "fingerprinted_compound_count", "occurrence_record_count",
            "mean_evidence_quality_score", "plant_part_known_fraction",
-           "context_known_record_fraction", "identity_review_compound_fraction",
+           "tissue_known_fraction", "analytical_method_known_fraction",
+           "biological_context_known_fraction",
+           "context_known_record_fraction",
+           "source_provenance_record_fraction",
+           "identity_review_compound_fraction",
            "dominant_comparison_scope", "dominant_comparison_group",
            "natural_product_fraction", "plant_occurring_fraction",
            "volatile_proxy_fraction", "lipophilic_fraction",
@@ -1919,8 +2182,20 @@ runPlantChemistryProject = function(plant_list,
       plant_part_known_fraction = .bundle_fraction(
         .bundle_col_or(x, "plant_part_known", NA_character_)
       ),
+      tissue_known_fraction = .bundle_fraction(
+        .bundle_col_or(x, "tissue_known", NA_character_)
+      ),
+      analytical_method_known_fraction = .bundle_fraction(
+        .bundle_col_or(x, "analytical_method_known", NA_character_)
+      ),
+      biological_context_known_fraction = .bundle_fraction(
+        .bundle_col_or(x, "biological_context_known", NA_character_)
+      ),
       context_known_record_fraction = .bundle_fraction(
         .bundle_col_or(x, "context_known_record", NA_character_)
+      ),
+      source_provenance_record_fraction = .bundle_fraction(
+        .bundle_col_or(x, "source_provenance_record", NA_character_)
       ),
       identity_review_compound_fraction = .bundle_fraction(
         .bundle_col_or(x, "identity_review_required", NA_character_)
@@ -2079,10 +2354,12 @@ runPlantChemistryProject = function(plant_list,
   )
   rows = lapply(csv_files, function(file_name) {
     table = .bundle_table_from_file(file_name, existing)
-    dat = tryCatch(utils::read.csv(file.path(path, file_name),
+    file = file.path(path, file_name)
+    dat = tryCatch(utils::read.csv(file,
                                    stringsAsFactors = FALSE,
                                    check.names = FALSE),
                    error = function(e) data.frame())
+    artifact = .bundle_artifact_metadata(file, file_name)
     data.frame(
       Table = table,
       SheetName = substr(gsub("[^A-Za-z0-9_]+", "_", table), 1, 31),
@@ -2090,7 +2367,13 @@ runPlantChemistryProject = function(plant_list,
       RowCount = nrow(dat),
       ColumnCount = ncol(dat),
       Format = "csv",
-      OutputPath = path,
+      OutputPath = ".",
+      PathType = "bundle_relative",
+      ArtifactPath = file_name,
+      FileSizeBytes = artifact$size,
+      ChecksumAlgorithm = artifact$algorithm,
+      ArtifactChecksum = artifact$checksum,
+      ChecksumStatus = artifact$status,
       CreatedAt = created_at,
       ProjectID = .uaf_first_non_empty_text(project_id, NA_character_),
       uafR_schema_version = schema$uafR_schema_version[[1]],
@@ -2105,6 +2388,8 @@ runPlantChemistryProject = function(plant_list,
   markdown = c("README.md", "METHODS_TEXT.md")
   md_rows = lapply(markdown[file.exists(file.path(path, markdown))],
                    function(file_name) {
+    artifact = .bundle_artifact_metadata(file.path(path, file_name),
+                                         file_name)
     data.frame(
       Table = sub("[.].*$", "", file_name),
       SheetName = sub("[.].*$", "", file_name),
@@ -2112,7 +2397,13 @@ runPlantChemistryProject = function(plant_list,
       RowCount = NA_integer_,
       ColumnCount = NA_integer_,
       Format = "markdown",
-      OutputPath = path,
+      OutputPath = ".",
+      PathType = "bundle_relative",
+      ArtifactPath = file_name,
+      FileSizeBytes = artifact$size,
+      ChecksumAlgorithm = artifact$algorithm,
+      ArtifactChecksum = artifact$checksum,
+      ChecksumStatus = artifact$status,
       CreatedAt = created_at,
       ProjectID = .uaf_first_non_empty_text(project_id, NA_character_),
       uafR_schema_version = schema$uafR_schema_version[[1]],
@@ -2130,6 +2421,32 @@ runPlantChemistryProject = function(plant_list,
                              file.path(path, "01_ExportManifest.csv"))
   row.names(manifest) = NULL
   manifest
+}
+
+.bundle_artifact_metadata = function(file, file_name = basename(file)) {
+  is_manifest = identical(file_name, "01_ExportManifest.csv")
+  exists = file.exists(file)
+  size = if (exists && !isTRUE(file.info(file)$isdir)) {
+    as.numeric(file.info(file)$size)
+  } else {
+    NA_real_
+  }
+  if (is_manifest) {
+    return(list(size = NA_real_, algorithm = NA_character_,
+                checksum = NA_character_, status = "not_self_hashed"))
+  }
+  if (!exists) {
+    return(list(size = NA_real_, algorithm = "MD5",
+                checksum = NA_character_, status = "missing"))
+  }
+  checksum = tryCatch(unname(tools::md5sum(file)[[1]]),
+                      error = function(error) NA_character_)
+  list(
+    size = size,
+    algorithm = "MD5",
+    checksum = checksum,
+    status = if (.bundle_known(checksum)) "computed" else "error"
+  )
 }
 
 .bundle_table_from_file = function(file_name, existing) {
@@ -2236,7 +2553,7 @@ runPlantChemistryProject = function(plant_list,
     "",
     "QA and provenance files:",
     "- `00_DataDictionary.csv`: table and column definitions.",
-    "- `01_ExportManifest.csv`: file names, row counts, column counts, and creation metadata.",
+    "- `01_ExportManifest.csv`: bundle-relative file names, row/column counts, sizes, MD5 checksums, schema/package versions, and creation metadata. Its own checksum is intentionally omitted to avoid a circular hash.",
     "- `11b_SourceCoverageSummary.csv`: source-level coverage summary.",
     "- `12b_ValidationOverview.csv`: export-level validation status.",
     "- `13_ValidationIssues.csv`: row-level categorate validation issues.",
@@ -2401,31 +2718,43 @@ runPlantChemistryProject = function(plant_list,
 
 .bundle_validate_required_columns = function(path, manifest) {
   required = list(
+    ExportManifest = c("Table", "FileName", "RowCount", "ColumnCount",
+                       "OutputPath", "PathType", "ArtifactPath",
+                       "FileSizeBytes", "ChecksumAlgorithm",
+                       "ArtifactChecksum", "ChecksumStatus",
+                       "uafR_schema_version", "uafR_package_version",
+                       "workflow_name"),
     PlantCompoundMembership = c("species", "compound_id", "compound_name",
                                 "source_database", "evidence_tier"),
     PlantCompoundMembershipEnriched = c(
       "species", "compound_id", "compound_name", "comparison_scope",
-      "comparison_group", "has_fingerprint"
+      "comparison_group", "has_fingerprint", "biological_context_known",
+      "analytical_method_known", "source_provenance_record"
     ),
     PlantPairTanimotoSummary = c("species_a", "species_b",
                                  "compound_pair_count", "mean_tanimoto",
                                  "unordered_pair_key", "support_tier"),
     PlantChemistrySummary = c("species", "reported_compound_count",
                               "fingerprinted_compound_count",
+                              "biological_context_known_fraction",
                               "chemistry_data_quality_tier"),
     EvidenceGradeSummary = c("evidence_grade", "occurrence_count",
                              "review_required_count"),
     ReviewRequiredOccurrences = c("species", "compound_id",
-                                  "evidence_grade", "review_reason"),
+                                  "evidence_grade", "review_category",
+                                  "review_reason", "recommended_action"),
     FeatureComparisonGroupCountMatrix = c("species_id", "species"),
     FeatureComparisonScopeCountMatrix = c("species_id", "species"),
     FeatureSourceCoverageMatrix = c("species_id", "species"),
-    FeatureSpeciesMetadata = c("species_id", "species", "compound_count"),
+    FeatureSpeciesMetadata = c("species_id", "species", "compound_count",
+                               "chemistry_record_status"),
     FeatureEvidenceGradeCountMatrix = c("species_id", "species"),
     FeaturePlantPartCountMatrix = c("species_id", "species"),
     FeatureTissueCountMatrix = c("species_id", "species"),
     FeatureMethodCountMatrix = c("species_id", "species"),
-    FeatureMatrixManifest = c("Table", "FileName", "FeatureField", "Mode"),
+    FeatureMatrixManifest = c("Table", "FileName", "RowCount",
+                              "ColumnCount", "FeatureField", "Mode",
+                              "SpeciesUniverseCount"),
     ComparableScopeTanimotoSummary = c("species_a", "species_b",
                                        "comparison_scope",
                                        "compound_pair_count",
@@ -2457,6 +2786,232 @@ runPlantChemistryProject = function(plant_list,
     )
   })
   .bundle_bind(rows)
+}
+
+.bundle_validate_export_artifacts = function(path, manifest) {
+  cols = c("Table", "FileName", "ArtifactPath", "PathType", "FileExists",
+           "ExpectedSizeBytes", "ActualSizeBytes", "SizeMatches",
+           "ChecksumAlgorithm", "ExpectedChecksum", "ActualChecksum",
+           "ChecksumMatches", "PortablePath", "Status", "Message")
+  if (!is.data.frame(manifest) || nrow(manifest) < 1) {
+    return(data.frame(
+      Table = NA_character_, FileName = NA_character_,
+      ArtifactPath = NA_character_, PathType = NA_character_,
+      FileExists = "No", ExpectedSizeBytes = NA_real_,
+      ActualSizeBytes = NA_real_, SizeMatches = "No",
+      ChecksumAlgorithm = NA_character_, ExpectedChecksum = NA_character_,
+      ActualChecksum = NA_character_, ChecksumMatches = "No",
+      PortablePath = "No", Status = "fail",
+      Message = "Bundle export manifest is missing or empty.",
+      stringsAsFactors = FALSE
+    )[, cols, drop = FALSE])
+  }
+  required = c("Table", "FileName", "OutputPath", "PathType",
+               "ArtifactPath", "FileSizeBytes", "ChecksumAlgorithm",
+               "ArtifactChecksum", "ChecksumStatus")
+  missing = setdiff(required, names(manifest))
+  if (length(missing) > 0) {
+    return(data.frame(
+      Table = NA_character_, FileName = NA_character_,
+      ArtifactPath = NA_character_, PathType = NA_character_,
+      FileExists = "No", ExpectedSizeBytes = NA_real_,
+      ActualSizeBytes = NA_real_, SizeMatches = "No",
+      ChecksumAlgorithm = NA_character_, ExpectedChecksum = NA_character_,
+      ActualChecksum = NA_character_, ChecksumMatches = "No",
+      PortablePath = "No", Status = "warn",
+      Message = paste("Legacy manifest lacks portable artifact fields:",
+                      paste(missing, collapse = ", ")),
+      stringsAsFactors = FALSE
+    )[, cols, drop = FALSE])
+  }
+  rows = lapply(seq_len(nrow(manifest)), function(i) {
+    row = manifest[i, , drop = FALSE]
+    file_name = .uaf_first_non_empty_text(row$FileName, NA_character_)
+    artifact_path = .uaf_first_non_empty_text(row$ArtifactPath, file_name)
+    output_path = .uaf_first_non_empty_text(row$OutputPath, NA_character_)
+    path_type = .uaf_first_non_empty_text(row$PathType, NA_character_)
+    portable = identical(output_path, ".") &&
+      identical(path_type, "bundle_relative") &&
+      .bundle_safe_relative_artifact_path(artifact_path) &&
+      identical(artifact_path, file_name)
+    file = if (.bundle_safe_relative_artifact_path(artifact_path)) {
+      file.path(path, artifact_path)
+    } else {
+      NA_character_
+    }
+    exists = length(file) == 1 && !is.na(file) && file.exists(file)
+    actual_size = if (exists && !isTRUE(file.info(file)$isdir)) {
+      as.numeric(file.info(file)$size)
+    } else {
+      NA_real_
+    }
+    expected_size = suppressWarnings(as.numeric(row$FileSizeBytes))
+    self_manifest = identical(file_name, "01_ExportManifest.csv")
+    size_matches = if (self_manifest) {
+      TRUE
+    } else {
+      exists && !is.na(expected_size) && identical(actual_size, expected_size)
+    }
+    expected_checksum = .uaf_first_non_empty_text(row$ArtifactChecksum,
+                                                   NA_character_)
+    checksum_algorithm = .uaf_first_non_empty_text(row$ChecksumAlgorithm,
+                                                   NA_character_)
+    checksum_status = .uaf_first_non_empty_text(row$ChecksumStatus,
+                                                NA_character_)
+    actual_checksum = if (exists && !self_manifest &&
+                           identical(checksum_status, "computed")) {
+      tryCatch(unname(tools::md5sum(file)[[1]]),
+               error = function(error) NA_character_)
+    } else {
+      NA_character_
+    }
+    algorithm_valid = if (self_manifest) {
+      is.na(checksum_algorithm) || !nzchar(checksum_algorithm)
+    } else {
+      identical(toupper(checksum_algorithm), "MD5")
+    }
+    checksum_matches = if (self_manifest && algorithm_valid &&
+                            identical(checksum_status, "not_self_hashed")) {
+      TRUE
+    } else {
+      exists && algorithm_valid && identical(checksum_status, "computed") &&
+        .bundle_known(expected_checksum) &&
+        identical(actual_checksum, expected_checksum)
+    }
+    messages = character()
+    if (!portable) messages = c(messages, "artifact path is not portable")
+    if (!exists) messages = c(messages, "artifact file is missing")
+    if (!size_matches) messages = c(messages, "artifact size differs")
+    if (!algorithm_valid) messages = c(messages, "checksum algorithm is invalid")
+    if (!checksum_matches) messages = c(messages, "artifact checksum differs")
+    ok = portable && exists && size_matches && checksum_matches
+    data.frame(
+      Table = as.character(row$Table), FileName = file_name,
+      ArtifactPath = artifact_path, PathType = path_type,
+      FileExists = .bundle_yes_no(exists),
+      ExpectedSizeBytes = expected_size, ActualSizeBytes = actual_size,
+      SizeMatches = .bundle_yes_no(size_matches),
+      ChecksumAlgorithm = checksum_algorithm,
+      ExpectedChecksum = expected_checksum,
+      ActualChecksum = actual_checksum,
+      ChecksumMatches = .bundle_yes_no(checksum_matches),
+      PortablePath = .bundle_yes_no(portable),
+      Status = if (ok) "pass" else "fail",
+      Message = if (ok) {
+        if (self_manifest) {
+          "Manifest path is portable; self-checksum is intentionally omitted."
+        } else {
+          "Artifact path, size, and checksum are valid."
+        }
+      } else {
+        paste(unique(messages), collapse = "; ")
+      },
+      stringsAsFactors = FALSE
+    )
+  })
+  .bundle_bind(rows)[, cols, drop = FALSE]
+}
+
+.bundle_safe_relative_artifact_path = function(x) {
+  x = as.character(x)
+  length(x) == 1 && !is.na(x) && nzchar(x) &&
+    !grepl("^(/|[A-Za-z]:[/\\\\]|\\\\\\\\|~[/\\\\])", x) &&
+    !grepl("(^|[/\\\\])[.][.]($|[/\\\\])", x) &&
+    identical(basename(x), x)
+}
+
+.bundle_validate_manifest_references = function(path, manifest) {
+  cols = c("ManifestTable", "ReferencedTable", "FileName", "FileExists",
+           "ListedInExportManifest", "ExpectedRows", "ActualRows",
+           "ExpectedColumns", "ActualColumns", "SpeciesUniverseMatches",
+           "Status", "Message")
+  if (!is.data.frame(manifest) || nrow(manifest) < 1 ||
+      !"FeatureMatrixManifest" %in% manifest$Table) {
+    return(.bundle_empty(cols))
+  }
+  nested = .bundle_read_table(path, manifest, "FeatureMatrixManifest")
+  required = c("Table", "FileName", "RowCount", "ColumnCount")
+  missing = setdiff(required, names(nested))
+  if (length(missing) > 0) {
+    return(data.frame(
+      ManifestTable = "FeatureMatrixManifest",
+      ReferencedTable = NA_character_, FileName = NA_character_,
+      FileExists = "No", ListedInExportManifest = "No",
+      ExpectedRows = NA_integer_, ActualRows = NA_integer_,
+      ExpectedColumns = NA_integer_, ActualColumns = NA_integer_,
+      SpeciesUniverseMatches = "No", Status = "fail",
+      Message = paste("Missing nested manifest columns:",
+                      paste(missing, collapse = ", ")),
+      stringsAsFactors = FALSE
+    ))
+  }
+  metadata_row = which(nested$Table == "SpeciesMetadata")
+  expected_species = character()
+  if (length(metadata_row) > 0) {
+    metadata_file = file.path(path, nested$FileName[[metadata_row[[1]]]])
+    metadata = tryCatch(
+      utils::read.csv(metadata_file, stringsAsFactors = FALSE,
+                      check.names = FALSE),
+      error = function(error) data.frame()
+    )
+    if ("species_id" %in% names(metadata)) {
+      expected_species = as.character(metadata$species_id)
+    }
+  }
+  rows = lapply(seq_len(nrow(nested)), function(i) {
+    file_name = as.character(nested$FileName[[i]])
+    file = file.path(path, file_name)
+    exists = file.exists(file)
+    dat = if (exists) {
+      tryCatch(utils::read.csv(file, stringsAsFactors = FALSE,
+                               check.names = FALSE),
+               error = function(error) data.frame())
+    } else {
+      data.frame()
+    }
+    listed = "FileName" %in% names(manifest) && file_name %in%
+      manifest$FileName
+    expected_rows = suppressWarnings(as.integer(nested$RowCount[[i]]))
+    expected_cols = suppressWarnings(as.integer(nested$ColumnCount[[i]]))
+    actual_rows = if (exists) nrow(dat) else NA_integer_
+    actual_cols = if (exists) ncol(dat) else NA_integer_
+    species_match = exists && "species_id" %in% names(dat) &&
+      length(expected_species) > 0 &&
+      identical(as.character(dat$species_id), expected_species)
+    ok = exists && listed && !is.na(expected_rows) &&
+      identical(actual_rows, expected_rows) && !is.na(expected_cols) &&
+      identical(actual_cols, expected_cols) && species_match
+    messages = character()
+    if (!exists) messages = c(messages, "referenced file is missing")
+    if (!listed) messages = c(messages, "file is absent from export manifest")
+    if (exists && !identical(actual_rows, expected_rows)) {
+      messages = c(messages, "row count differs from nested manifest")
+    }
+    if (exists && !identical(actual_cols, expected_cols)) {
+      messages = c(messages, "column count differs from nested manifest")
+    }
+    if (exists && !species_match) {
+      messages = c(messages, "species universe/order differs from SpeciesMetadata")
+    }
+    data.frame(
+      ManifestTable = "FeatureMatrixManifest",
+      ReferencedTable = as.character(nested$Table[[i]]),
+      FileName = file_name,
+      FileExists = .bundle_yes_no(exists),
+      ListedInExportManifest = .bundle_yes_no(listed),
+      ExpectedRows = expected_rows, ActualRows = actual_rows,
+      ExpectedColumns = expected_cols, ActualColumns = actual_cols,
+      SpeciesUniverseMatches = .bundle_yes_no(species_match),
+      Status = if (ok) "pass" else "fail",
+      Message = if (length(messages) > 0) {
+        paste(messages, collapse = "; ")
+      } else {
+        "Referenced feature artifact is present and internally consistent."
+      },
+      stringsAsFactors = FALSE
+    )
+  })
+  .bundle_bind(rows)[, cols, drop = FALSE]
 }
 
 .bundle_prepare_cid_table = function(x) {
@@ -2554,6 +3109,16 @@ runPlantChemistryProject = function(plant_list,
                                   "not reported", "na", "none")
 }
 
+.bundle_analytical_method_known = function(x) {
+  x = tolower(.bundle_squish(as.character(x)))
+  .bundle_known(x) & !x %in% c("database_record", "literature_curation")
+}
+
+.bundle_source_provenance_record = function(x) {
+  x = tolower(.bundle_squish(as.character(x)))
+  !is.na(x) & x %in% c("database_record", "literature_curation")
+}
+
 .bundle_truthy = function(x) {
   x = tolower(.bundle_squish(as.character(x)))
   x %in% c("true", "t", "yes", "y", "1", "present", "high", "medium")
@@ -2632,24 +3197,36 @@ runPlantChemistryProject = function(plant_list,
 
 .bundle_column_required = function(table, col) {
   req = list(
+    ExportManifest = c("Table", "FileName", "RowCount", "ColumnCount",
+                       "OutputPath", "PathType", "ArtifactPath",
+                       "FileSizeBytes", "ChecksumAlgorithm",
+                       "ArtifactChecksum", "ChecksumStatus",
+                       "uafR_schema_version", "uafR_package_version",
+                       "workflow_name"),
     PlantCompoundMembership = c("species", "compound_id", "compound_name"),
     PlantCompoundMembershipEnriched = c("species", "compound_id",
-                                        "compound_name", "comparison_scope"),
+                                        "compound_name", "comparison_scope",
+                                        "biological_context_known"),
     PlantPairTanimotoSummary = c("species_a", "species_b",
                                  "unordered_pair_key"),
-    PlantChemistrySummary = c("species", "reported_compound_count"),
+    PlantChemistrySummary = c("species", "reported_compound_count",
+                              "biological_context_known_fraction"),
     EvidenceGradeSummary = c("evidence_grade", "occurrence_count"),
     ReviewRequiredOccurrences = c("species", "compound_id",
-                                  "evidence_grade"),
+                                  "evidence_grade", "review_category",
+                                  "recommended_action"),
     FeatureComparisonGroupCountMatrix = c("species_id", "species"),
     FeatureComparisonScopeCountMatrix = c("species_id", "species"),
     FeatureSourceCoverageMatrix = c("species_id", "species"),
-    FeatureSpeciesMetadata = c("species_id", "species", "compound_count"),
+    FeatureSpeciesMetadata = c("species_id", "species", "compound_count",
+                               "chemistry_record_status"),
     FeatureEvidenceGradeCountMatrix = c("species_id", "species"),
     FeaturePlantPartCountMatrix = c("species_id", "species"),
     FeatureTissueCountMatrix = c("species_id", "species"),
     FeatureMethodCountMatrix = c("species_id", "species"),
-    FeatureMatrixManifest = c("Table", "FileName", "FeatureField", "Mode"),
+    FeatureMatrixManifest = c("Table", "FileName", "RowCount",
+                              "ColumnCount", "FeatureField", "Mode",
+                              "SpeciesUniverseCount"),
     ComparableScopeTanimotoSummary = c("species_a", "species_b",
                                        "comparison_scope",
                                        "compound_pair_count"),
@@ -2665,32 +3242,53 @@ runPlantChemistryProject = function(plant_list,
          comparable_for_matrix = "Yes; No",
          has_fingerprint = "Yes; No",
          context_known_record = "Yes; No",
+         biological_context_known = "Yes; No",
          plant_part_known = "Yes; No",
          tissue_known = "Yes; No",
          method_known = "Yes; No",
+         analytical_method_known = "Yes; No",
+         source_provenance_record = "Yes; No",
          matched_in_lotus = "Yes; No",
          source_backed = "Yes; No",
          structure_resolved = "Yes; No",
          comparable_for_analysis = "Yes; No",
          review_required = "Yes; No",
+         evidence_review_required = "Yes; No",
+         identity_review_required = "Yes; No",
+         structure_review_required = "Yes; No",
+         context_review_required = "Yes; No",
+         comparability_review_required = "Yes; No",
+         citation_review_required = "Yes; No",
          low_support_caution = "Yes; No",
          accepted_name_status = "accepted_name_supplied; accepted_name_not_supplied",
          family_status = "family_supplied; family_not_supplied",
          evidence_grade = "direct_species_database_record; direct_species_literature_supported_record; source_backed_genus_family_fallback; pubtator_pubmed_candidate_only; unresolved_or_review_required; excluded_by_review",
          support_tier = "very_low; low; moderate; high; unknown",
          ExportReadyStatus = "pass; warn; fail",
+         chemistry_record_status = "records_present; no_records_in_membership",
          "")
 }
 
 .bundle_column_note = function(col) {
   switch(col,
+         ArtifactPath = "Bundle-relative artifact name; resolve against the bundle directory.",
+         FileSizeBytes = "Artifact size recorded when the manifest was refreshed.",
+         ArtifactChecksum = "MD5 integrity value for the artifact; the export manifest omits its own checksum to avoid a circular hash.",
+         ChecksumStatus = "Reports whether a checksum was computed or intentionally omitted for the manifest itself.",
+         PathType = "Distinguishes portable bundle-relative paths from external reference basenames.",
          comparison_scope = "Use to keep downstream comparisons biologically comparable.",
          comparison_group = "Higher-level chemistry grouping within a comparison scope.",
          evidence_tier = "Source evidence level; literature co-mentions should not be treated as confirmed occurrence unless curated.",
          evidence_grade = "Conservative uafR analysis tier derived from source, rank, evidence tier, and optional review decisions.",
          recommended_use = "Suggested downstream use based on evidence grade, structure resolution, and comparability.",
+         review_category = "Semicolon-delimited evidence, identity, structure, biological-context, comparability, or citation review categories.",
+         recommended_action = "Specific curation or exclusion action required before the affected downstream analysis.",
          analysis_filter_key = "Convenience key for filtering source-backed, structure-resolved, comparable rows.",
          species_id = "Stable sanitized species identifier for joins and model-ready matrices.",
+         biological_context_known = "Yes only when a source reports plant-part or tissue context; database provenance alone does not qualify.",
+         analytical_method_known = "Yes only for a reported analytical method; generic database or literature provenance does not qualify.",
+         source_provenance_record = "Identifies generic database or literature provenance separately from biological and analytical context.",
+         SpeciesUniverseCount = "Complete species count that every feature matrix is required to retain in the same order.",
          comparison_value = "Scope or group value used for a filtered comparable chemistry summary.",
          comparison_filter = "Human-readable filter used to create the filtered comparison table.",
          plant_part_group = "Often missing in public sources; absence means not reported in this export.",

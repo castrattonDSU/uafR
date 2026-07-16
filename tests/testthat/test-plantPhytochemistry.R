@@ -310,7 +310,7 @@ pubmed_fixture_request = function(url) {
 
 pubtator_fixture_request = function(url) {
   list(documents = list(list(
-    pmid = "333",
+    pmid = "111",
     title = "Salix nigra phytochemical annotations",
     abstract = "Salicin was discussed with Salix nigra in a chemical ecology context.",
     annotations = list(
@@ -769,6 +769,24 @@ test_that("provider diagnostics retain elapsed time and request errors", {
                     phyto$ProviderDiagnostics$error_messages))
 })
 
+test_that("provider diagnostics redact credentials from request errors", {
+  secret = "ncbi-secret-value"
+  request_error = paste0(
+    "cannot open URL 'https://eutils.ncbi.nlm.nih.gov/esearch?db=pubmed",
+    "&api_key=", secret, "&retmax=1'; password=another-secret"
+  )
+  diagnostic = .plant_provider_diagnostics(
+    "pubmed", TRUE, TRUE, TRUE, 1, 0, 0, 1, 0, "warning",
+    request_error, error_messages = request_error
+  )
+
+  exported_text = paste(diagnostic$message, diagnostic$error_messages)
+  expect_false(grepl(secret, exported_text, fixed = TRUE))
+  expect_false(grepl("another-secret", exported_text, fixed = TRUE))
+  expect_match(exported_text, "api_key=[REDACTED]", fixed = TRUE)
+  expect_match(exported_text, "password=[REDACTED]", fixed = TRUE)
+})
+
 test_that("provider text context does not mislabel methods as plant parts", {
   expect_true(is.na(.plant_provider_text_context_value(
     "gas chromatography and quadrupole mass spectrometry",
@@ -872,6 +890,11 @@ test_that("live provider adapters normalize mocked public responses", {
     if (grepl("esearch.fcgi", url) && grepl("taxonomy", url)) {
       return(list(esearchresult = list(idlist = list("75706"))))
     }
+    if (grepl("esummary.fcgi", url) && grepl("taxonomy", url)) {
+      return(list(result = list(
+        `75706` = list(scientificname = "Salix nigra", rank = "species")
+      )))
+    }
     if (grepl("pug_view/data/taxonomy", url)) {
       return(list(Record = list(
         Reference = list(list(ReferenceNumber = 1,
@@ -967,6 +990,62 @@ test_that("live provider adapters normalize mocked public responses", {
   expect_true(any(grepl("Metabolite=salicylic acid",
                         knapsack$evidence_text, fixed = TRUE)))
   expect_true(all(knapsack$biological_context_status == "context_missing"))
+})
+
+test_that("PubChem taxonomy rows do not convert CIDs or broad citations into literature evidence", {
+  query = .plant_queries("Artemisia annua", "species")[1, , drop = FALSE]
+  spec = data.frame(
+    section_heading = "Natural Products",
+    srccmpdkind = "Natural Product",
+    occurrence_type = "pubchem_taxonomy_natural_product_table",
+    external_table_name = "consolidatedcompoundtaxonomy",
+    confidence = "medium",
+    curation_flag = "source_table_review_recommended",
+    stringsAsFactors = FALSE
+  )
+  result = list(SDQOutputSet = list(list(
+    status = list(code = 0),
+    rows = list(list(
+      cid = "12345678",
+      cmpdname = "artemisinin",
+      taxname = "Artemisia annua",
+      srccmpdkind = "Natural Product",
+      dsn = "MetaboLights",
+      pmids = "11111111|22222222",
+      dois = "10.1000/unrelated-one|10.1000/unrelated-two",
+      citations = paste(
+        "Metabolite profiling of Solanum tuberosum.",
+        "A second unrelated collection citation."
+      ),
+      evurls = "https://example.test/source-record",
+      srcpart = NA_character_
+    ))
+  )))
+
+  rows = .plant_pubchem_taxonomy_external_rows(
+    query_row = query,
+    taxid = "112509",
+    spec = spec,
+    result = result,
+    url = "https://example.test/pubchem-taxonomy",
+    max_records = 25
+  )
+
+  expect_equal(nrow(rows), 1)
+  expect_equal(rows$compound_id, "12345678")
+  expect_true(is.na(rows$pmid))
+  expect_true(is.na(rows$doi))
+  expect_true(is.na(rows$plant_part))
+  expect_true(is.na(rows$method))
+  expect_false(grepl("Solanum tuberosum", rows$evidence_text,
+                     fixed = TRUE))
+  expect_match(rows$evidence_text,
+               "source_literature_link_status=not_independently_assigned")
+  expect_match(rows$curation_flag,
+               "source_literature_links_not_independently_assigned")
+  expect_true(is.na(.plant_explicit_pmid(
+    "https://pubchem.ncbi.nlm.nih.gov/compound/12345678"
+  )))
 })
 
 test_that("resolver combines mocked provider rows and conservative literature candidates", {
@@ -1143,7 +1222,8 @@ test_that("source-backed context enrichment applies PMID/DOI text conservatively
     title = "Phytochemical constituents from Salix nigra leaves",
     abstract = paste(
       "Salicin was identified from leaves of Salix nigra.",
-      "The extract was analyzed by LC-MS."
+      "The extract was analyzed by LC-MS.",
+      "Additional constituents were isolated by chromatography."
     ),
     evidence_url = "https://pubmed.ncbi.nlm.nih.gov/12345/",
     stringsAsFactors = FALSE
@@ -1162,6 +1242,7 @@ test_that("source-backed context enrichment applies PMID/DOI text conservatively
 
   expect_true(any(context$normalized_context == "leaf"))
   expect_true(any(context$normalized_context == "lc_ms"))
+  expect_true(any(context$normalized_context == "chromatography"))
   expect_true(any(grepl("source_context", context$extraction_rule)))
   expect_true(all(context$evidence_basis %in%
                     c("source_backed_species_compound_sentence",
@@ -1169,6 +1250,50 @@ test_that("source-backed context enrichment applies PMID/DOI text conservatively
                       "source_backed_document_context_sentence")))
   expect_equal(updated$PlantCompoundOccurrences$plant_part_group, "leaf")
   expect_equal(updated$PlantCompoundOccurrences$method_group, "lc_ms")
+})
+
+test_that("duplicate source records do not duplicate context evidence", {
+  occurrence = .plant_normalize_occurrences(data.frame(
+    species = "Salix nigra",
+    genus = "Salix",
+    compound_name = "salicin",
+    source_database = "LOTUS",
+    source_record_id = "LTS000010",
+    pmid = "12345",
+    doi = "10.1000/salix",
+    evidence_tier = "direct_species_database",
+    confidence = "high",
+    stringsAsFactors = FALSE
+  ))
+  source = data.frame(
+    source_database = "PubMed",
+    source_record_id = "12345",
+    pmid = "12345",
+    doi = "10.1000/salix",
+    title = "Phytochemical constituents from Salix nigra leaves",
+    abstract = paste(
+      "Salicin was identified from leaves of Salix nigra.",
+      "The extract was analyzed by LC-MS."
+    ),
+    evidence_url = "https://pubmed.ncbi.nlm.nih.gov/12345/",
+    stringsAsFactors = FALSE
+  )
+  duplicate_source = rbind(
+    source,
+    transform(source, source_record_id = "duplicate-provider-row")
+  )
+
+  once = enrichPlantContextEvidence(
+    occurrence, context_sources = source, apply = FALSE
+  )
+  duplicated = enrichPlantContextEvidence(
+    occurrence, context_sources = duplicate_source, apply = FALSE
+  )
+  compare_cols = setdiff(names(once), "retrieved_at")
+
+  expect_equal(nrow(duplicated), nrow(once))
+  expect_equal(duplicated[, compare_cols, drop = FALSE],
+               once[, compare_cols, drop = FALSE])
 })
 
 test_that("source-backed context enrichment rejects unrelated source sentences", {
@@ -1724,6 +1849,49 @@ test_that("LOTUS source structures resolve before PubChem and flag bad labels", 
                "resolved_source_or_product_label")
 })
 
+test_that("source-only identity resolution never falls back to PubChem", {
+  intake = data.frame(
+    species = c("Salix nigra", "Salix nigra"),
+    compound_name = c("salicin", "unresolved source name"),
+    source_database = "LOTUS",
+    citation_or_url = "https://lotus.test",
+    evidence_tier = "direct_species_database",
+    source_record_id = c("LTS_SALICIN", "LTS_UNRESOLVED"),
+    stringsAsFactors = FALSE
+  )
+  occurrence = standardizePlantCompoundIntake(intake)
+  occurrence$compound_id = occurrence$source_record_id
+  occurrence$compound_id_type = "LOTUS"
+  lotus_index = data.frame(
+    species = "Salix nigra",
+    compound_name = "salicin",
+    lotus_id = "LTS_SALICIN",
+    smiles = "OC1COC(O)C(O)C1O",
+    inchikey = "AAAAAAAAAAAAAA-BBBBBBBBBB-C",
+    molecular_formula = "C13H18O7",
+    stringsAsFactors = FALSE
+  )
+
+  resolved = resolvePlantCompoundIdentities(
+    occurrence,
+    lotus_index = lotus_index,
+    source_only = TRUE,
+    cache = FALSE,
+    pubchem_fun = function(...) stop("PubChem must not run in source-only mode")
+  )
+
+  expect_equal(sum(resolved$resolved %in% TRUE), 1L)
+  expect_equal(sum(!(resolved$resolved %in% TRUE)), 1L)
+  expect_equal(resolved$resolution_source[resolved$resolved %in% TRUE],
+               "LOTUS_source_identity")
+  expect_identical(attr(resolved, "CategorateResult")$EnrichmentMode,
+                   "source_identity_only")
+  expect_true(is.data.frame(attr(resolved, "SourceCompoundIdentity")))
+  expect_equal(nrow(attr(resolved, "SourceCompoundIdentity")), 1L)
+  expect_match(attr(resolved, "Provenance")$notes,
+               "without PubChem", ignore.case = TRUE)
+})
+
 test_that("source-ambiguous names can resolve by PubChem but remain auditable", {
   intake = data.frame(
     species = c("Salix nigra", "Salix nigra"),
@@ -1770,7 +1938,8 @@ test_that("source-ambiguous names can resolve by PubChem but remain auditable", 
   expect_true(resolved$resolved)
   expect_equal(as.integer(resolved$CID), 5280343)
   expect_equal(resolved$resolution_source, "pubchemProfile_identity")
-  expect_match(resolved$notes, "Multiple LOTUS source structures")
+  expect_match(resolved$notes, "Conflicting source structures")
+  expect_match(resolved$notes, "sources: LOTUS")
 
   review = plantCompoundIdentityReviewTable(
     list(PlantCompoundOccurrences = occurrence,
@@ -1969,6 +2138,7 @@ test_that("chunked plant batch runner writes production artifacts", {
 
   expect_s3_class(phyto, "uaf_plant_phytochemistry")
   expect_equal(nrow(phyto$BatchChunkManifest), 3)
+  expect_equal(phyto$BatchChunkManifest$occurrence_count, c(1L, 1L, 1L))
   expect_equal(phyto$BatchRunManifest$plant_count, 3)
   expect_equal(phyto$BatchRunManifest$compound_resolution_profile, "identity")
   expect_true(all(c("attempted_compound_count",
@@ -1989,6 +2159,432 @@ test_that("chunked plant batch runner writes production artifacts", {
                   format = "csv",
                   overwrite = TRUE
                 )$Table)
+})
+
+test_that("batch checkpoints defer derived tables until chunks are combined", {
+  occurrence = data.frame(
+    species = "Salix nigra",
+    genus = "Salix",
+    compound_name = "salicin",
+    source_database = "LOTUS",
+    source_record_id = "LTS-CONTEXT-1",
+    pmid = "12345",
+    doi = "10.1000/salix-context",
+    evidence_url = "https://example.test/lotus/salicin",
+    evidence_tier = "direct_species_database",
+    confidence = "high",
+    stringsAsFactors = FALSE
+  )
+  literature = data.frame(
+    query_plant = "Salix nigra",
+    species = "Salix nigra",
+    source_database = "PubMed",
+    source_record_id = "12345",
+    pmid = "12345",
+    doi = "10.1000/salix-context",
+    title = "Leaf phytochemistry of Salix nigra",
+    abstract = paste(
+      "Salicin was reported from leaves of Salix nigra.",
+      "The extract was analyzed by LC-MS."
+    ),
+    evidence_url = "https://pubmed.ncbi.nlm.nih.gov/12345/",
+    evidence_tier = "direct_species_literature",
+    confidence = "medium",
+    retrieved_at = "2026-01-01T00:00:00+0000",
+    stringsAsFactors = FALSE
+  )
+  literature = rbind(
+    literature,
+    transform(literature, retrieved_at = "2026-01-02T00:00:00+0000")
+  )
+  out_dir = tempfile("plant_deferred_batch_")
+  result = runPlantPhytochemistryBatch(
+    plants = "Salix nigra",
+    sources = "lotus",
+    provider_results = list(lotus = list(
+      PlantCompoundOccurrences = occurrence,
+      LiteratureCandidates = literature
+    )),
+    out_dir = out_dir,
+    species_chunk_size = 1,
+    compound_resolution_profile = "none",
+    cache = TRUE,
+    throttle = 0,
+    progress = FALSE,
+    overwrite = TRUE
+  )
+  checkpoint_path = file.path(
+    out_dir, result$BatchChunkManifest$output_file[[1]]
+  )
+  checkpoint = readRDS(checkpoint_path)
+
+  expect_equal(checkpoint$checkpoint_version, "3.3.0")
+  expect_equal(nrow(checkpoint$result$PlantContextEvidence), 0)
+  expect_equal(nrow(checkpoint$result$SpeciesChemistrySummary), 0)
+  expect_true(any(result$PlantContextEvidence$normalized_context == "leaf"))
+  expect_true(any(result$PlantContextEvidence$normalized_context == "lc_ms"))
+  expect_equal(result$PlantCompoundOccurrences$plant_part_group, "leaf")
+  expect_equal(result$PlantCompoundOccurrences$method_group, "lc_ms")
+  expect_equal(nrow(result$SpeciesChemistrySummary), 1)
+  expect_equal(nrow(result$LiteratureCandidates), 1)
+})
+
+test_that("chunked provider results are restricted to the active species", {
+  occurrences = data.frame(
+    species = c("Salix nigra", "Zea mays"),
+    compound_name = c("salicin", "DIMBOA"),
+    compound_name_clean = c("salicin", "dimboa"),
+    source_record_id = c("LTS1", "LTS2"),
+    stringsAsFactors = FALSE
+  )
+  literature = data.frame(
+    species = c("Salix nigra", "Zea mays"),
+    pmid = c("1", "2"), stringsAsFactors = FALSE
+  )
+  identity = data.frame(
+    compound_name = c("salicin", "DIMBOA"),
+    compound_name_clean = c("salicin", "dimboa"),
+    source_record_id = c("LTS1", "LTS2"),
+    CID = c(439503L, 123L), stringsAsFactors = FALSE
+  )
+  supplied = list(lotus = list(
+    PlantCompoundOccurrences = occurrences,
+    LiteratureCandidates = literature,
+    SourceCompoundIdentity = identity
+  ))
+
+  subset = .plant_batch_subset_provider_results(supplied, "Salix nigra")
+
+  expect_equal(subset$lotus$PlantCompoundOccurrences$species,
+               "Salix nigra")
+  expect_equal(subset$lotus$LiteratureCandidates$species, "Salix nigra")
+  expect_equal(subset$lotus$SourceCompoundIdentity$source_record_id, "LTS1")
+  expect_false(identical(
+    .plant_batch_provider_results_signature(supplied),
+    .plant_batch_provider_results_signature(subset)
+  ))
+})
+
+test_that("large live batch runs require explicit production safeguards", {
+  plants = paste("Simulata species", sprintf("%03d", seq_len(100)))
+  expect_error(
+    runPlantPhytochemistryBatch(
+      plants = plants,
+      sources = "lotus",
+      out_dir = tempfile("unsafe_large_live_"),
+      cache = TRUE,
+      compound_resolution_profile = "none",
+      progress = FALSE
+    ),
+    "Large live LOTUS simple-search runs are disabled"
+  )
+  expect_error(
+    runPlantPhytochemistryBatch(
+      plants = plants,
+      sources = "pubmed",
+      cache = TRUE,
+      compound_resolution_profile = "none",
+      progress = FALSE
+    ),
+    "require `out_dir`"
+  )
+})
+
+test_that("provider circuit breaker stops repeated service-busy requests", {
+  plants = paste("Simulata species", sprintf("%02d", seq_len(5)))
+  result = resolvePlantPhytochemistry(
+    plants = plants,
+    sources = "pubtator",
+    enrich_compounds = FALSE,
+    detail = "none",
+    cache = FALSE,
+    throttle = 0,
+    pubtator_request_fun = function(...) {
+      stop("HTTP 503 Service Unavailable", call. = FALSE)
+    },
+    progress = FALSE
+  )
+
+  diagnostic = result$ProviderDiagnostics[
+    result$ProviderDiagnostics$provider == "pubtator", , drop = FALSE
+  ]
+  expect_equal(diagnostic$request_count, 2)
+  expect_equal(diagnostic$error_count, 2)
+  expect_match(diagnostic$message, "circuit breaker")
+  expect_match(diagnostic$error_messages, "503")
+})
+
+test_that("service-busy batches pause safely and resume without false caches", {
+  plants = c("Simulata alpha", "Simulata beta", "Simulata gamma")
+  out_dir = tempfile("plant_busy_resume_")
+  args = list(
+    plants = plants,
+    sources = "pubtator",
+    out_dir = out_dir,
+    cache_dir = file.path(out_dir, "cache"),
+    species_chunk_size = 1,
+    compound_resolution_profile = "none",
+    cache = TRUE,
+    throttle = 0,
+    progress = FALSE,
+    overwrite = TRUE
+  )
+
+  partial = do.call(runPlantPhytochemistryBatch, c(args, list(
+    pubtator_request_fun = function(...) {
+      stop("HTTP 503 Service Unavailable", call. = FALSE)
+    }
+  )))
+
+  expect_equal(partial$BatchRunManifest$run_status, "incomplete")
+  expect_equal(partial$BatchRunManifest$compound_stage_status,
+               "deferred_incomplete_discovery")
+  expect_equal(partial$BatchChunkManifest$status,
+               c("rate_limited", "not_started", "not_started"))
+  expect_equal(nrow(partial$RetryQueue), 3)
+  expect_equal(length(list.files(file.path(out_dir, "checkpoints"),
+                                 pattern = "[.]rds$")), 0)
+  expect_true(file.exists(file.path(out_dir, "failed_queries.csv")))
+  expect_true(file.exists(file.path(out_dir, "retry_queue.csv")))
+
+  resumed = do.call(runPlantPhytochemistryBatch, c(args, list(
+    pubtator_request_fun = function(...) list(results = list())
+  )))
+  expect_equal(resumed$BatchRunManifest$run_status, "completed")
+  expect_true(all(resumed$BatchChunkManifest$status == "completed"))
+  expect_equal(nrow(resumed$RetryQueue), 0)
+  expect_equal(length(list.files(file.path(out_dir, "checkpoints"),
+                                 pattern = "[.]rds$")), 3)
+})
+
+test_that("705-species discovery resumes only incomplete chunks", {
+  species = paste("Simulata species", sprintf("%04d", seq_len(705)))
+  state = new.env(parent = emptyenv())
+  state$calls = 0L
+  state$fail = TRUE
+  state$fail_species = species[[176]]
+
+  discovery_fixture = function(plants, taxon_fallback, ...) {
+    state$calls = state$calls + 1L
+    if (isTRUE(state$fail) && state$fail_species %in% plants) {
+      stop("simulated discovery interruption", call. = FALSE)
+    }
+    position = match(plants, species)
+    occurrences = standardizePlantCompoundIntake(data.frame(
+      species = plants,
+      compound_name = paste("fixture compound", ((position - 1L) %% 12L) + 1L),
+      source_database = "offline_fixture",
+      source_record_id = paste0("fixture_", position),
+      citation_or_url = paste0("https://example.test/fixture/", position),
+      evidence_tier = "direct_species_database",
+      stringsAsFactors = FALSE
+    ))
+    list(
+      PlantQueries = .plant_queries(plants, taxon_fallback),
+      ProviderDiagnostics = .plant_provider_diagnostics(
+        "offline_fixture", TRUE, TRUE, TRUE, 0, 0, nrow(occurrences),
+        0, 0, "ok", "Deterministic offline scale fixture."
+      ),
+      PlantCompoundOccurrences = occurrences,
+      PlantContextEvidence =
+        .uaf_empty_table(.plant_context_evidence_cols()),
+      LiteratureCandidates = .uaf_empty_table(.plant_literature_cols()),
+      Provenance = .plant_provenance(
+        "batch_discovery", "offline_fixture",
+        paste(plants, collapse = "; "), NA_character_, nrow(occurrences),
+        "Deterministic offline scale fixture."
+      )
+    )
+  }
+
+  out_dir = tempfile("plant_batch_705_")
+  args = list(
+    plants = species,
+    sources = "lotus",
+    out_dir = out_dir,
+    cache_dir = file.path(out_dir, "cache"),
+    species_chunk_size = 25,
+    compound_resolution_profile = "none",
+    discovery_fun = discovery_fixture,
+    cache = TRUE,
+    throttle = 0,
+    progress = FALSE,
+    overwrite = TRUE,
+    stop_on_error = TRUE
+  )
+
+  expect_error(do.call(runPlantPhytochemistryBatch, args),
+               "simulated discovery interruption")
+  interrupted_manifest = utils::read.csv(
+    file.path(out_dir, "discovery_chunk_manifest.csv"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  expect_equal(nrow(interrupted_manifest), 29)
+  expect_equal(sum(interrupted_manifest$status == "completed"), 7)
+  expect_equal(sum(interrupted_manifest$status == "failed"), 1)
+  expect_equal(sum(interrupted_manifest$status == "not_started"), 21)
+  expect_equal(length(list.files(file.path(out_dir, "checkpoints"),
+                                 pattern = "[.]rds$")), 7)
+
+  state$fail = FALSE
+  calls_before_resume = state$calls
+  result = do.call(runPlantPhytochemistryBatch, args)
+
+  expect_equal(state$calls - calls_before_resume, 22)
+  expect_equal(nrow(result$PlantQueries), 705)
+  expect_equal(nrow(result$PlantCompoundOccurrences), 705)
+  expect_true(all(result$BatchChunkManifest$status == "completed"))
+  expect_equal(sum(result$BatchChunkManifest$checkpoint_status == "cache_hit"),
+               7)
+  expect_equal(sum(result$BatchChunkManifest$checkpoint_status == "written"),
+               22)
+  expect_equal(nrow(result$RetryQueue), 0)
+  expect_equal(nrow(result$FailedQueries), 0)
+  expect_equal(result$BatchRunManifest$discovery_complete, "Yes")
+  expect_equal(result$BatchRunManifest$compound_stage_status,
+               "not_requested")
+  manifest_validation = validatePlantChemistryRunManifest(
+    result$BatchChunkManifest,
+    base_dir = out_dir
+  )
+  expect_equal(manifest_validation$Summary$validation_status, "pass")
+})
+
+test_that("corrupt discovery checkpoints rebuild only their own chunk", {
+  species = c("Simulata alpha", "Simulata beta", "Simulata gamma")
+  state = new.env(parent = emptyenv())
+  state$calls = 0L
+  discovery_fixture = function(plants, taxon_fallback, ...) {
+    state$calls = state$calls + 1L
+    occurrences = standardizePlantCompoundIntake(data.frame(
+      species = plants,
+      compound_name = paste("fixture compound", match(plants, species)),
+      source_database = "offline_fixture",
+      source_record_id = paste0("small_", match(plants, species)),
+      citation_or_url = "https://example.test/small-fixture",
+      evidence_tier = "direct_species_database",
+      stringsAsFactors = FALSE
+    ))
+    list(
+      PlantQueries = .plant_queries(plants, taxon_fallback),
+      ProviderDiagnostics = .plant_provider_diagnostics(
+        "offline_fixture", TRUE, TRUE, TRUE, 0, 0, nrow(occurrences),
+        0, 0, "ok", "Deterministic offline checkpoint fixture."
+      ),
+      PlantCompoundOccurrences = occurrences,
+      PlantContextEvidence =
+        .uaf_empty_table(.plant_context_evidence_cols()),
+      LiteratureCandidates = .uaf_empty_table(.plant_literature_cols()),
+      Provenance = .plant_provenance(
+        "batch_discovery", "offline_fixture",
+        paste(plants, collapse = "; "), NA_character_, nrow(occurrences),
+        "Deterministic offline checkpoint fixture."
+      )
+    )
+  }
+  out_dir = tempfile("plant_bad_checkpoint_")
+  args = list(
+    plants = species,
+    sources = "lotus",
+    out_dir = out_dir,
+    cache_dir = file.path(out_dir, "cache"),
+    species_chunk_size = 1,
+    compound_resolution_profile = "none",
+    discovery_fun = discovery_fixture,
+    cache = TRUE,
+    throttle = 0,
+    progress = FALSE,
+    overwrite = TRUE
+  )
+  result = do.call(runPlantPhytochemistryBatch, args)
+
+  checkpoint = file.path(out_dir,
+                         result$BatchChunkManifest$output_file[[1]])
+  writeLines("deliberately invalid RDS checkpoint", checkpoint)
+  calls_before_rebuild = state$calls
+  rebuilt = do.call(runPlantPhytochemistryBatch, args)
+
+  expect_equal(state$calls - calls_before_rebuild, 1)
+  expect_equal(rebuilt$BatchChunkManifest$checkpoint_read_status[[1]],
+               "unreadable")
+  expect_equal(rebuilt$BatchChunkManifest$checkpoint_status[[1]], "written")
+  expect_true(all(rebuilt$BatchChunkManifest$status == "completed"))
+})
+
+test_that("batch runner preserves manifest-backed LOTUS lookup directories", {
+  lotus = data.frame(
+    traditional_name = c("Salicin", "Salixalbin"),
+    lotus_id = c("LTS000010", "LTS000012"),
+    allTaxa = c("Plantae; Salicaceae; Salix nigra",
+                "Plantae; Salicaceae; Salix alba"),
+    doi = c("10.1000/salix", "10.1000/alba"),
+    stringsAsFactors = FALSE
+  )
+  index = standardizeLotusIndex(lotus)
+  lookup_dir = tempfile("lotus_batch_lookup_")
+  species_rows = cbind(
+    index_key_type = "species", index_key = "salix nigra",
+    index[index$species == "Salix nigra", , drop = FALSE]
+  )
+  genus_rows = cbind(
+    index_key_type = "genus", index_key = "salix",
+    index[index$species == "Salix alba", , drop = FALSE]
+  )
+  dir.create(file.path(lookup_dir, "keys", "species", "sa"),
+             recursive = TRUE)
+  dir.create(file.path(lookup_dir, "keys", "genus", "sa"),
+             recursive = TRUE)
+  utils::write.csv(
+    species_rows,
+    file.path(lookup_dir, "keys", "species", "sa", "salix_nigra.csv"),
+    row.names = FALSE, na = ""
+  )
+  utils::write.csv(
+    genus_rows,
+    file.path(lookup_dir, "keys", "genus", "sa", "salix.csv"),
+    row.names = FALSE, na = ""
+  )
+  jsonlite::write_json(
+    list(format = "uafR_lotus_lookup_index", version = 1,
+         lookup_layout = "exact", shard_prefix_length = 2),
+    file.path(lookup_dir, "manifest.json"),
+    auto_unbox = TRUE
+  )
+
+  phyto = runPlantPhytochemistryBatch(
+    plants = data.frame(species = "Salix nigra", family = "Salicaceae",
+                        stringsAsFactors = FALSE),
+    sources = "lotus",
+    lotus_index = lookup_dir,
+    taxon_fallback = c("species", "genus"),
+    compound_resolution_profile = "none",
+    cache = FALSE,
+    throttle = 0,
+    progress = FALSE
+  )
+
+  expect_equal(nrow(phyto$PlantCompoundOccurrences), 2)
+  expect_true(any(phyto$PlantCompoundOccurrences$compound_name == "Salicin" &
+                    phyto$PlantCompoundOccurrences$matched_rank == "species"))
+  expect_true(any(phyto$PlantCompoundOccurrences$compound_name ==
+                    "Salixalbin" &
+                    phyto$PlantCompoundOccurrences$matched_rank == "genus"))
+  expect_equal(phyto$ProviderDiagnostics$request_count, 0)
+  expect_match(phyto$ProviderDiagnostics$message, "manifest-backed")
+  expect_equal(phyto$BatchRunManifest$compound_resolution_profile, "none")
+  grades = plantOccurrenceEvidenceGrade(phyto)
+  expect_equal(grades$review_required[
+    grades$compound_name == "Salicin"
+  ], "No")
+  expect_equal(grades$review_required[
+    grades$compound_name == "Salixalbin"
+  ], "Yes")
+  expect_equal(
+    filterPlantEvidenceDirect(phyto$PlantCompoundOccurrences,
+                              require_structure = FALSE)$compound_name,
+    "Salicin"
+  )
 })
 
 test_that("plant phytochemistry pilot writes summaries and context matrices", {

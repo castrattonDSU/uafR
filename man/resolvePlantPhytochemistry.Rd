@@ -14,6 +14,8 @@ resolvePlantPhytochemistry(
   cache = TRUE,
   cache_dir = NULL,
   lotus_index = Sys.getenv("UAFR_LOTUS_INDEX", ""),
+  provider_indexes = NULL,
+  require_all_providers = FALSE,
   throttle = 0.2,
   ncbi_email = Sys.getenv("NCBI_EMAIL", ""),
   ncbi_tool = Sys.getenv("NCBI_TOOL", "uafR"),
@@ -28,6 +30,7 @@ resolvePlantPhytochemistry(
   enrichment_batch_size = Inf,
   resume_enrichment = TRUE,
   progress = interactive(),
+  defer_derived = FALSE,
   strict = FALSE,
   curated_data = NULL,
   provider_results = NULL,
@@ -75,6 +78,14 @@ supplied and `"lotus"` is enabled, uafR queries this local index instead of
 the live LOTUS simple API. Lookup directories are the recommended path for
 hundreds of plant names.}
 
+\item{provider_indexes}{Optional named list of local provider indexes.
+`provider_indexes$lotus` and `provider_indexes$npass` are currently
+supported. `lotus_index` remains a backward-compatible alias.}
+
+\item{require_all_providers}{Logical. If `TRUE`, fail when a requested local
+resource is unavailable or a provider finishes with an incomplete/error
+status. Use this for audited production panels after a live pilot.}
+
 \item{throttle}{Seconds to wait between uncached provider requests.}
 
 \item{ncbi_email}{Optional NCBI email. Defaults to `Sys.getenv("NCBI_EMAIL")`.}
@@ -118,6 +129,11 @@ enrichment batch files when available.}
 
 \item{progress}{Logical. If `TRUE`, print simple enrichment progress
 messages.}
+
+\item{defer_derived}{Logical. If `TRUE`, return provider-normalized discovery
+tables while deferring context linking, summaries, matrices, identity review,
+and validation. This staging option is used by the resumable batch runner so
+expensive derived products are built once after chunks are combined.}
 
 \item{strict}{Logical. If `TRUE`, validation treats optional missing fields
 more strictly.}

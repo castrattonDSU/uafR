@@ -99,7 +99,7 @@ chemical shared a strong match with. With `detail = "research"` or
 `ChemicalTaxonomy`,
 `ChemicalOccurrences`,
 `ChemicalPathwayRoles`, `KEGGReactionParticipants`,
-`KEGGMatches`, `KEGGRecords`, `KEGGIdentifiers`, `KEGGPathways`,
+`KEGGMatches`, `KEGGSearchCandidates`, `KEGGRecords`, `KEGGIdentifiers`, `KEGGPathways`,
 `KEGGReactions`, `KEGGEnzymes`, `KEGGModules`, `KEGGLinks`,
 `KEGGLinkMetadata`, `KEGGClassifications`, `SourceCoverage`,
 `DerivedGroups`, `Provenance`, `DataDictionary`, `TableQuality`,

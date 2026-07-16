@@ -30,19 +30,18 @@ jobs:
           r-version: ${{ matrix.config.r }}
           use-public-rspm: true
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: |
-            any::rcmdcheck
-            any::testthat
-            any::knitr
-            any::rmarkdown
-            any::spelling
-            any::openxlsx
-            any::writexl
-            bioc::ChemmineR
-            bioc::fmcsR
-          needs: check
-          dependencies: '"hard"'
+      - name: Install package dependencies
+        run: |
+          options(repos = c(CRAN = "https://cloud.r-project.org"))
+          install.packages(c("BiocManager", "rcmdcheck", "testthat", "knitr",
+                             "rmarkdown", "spelling", "openxlsx", "writexl",
+                             "jsonlite", "webchem", "curl", "remotes"))
+          BiocManager::install(c("ChemmineR", "fmcsR"), ask = FALSE,
+                               update = FALSE,
+                               dependencies = c("Depends", "Imports",
+                                                "LinkingTo"))
+        shell: Rscript {0}
 
-      - uses: r-lib/actions/check-r-package@v2
+      - name: Check built source package
+        run: Rscript tools/check_package_release.R
+        shell: bash
