@@ -2161,6 +2161,53 @@ test_that("chunked plant batch runner writes production artifacts", {
                 )$Table)
 })
 
+test_that("batch runner can defer provider-stage analysis until merge", {
+  provider_rows = data.frame(
+    species = c("Salix nigra", "Zea mays"),
+    compound_name = c("salicin", "DIMBOA"),
+    source_database = "LOTUS",
+    source_record_id = c("LTS-DEFER-1", "LTS-DEFER-2"),
+    evidence_url = paste0("https://example.test/deferred/", 1:2),
+    evidence_tier = "direct_species_database",
+    confidence = "high",
+    stringsAsFactors = FALSE
+  )
+  out_dir = tempfile("plant_batch_deferred_outputs_")
+
+  deferred = runPlantPhytochemistryBatch(
+    plants = c("Salix nigra", "Zea mays"),
+    sources = "lotus",
+    provider_results = list(lotus = provider_rows),
+    out_dir = out_dir,
+    species_chunk_size = 1,
+    compound_resolution_profile = "none",
+    defer_derived = TRUE,
+    cache = TRUE,
+    throttle = 0,
+    progress = FALSE,
+    overwrite = TRUE
+  )
+
+  expect_equal(nrow(deferred$PlantCompoundOccurrences), 2)
+  expect_equal(nrow(deferred$SpeciesChemistrySummary), 0)
+  expect_equal(nrow(deferred$ChemistryComparability), 0)
+  expect_equal(nrow(deferred$CompoundIdentityReview), 0)
+  expect_equal(deferred$BatchRunManifest$validation_status, "deferred")
+  expect_true(file.exists(file.path(out_dir, "all_occurrences.csv")))
+  expect_true(file.exists(file.path(out_dir, "literature_candidates.csv")))
+  expect_true(file.exists(file.path(out_dir, "provider_query_accounting.csv")))
+  expect_true(file.exists(file.path(out_dir, "run_manifest.json")))
+  expect_false(file.exists(file.path(out_dir,
+                                     "analysis_ready_occurrences.csv")))
+  expect_false(file.exists(file.path(out_dir,
+                                     "chemistry_comparability.csv")))
+
+  merged = mergePlantPhytochemistryResults(list(deferred))
+  expect_equal(nrow(merged$SpeciesChemistrySummary), 2)
+  expect_equal(nrow(merged$ChemistryComparability), 2)
+  expect_true(nrow(merged$Validation$Summary) > 0)
+})
+
 test_that("batch checkpoints defer derived tables until chunks are combined", {
   occurrence = data.frame(
     species = "Salix nigra",

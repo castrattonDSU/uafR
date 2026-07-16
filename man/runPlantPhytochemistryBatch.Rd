@@ -40,6 +40,7 @@ runPlantPhytochemistryBatch(
   resume = TRUE,
   progress = interactive(),
   overwrite = FALSE,
+  defer_derived = FALSE,
   strict = FALSE,
   stop_on_error = FALSE,
   allow_large_live_run = FALSE,
@@ -143,6 +144,12 @@ resolution batch.}
 \item{progress}{Logical. If `TRUE`, print simple progress messages.}
 
 \item{overwrite}{Logical. If `TRUE`, replace existing files in `out_dir`.}
+
+\item{defer_derived}{Logical. If `TRUE`, retain normalized discovery,
+diagnostics, identity, and operational tables while deferring context
+linking, summaries, matrices, comparability, identity review, and their
+filtered exports. This is intended for provider stages that will be merged
+before analysis; the default preserves the complete standalone result.}
 
 \item{strict}{Logical passed to validation.}
 

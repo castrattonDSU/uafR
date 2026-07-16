@@ -1098,6 +1098,7 @@ runPlantChemistryPanel = function(
       provider_results = supplied,
       request_fun = config$request_fun,
       pubtator_request_fun = config$pubtator_request_fun,
+      defer_derived = TRUE,
       resume = config$resume, progress = config$progress,
       overwrite = config$overwrite, stop_on_error = FALSE,
       allow_large_live_run = TRUE, service_busy_pause_threshold = 1
@@ -1841,6 +1842,7 @@ runPlantChemistryPanel = function(
       request_timeout = config$request_timeout,
       provider_results = config$provider_results,
       request_fun = config$request_fun,
+      defer_derived = TRUE,
       resume = config$resume, progress = config$progress,
       overwrite = config$overwrite, stop_on_error = FALSE,
       allow_large_live_run = TRUE

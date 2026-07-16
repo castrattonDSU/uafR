@@ -65,6 +65,11 @@
 - Hardened PUG-View annotation parsing for information records with no usable
   value or markup payload. These source records now retain a stable explicit
   missing-value row instead of aborting multi-compound research enrichment.
+- Added deferred analysis assembly to `runPlantPhytochemistryBatch()` and the
+  production panel provider stages. Large provider stages now write normalized
+  discovery, diagnostics, identity, and resume artifacts without repeatedly
+  rebuilding context, matrices, comparability, review, and filtered products;
+  those products are built after provider results are merged.
 - Hardened plant biological-context extraction by parsing each unique source
   record once and retaining sentence-local method distinctions. PubChem
   taxonomy rows no longer interpret CIDs as PMIDs, copy broad collection

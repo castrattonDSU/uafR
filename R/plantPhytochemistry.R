@@ -1236,6 +1236,11 @@ applyPlantCompoundIdentityReview = function(x,
 #' @param resume Logical. If `TRUE`, reuse discovery and compound checkpoints.
 #' @param progress Logical. If `TRUE`, print simple progress messages.
 #' @param overwrite Logical. If `TRUE`, replace existing files in `out_dir`.
+#' @param defer_derived Logical. If `TRUE`, retain normalized discovery,
+#' diagnostics, identity, and operational tables while deferring context
+#' linking, summaries, matrices, comparability, identity review, and their
+#' filtered exports. This is intended for provider stages that will be merged
+#' before analysis; the default preserves the complete standalone result.
 #' @param strict Logical passed to validation.
 #' @param stop_on_error Logical. If `TRUE`, stop on the first failed discovery
 #' chunk; otherwise record the failed chunk and continue.
@@ -1291,6 +1296,7 @@ runPlantPhytochemistryBatch = function(
     resume = TRUE,
     progress = interactive(),
     overwrite = FALSE,
+    defer_derived = FALSE,
     strict = FALSE,
     stop_on_error = FALSE,
     allow_large_live_run = FALSE,
@@ -1666,7 +1672,8 @@ runPlantPhytochemistryBatch = function(
 
   combined = .plant_combine_batch_results(
     chunk_results, plant_queries, taxon_fallback,
-    link_source_context = TRUE
+    link_source_context = !isTRUE(defer_derived),
+    defer_derived = defer_derived
   )
   combined$BatchChunkManifest = chunk_manifest
   combined$FailedQueries = .plant_batch_failed_queries(chunk_manifest)
@@ -1777,34 +1784,36 @@ runPlantPhytochemistryBatch = function(
     list(combined$Provenance, compound_provenance),
     .plant_provenance_cols()
   )
-  combined$SpeciesChemistrySummary = summarizePlantPhytochemistry(
-    plant_compounds = combined$PlantCompoundOccurrences,
-    categorate_result = categorate_result,
-    compound_resolution = compound_resolution,
-    plant_queries = combined$PlantQueries,
-    provider_diagnostics = combined$ProviderDiagnostics
-  )
-  combined$SpeciesChemistryMatrix = plantPhytochemistryMatrix(
-    list(PlantCompoundOccurrences = combined$PlantCompoundOccurrences,
-         CategorateResult = categorate_result),
-    level = "species",
-    profile = "core",
-    mode = "binary",
-    min_confidence = min_confidence
-  )
-  combined$ChemistryComparability = plantChemistryComparability(
-    list(PlantCompoundOccurrences = combined$PlantCompoundOccurrences,
-         CategorateResult = categorate_result),
-    min_confidence = "low"
-  )
-  combined$ComparableChemistryMatrix = plantComparableChemistryMatrix(
-    list(ChemistryComparability = combined$ChemistryComparability),
-    comparison_scope = "specialized_metabolites",
-    level = "species",
-    mode = "binary",
-    min_comparability_confidence = min_confidence
-  )
-  combined$CompoundIdentityReview = plantCompoundIdentityReviewTable(combined)
+  if (!isTRUE(defer_derived)) {
+    combined$SpeciesChemistrySummary = summarizePlantPhytochemistry(
+      plant_compounds = combined$PlantCompoundOccurrences,
+      categorate_result = categorate_result,
+      compound_resolution = compound_resolution,
+      plant_queries = combined$PlantQueries,
+      provider_diagnostics = combined$ProviderDiagnostics
+    )
+    combined$SpeciesChemistryMatrix = plantPhytochemistryMatrix(
+      list(PlantCompoundOccurrences = combined$PlantCompoundOccurrences,
+           CategorateResult = categorate_result),
+      level = "species",
+      profile = "core",
+      mode = "binary",
+      min_confidence = min_confidence
+    )
+    combined$ChemistryComparability = plantChemistryComparability(
+      list(PlantCompoundOccurrences = combined$PlantCompoundOccurrences,
+           CategorateResult = categorate_result),
+      min_confidence = "low"
+    )
+    combined$ComparableChemistryMatrix = plantComparableChemistryMatrix(
+      list(ChemistryComparability = combined$ChemistryComparability),
+      comparison_scope = "specialized_metabolites",
+      level = "species",
+      mode = "binary",
+      min_comparability_confidence = min_confidence
+    )
+    combined$CompoundIdentityReview = plantCompoundIdentityReviewTable(combined)
+  }
 
   completed = Sys.time()
   run_manifest = .plant_batch_run_manifest(
@@ -1823,14 +1832,24 @@ runPlantPhytochemistryBatch = function(
     pause_reason = pause_reason
   )
   combined$BatchRunManifest = run_manifest
-  combined$Validation = validatePlantPhytochemistryResult(combined,
-                                                          strict = strict)
-  combined$BatchRunManifest$validation_status =
-    .uaf_first_non_empty_text(combined$Validation$Summary$Status)
+  if (isTRUE(defer_derived)) {
+    combined$Validation = list(
+      Summary = data.frame(), TableQuality = data.frame(),
+      ProviderDiagnostics = data.frame(), Issues = data.frame(),
+      DataDictionary = data.frame()
+    )
+    combined$BatchRunManifest$validation_status = "deferred"
+  } else {
+    combined$Validation = validatePlantPhytochemistryResult(combined,
+                                                            strict = strict)
+    combined$BatchRunManifest$validation_status =
+      .uaf_first_non_empty_text(combined$Validation$Summary$Status)
+  }
   class(combined) = unique(c("uaf_plant_phytochemistry", class(combined)))
   if (!is.null(out_dir)) {
     combined$BatchExportManifest = .plant_write_batch_outputs(
-      combined, out_dir, overwrite
+      combined, out_dir, overwrite,
+      include_analysis = !isTRUE(defer_derived)
     )
   }
   combined
@@ -8540,7 +8559,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 
 .plant_combine_batch_results = function(results, plant_queries,
                                         taxon_fallback,
-                                        link_source_context = FALSE) {
+                                        link_source_context = FALSE,
+                                        defer_derived = FALSE) {
   results = results[vapply(results, is.list, logical(1))]
   if (length(results) < 1) {
     return(.plant_empty_batch_result(plant_queries$species, taxon_fallback))
@@ -8560,10 +8580,11 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     lapply(results, `[[`, "PlantContextEvidence"),
     .plant_context_evidence_cols()
   )
-  if (nrow(context_evidence) < 1) {
+  if (!isTRUE(defer_derived) && nrow(context_evidence) < 1) {
     context_evidence = plantContextEvidence(occurrences)
   }
-  if (isTRUE(link_source_context) && nrow(literature) > 0) {
+  if (!isTRUE(defer_derived) && isTRUE(link_source_context) &&
+      nrow(literature) > 0) {
     source_context = .plant_source_context_evidence(
       occurrences = occurrences,
       context_sources = literature,
@@ -8576,42 +8597,59 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       )
     )
   }
-  occurrences = .plant_apply_context_evidence(occurrences, context_evidence)
-  occurrences = .plant_clean_context_conflicts(occurrences)
-  provider_context_audit = plantProviderContextAudit(
-    list(PlantCompoundOccurrences = occurrences,
-         PlantContextEvidence = context_evidence)
-  )
+  if (isTRUE(defer_derived)) {
+    provider_context_audit =
+      .uaf_empty_table(.plant_provider_context_audit_cols())
+  } else {
+    occurrences = .plant_apply_context_evidence(occurrences, context_evidence)
+    occurrences = .plant_clean_context_conflicts(occurrences)
+    provider_context_audit = plantProviderContextAudit(
+      list(PlantCompoundOccurrences = occurrences,
+           PlantContextEvidence = context_evidence)
+    )
+  }
   diagnostics = .plant_bind_tables(lapply(results, `[[`, "ProviderDiagnostics"),
                                    .plant_provider_diagnostic_cols())
   provenance = .plant_bind_tables(lapply(results, `[[`, "Provenance"),
                                   .plant_provenance_cols())
   compound_resolution = .plant_compound_resolution(occurrences, NULL)
-  summary = summarizePlantPhytochemistry(
-    plant_compounds = occurrences,
-    categorate_result = NULL,
-    compound_resolution = compound_resolution,
-    plant_queries = plant_queries,
-    provider_diagnostics = diagnostics
-  )
-  matrix = plantPhytochemistryMatrix(
-    list(PlantCompoundOccurrences = occurrences, CategorateResult = NULL),
-    level = "species",
-    profile = "core",
-    mode = "binary",
-    min_confidence = "medium"
-  )
-  comparability = plantChemistryComparability(
-    list(PlantCompoundOccurrences = occurrences, CategorateResult = NULL),
-    min_confidence = "low"
-  )
-  comparable_matrix = plantComparableChemistryMatrix(
-    list(ChemistryComparability = comparability),
-    comparison_scope = "specialized_metabolites",
-    level = "species",
-    mode = "binary",
-    min_comparability_confidence = "medium"
-  )
+  if (isTRUE(defer_derived)) {
+    summary = .uaf_empty_table(.plant_summary_cols())
+    matrix = .uaf_empty_table(c("species"))
+    comparability = .uaf_empty_table(.plant_comparability_cols())
+    comparable_matrix = .uaf_empty_table(c("species"))
+    compound_identity_review = .plant_empty_compound_identity_review()
+  } else {
+    summary = summarizePlantPhytochemistry(
+      plant_compounds = occurrences,
+      categorate_result = NULL,
+      compound_resolution = compound_resolution,
+      plant_queries = plant_queries,
+      provider_diagnostics = diagnostics
+    )
+    matrix = plantPhytochemistryMatrix(
+      list(PlantCompoundOccurrences = occurrences, CategorateResult = NULL),
+      level = "species",
+      profile = "core",
+      mode = "binary",
+      min_confidence = "medium"
+    )
+    comparability = plantChemistryComparability(
+      list(PlantCompoundOccurrences = occurrences, CategorateResult = NULL),
+      min_confidence = "low"
+    )
+    comparable_matrix = plantComparableChemistryMatrix(
+      list(ChemistryComparability = comparability),
+      comparison_scope = "specialized_metabolites",
+      level = "species",
+      mode = "binary",
+      min_comparability_confidence = "medium"
+    )
+    compound_identity_review = plantCompoundIdentityReviewTable(
+      list(PlantCompoundOccurrences = occurrences,
+           CompoundResolution = compound_resolution)
+    )
+  }
   out = list(
     PlantQueries = plant_queries,
     PlantQueryAliases = .plant_merge_alias_tables(results, plant_queries),
@@ -8633,10 +8671,7 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       lapply(results, `[[`, "SourceCompoundIdentity")
     ),
     CompoundResolution = compound_resolution,
-    CompoundIdentityReview = plantCompoundIdentityReviewTable(
-      list(PlantCompoundOccurrences = occurrences,
-           CompoundResolution = compound_resolution)
-    ),
+    CompoundIdentityReview = compound_identity_review,
     CategorateResult = NULL,
     SpeciesChemistrySummary = summary,
     SpeciesChemistryMatrix = matrix,
@@ -8658,7 +8693,9 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     ), .plant_provenance_cols())
   )
   class(out) = c("uaf_plant_phytochemistry", class(out))
-  out$Validation = validatePlantPhytochemistryResult(out)
+  if (!isTRUE(defer_derived)) {
+    out$Validation = validatePlantPhytochemistryResult(out)
+  }
   out
 }
 
@@ -8812,33 +8849,51 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   )
 }
 
-.plant_write_batch_outputs = function(result, out_dir, overwrite) {
+.plant_write_batch_outputs = function(result, out_dir, overwrite,
+                                       include_analysis = TRUE) {
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-  analysis_ready = filterPlantPhytochemistryEvidence(
-    result,
-    occurrence_status = c("direct_reported", "curated_reported"),
-    analysis_ready = TRUE,
-    min_confidence = "medium"
-  )$PlantCompoundOccurrences
-  review_required = plantPhytochemistryReviewTable(result)
-  context_report = .plant_context_coverage_report(result$PlantCompoundOccurrences)
-	  tables = list(
-	    all_occurrences = result$PlantCompoundOccurrences,
-	    plant_context_evidence = result$PlantContextEvidence,
-    provider_context_audit = result$ProviderContextAudit,
-	    analysis_ready_occurrences = analysis_ready,
-    review_required_occurrences = review_required,
-    compound_identity_resolution = result$CompoundResolution,
-    compound_identity_review = result$CompoundIdentityReview,
-    species_chemistry_summary = result$SpeciesChemistrySummary,
-    species_chemistry_matrix = result$SpeciesChemistryMatrix,
-    chemistry_comparability = result$ChemistryComparability,
-    comparable_chemistry_matrix = result$ComparableChemistryMatrix,
-    provider_diagnostics = result$ProviderDiagnostics,
-    context_coverage_report = context_report,
-    batch_run_manifest = result$BatchRunManifest,
-    batch_chunk_manifest = result$BatchChunkManifest
-  )
+  if (isTRUE(include_analysis)) {
+    analysis_ready = filterPlantPhytochemistryEvidence(
+      result,
+      occurrence_status = c("direct_reported", "curated_reported"),
+      analysis_ready = TRUE,
+      min_confidence = "medium"
+    )$PlantCompoundOccurrences
+    review_required = plantPhytochemistryReviewTable(result)
+    context_report = .plant_context_coverage_report(
+      result$PlantCompoundOccurrences
+    )
+    tables = list(
+      all_occurrences = result$PlantCompoundOccurrences,
+      plant_context_evidence = result$PlantContextEvidence,
+      provider_context_audit = result$ProviderContextAudit,
+      analysis_ready_occurrences = analysis_ready,
+      review_required_occurrences = review_required,
+      compound_identity_resolution = result$CompoundResolution,
+      compound_identity_review = result$CompoundIdentityReview,
+      species_chemistry_summary = result$SpeciesChemistrySummary,
+      species_chemistry_matrix = result$SpeciesChemistryMatrix,
+      chemistry_comparability = result$ChemistryComparability,
+      comparable_chemistry_matrix = result$ComparableChemistryMatrix,
+      provider_diagnostics = result$ProviderDiagnostics,
+      context_coverage_report = context_report,
+      batch_run_manifest = result$BatchRunManifest,
+      batch_chunk_manifest = result$BatchChunkManifest
+    )
+  } else {
+    tables = list(
+      all_occurrences = result$PlantCompoundOccurrences,
+      plant_context_evidence = result$PlantContextEvidence,
+      literature_candidates = result$LiteratureCandidates,
+      source_compound_identity = result$SourceCompoundIdentity,
+      provider_diagnostics = result$ProviderDiagnostics,
+      provider_query_accounting = result$ProviderQueryAccounting,
+      provider_resource_manifest = result$ProviderResourceManifest,
+      compound_identity_resolution = result$CompoundResolution,
+      batch_run_manifest = result$BatchRunManifest,
+      batch_chunk_manifest = result$BatchChunkManifest
+    )
+  }
   manifest_rows = list()
   for (name in names(tables)) {
     file = file.path(out_dir, paste0(name, ".csv"))
