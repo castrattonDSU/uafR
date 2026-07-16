@@ -231,6 +231,7 @@ runPlantChemistryPanel = function(
       .plant_panel_write_status(context, state, stage = stage,
                                 message = result$message)
       if (exit_status == 75L) {
+        .plant_panel_clear_transient_markers(context)
         .plant_atomic_write_json(
           list(stage = stage, state = state, message = result$message,
                paused_at = .plant_timestamp()),
@@ -820,6 +821,25 @@ runPlantChemistryPanel = function(
   )
   result_file = file.path(stage_dir, "pilot_result.rds")
   .plant_atomic_save_rds(result, result_file)
+  discovery_state = .plant_panel_batch_completion_state(result)
+  if (identical(discovery_state$state, "paused_service_busy")) {
+    return(list(
+      status = "paused_service_busy", exit_status = 75L,
+      message = paste(
+        "Pilot discovery paused after a service-busy response; validated",
+        "caches and retry rows were preserved."
+      ),
+      artifacts = c(
+        pilot_file, result_file,
+        file.path(discovery_dir, "discovery_chunk_manifest.csv"),
+        file.path(discovery_dir, "retry_queue.csv")
+      )
+    ))
+  }
+  if (!identical(discovery_state$state, "completed")) {
+    stop("Pilot discovery is incomplete: ", discovery_state$message,
+         call. = FALSE)
+  }
   cache_fingerprint = .plant_panel_result_fingerprint(result)
   # The replay verifies checkpoint reuse. Remove only derived top-level exports
   # so `overwrite = FALSE` can protect checkpoints while regenerating the same
@@ -940,6 +960,47 @@ runPlantChemistryPanel = function(
     return(as.integer(min(configured, target)))
   }
   as.integer(target)
+}
+
+.plant_panel_batch_completion_state = function(result) {
+  run_manifest = result$BatchRunManifest
+  chunk_manifest = result$BatchChunkManifest
+  run_status = if (is.data.frame(run_manifest) && nrow(run_manifest) > 0L) {
+    .uaf_first_non_empty_text(run_manifest$run_status, "incomplete")
+  } else {
+    "incomplete"
+  }
+  discovery_complete = if (is.data.frame(run_manifest) &&
+                            nrow(run_manifest) > 0L) {
+    .uaf_first_non_empty_text(run_manifest$discovery_complete, "No")
+  } else {
+    "No"
+  }
+  if (identical(run_status, "completed") &&
+      tolower(discovery_complete) %in% c("yes", "true", "1")) {
+    return(list(state = "completed", message = "Discovery completed."))
+  }
+  statuses = if (is.data.frame(chunk_manifest)) {
+    tolower(.uaf_squish_text(chunk_manifest$status))
+  } else {
+    character()
+  }
+  messages = c(
+    if (is.data.frame(chunk_manifest)) chunk_manifest$error_message else NULL,
+    if (is.data.frame(run_manifest)) run_manifest$pause_reason else NULL
+  )
+  busy = any(statuses %in% c("rate_limited", "paused_service_busy"),
+             na.rm = TRUE) || .plant_service_busy_message(messages)
+  message = paste(.uaf_non_empty(c(
+    paste("run_status", run_status),
+    paste("chunk_status", paste(unique(.uaf_non_empty(statuses)),
+                                 collapse = "; ")),
+    messages
+  )), collapse = " | ")
+  list(
+    state = ifelse(busy, "paused_service_busy", "incomplete"),
+    message = message
+  )
 }
 
 .plant_panel_cache_only_request = function(...) {

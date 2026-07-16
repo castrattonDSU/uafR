@@ -725,3 +725,56 @@ test_that("identity resolution consumes non-LOTUS source structures", {
   expect_equal(resolved$InChIKey, "RYYVLZVUVIJVGH-UHFFFAOYSA-N")
   expect_match(resolved$resolution_source, "NPASS")
 })
+
+test_that("NCBI Datasets taxonomy suggestions require an exact verified taxon", {
+  suggestions = list(sci_name_and_ids = list(
+    list(sci_name = "Zoysia japonica", tax_id = "309978",
+         matched_term = "Zoysia japonica", rank = "SPECIES"),
+    list(sci_name = "Camellia japonica", tax_id = "4443",
+         matched_term = "Camellia japonica", rank = "SPECIES")
+  ))
+
+  matched = .plant_verified_taxonomy_suggest_matches(
+    suggestions, "Zoysia japonica"
+  )
+  absent = .plant_verified_taxonomy_suggest_matches(
+    suggestions, "Geranium sessiliflorum"
+  )
+
+  expect_equal(nrow(matched), 1)
+  expect_equal(matched$taxid, "309978")
+  expect_equal(matched$scientific_name, "Zoysia japonica")
+  expect_equal(nrow(absent), 0)
+})
+
+test_that("transient remote payloads are not accepted as valid caches", {
+  cache_dir = tempfile("invalid_remote_cache_")
+  on.exit(unlink(cache_dir, recursive = TRUE, force = TRUE), add = TRUE)
+  dir.create(cache_dir, recursive = TRUE)
+  url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed"
+  cache_file = file.path(cache_dir, paste0(.pubchem_url_hash(url), ".json"))
+  writeLines(
+    '{"esearchresult":{"ERROR":"Search Backend failed: Status: 500"}}',
+    cache_file
+  )
+  requests = 0L
+  result = .plant_fetch_json(
+    url, cache = TRUE, cache_dir = cache_dir, throttle = 0,
+    request_fun = function(url) {
+      requests <<- requests + 1L
+      '{"esearchresult":{"count":"0","idlist":[]}}'
+    }
+  )
+
+  expect_equal(requests, 1L)
+  expect_false(.plant_cache_hit(result))
+  expect_equal(.plant_pubmed_total_hits(result), 0L)
+  expect_true(is.na(.plant_json_payload_error(result)))
+  expect_true(.plant_service_busy_message("HTTP 500 returned by NCBI"))
+  expect_match(
+    .plant_text_payload_error(
+      "<html><h1>Server Error</h1><div>Error: 500</div></html>"
+    ),
+    "500"
+  )
+})

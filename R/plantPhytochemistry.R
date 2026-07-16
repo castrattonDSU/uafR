@@ -5792,6 +5792,14 @@ print.uaf_plant_phytochemistry = function(x, ...) {
         cache_hit_count = cache_hit_count +
           as.integer(.plant_cache_hit(taxid_search))
       }
+      suggest_matches = .plant_verified_taxonomy_suggest_matches(
+        taxid_search, accepted_species
+      )
+      if (nrow(suggest_matches) > 0) {
+        taxon_match = suggest_matches[1, , drop = FALSE]
+        break
+      }
+      if (.plant_is_taxonomy_suggest_result(taxid_search)) next
       taxids = .plant_pubmed_ids(taxid_search)
       if (length(taxids) < 1) next
       request_count = request_count + 1L
@@ -6284,7 +6292,13 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 .plant_service_busy_message = function(message) {
   message = paste(.uaf_non_empty(message), collapse = " ")
   nzchar(message) && grepl(
-    "(^|[^0-9])(429|503)([^0-9]|$)|rate[ -]?limit|service[ -]?busy|service unavailable|temporar(il)?y unavailable",
+    paste0(
+      "(^|[^0-9])(408|425|429|500|502|503|504)([^0-9]|$)|",
+      "rate[ -]?limit|service[ -]?busy|service unavailable|",
+      "temporar(il)?y unavailable|search backend failed|cannot connect to solr|",
+      "timed? out|timeout|connection reset|could not resolve host|",
+      "failure when receiving data|empty reply from server"
+    ),
     message,
     ignore.case = TRUE
   )
@@ -10972,25 +10986,39 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   if (isTRUE(cache) && file.exists(cache_file)) {
     txt = paste(readLines(cache_file, warn = FALSE, encoding = "UTF-8"),
                 collapse = "\n")
-    return(.plant_mark_cache_hit(
-      jsonlite::fromJSON(txt, simplifyVector = FALSE), TRUE
-    ))
+    cached = tryCatch(
+      jsonlite::fromJSON(txt, simplifyVector = FALSE),
+      error = function(error) NULL
+    )
+    if (!is.null(cached) && is.na(.plant_json_payload_error(cached))) {
+      return(.plant_mark_cache_hit(cached, TRUE))
+    }
   }
   result = if (is.null(request_fun)) {
-    .plant_read_url_text(url, timeout)
+    .plant_live_json_request(url, timeout, throttle)
   } else {
     request_fun(url)
   }
   if (is.character(result)) {
     txt = paste(result, collapse = "\n")
+    parsed = jsonlite::fromJSON(txt, simplifyVector = FALSE)
+    payload_error = .plant_json_payload_error(parsed)
+    if (!is.na(payload_error)) {
+      stop("Remote JSON error for ", .plant_redact_secrets(url), ": ",
+           payload_error, call. = FALSE)
+    }
     if (isTRUE(cache)) {
       dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
       .pubchem_atomic_write_text(txt, cache_file)
     }
     if (!is.na(throttle) && throttle > 0) Sys.sleep(throttle)
-    .plant_mark_cache_hit(jsonlite::fromJSON(txt, simplifyVector = FALSE),
-                          FALSE)
+    .plant_mark_cache_hit(parsed, FALSE)
   } else {
+    payload_error = .plant_json_payload_error(result)
+    if (!is.na(payload_error)) {
+      stop("Remote JSON error for ", .plant_redact_secrets(url), ": ",
+           payload_error, call. = FALSE)
+    }
     .plant_mark_cache_hit(result, FALSE)
   }
 }
@@ -10999,13 +11027,14 @@ print.uaf_plant_phytochemistry = function(x, ...) {
                              timeout = 30) {
   cache_file = file.path(cache_dir, paste0(.pubchem_url_hash(url), ".txt"))
   if (isTRUE(cache) && file.exists(cache_file)) {
-    return(.plant_mark_cache_hit(
-      paste(readLines(cache_file, warn = FALSE, encoding = "UTF-8"),
-            collapse = "\n"), TRUE
-    ))
+    cached = paste(readLines(cache_file, warn = FALSE, encoding = "UTF-8"),
+                   collapse = "\n")
+    if (is.na(.plant_text_payload_error(cached))) {
+      return(.plant_mark_cache_hit(cached, TRUE))
+    }
   }
   result = if (is.null(request_fun)) {
-    .plant_read_url_text(url, timeout)
+    .plant_live_text_request(url, timeout, throttle)
   } else {
     request_fun(url)
   }
@@ -11021,6 +11050,98 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   }
   if (!is.na(throttle) && throttle > 0) Sys.sleep(throttle)
   .plant_mark_cache_hit(txt, FALSE)
+}
+
+.plant_live_json_request = function(url, timeout, throttle, attempts = 4L) {
+  .plant_live_request_retry(
+    url = url, timeout = timeout, throttle = throttle, attempts = attempts,
+    validator = function(txt) {
+      parsed = jsonlite::fromJSON(txt, simplifyVector = FALSE)
+      payload_error = .plant_json_payload_error(parsed)
+      if (!is.na(payload_error)) {
+        stop("Remote JSON error: ", payload_error, call. = FALSE)
+      }
+      TRUE
+    }
+  )
+}
+
+.plant_live_text_request = function(url, timeout, throttle, attempts = 4L) {
+  .plant_live_request_retry(
+    url = url, timeout = timeout, throttle = throttle, attempts = attempts,
+    validator = function(txt) {
+      payload_error = .plant_text_payload_error(txt)
+      if (!is.na(payload_error)) {
+        stop("Remote text error: ", payload_error, call. = FALSE)
+      }
+      TRUE
+    }
+  )
+}
+
+.plant_live_request_retry = function(url, timeout, throttle, attempts,
+                                     validator) {
+  attempts = suppressWarnings(as.integer(attempts[[1]]))
+  if (!is.finite(attempts) || attempts < 1L) attempts = 1L
+  last_error = NULL
+  attempted = 0L
+  for (attempt in seq_len(attempts)) {
+    attempted = attempt
+    result = tryCatch({
+      txt = .plant_read_url_text(url, timeout)
+      validator(txt)
+      txt
+    }, error = function(error) error)
+    if (!inherits(result, "error")) return(result)
+    last_error = result
+    if (attempt >= attempts ||
+        !.plant_service_busy_message(conditionMessage(result))) break
+    delay = .plant_live_retry_delay(attempt, throttle)
+    if (delay > 0) Sys.sleep(delay)
+  }
+  stop(
+    "Live request failed after ", attempted, " attempt(s) for ",
+    .plant_redact_secrets(url), ": ", conditionMessage(last_error),
+    call. = FALSE
+  )
+}
+
+.plant_live_retry_delay = function(attempt, throttle) {
+  throttle = suppressWarnings(as.numeric(throttle[[1]]))
+  if (!is.finite(throttle) || throttle < 0) throttle = 0
+  min(8, max(1, throttle) * (2 ^ max(0, as.integer(attempt) - 1L)))
+}
+
+.plant_json_payload_error = function(x) {
+  if (!is.list(x)) return(NA_character_)
+  candidates = list(
+    x$ERROR, x$error, x$errors,
+    tryCatch(x$esearchresult$ERROR, error = function(error) NULL),
+    tryCatch(x$esearchresult$error, error = function(error) NULL),
+    tryCatch(x$header$ERROR, error = function(error) NULL),
+    tryCatch(x$header$error, error = function(error) NULL)
+  )
+  values = .uaf_non_empty(unlist(candidates, use.names = FALSE))
+  if (length(values) < 1) NA_character_ else .pubchem_collapse(values)
+}
+
+.plant_text_payload_error = function(txt) {
+  txt = .uaf_first_non_empty_text(txt)
+  if (is.na(txt)) return("empty response")
+  patterns = c(
+    "NCBI/eutils[0-9]+ - WWW Error [0-9]+ Diagnostic",
+    "<h1[^>]*>Server Error</h1>",
+    "<ERROR>[^<]+</ERROR>",
+    "Search Backend failed:.*Status: (500|502|503|504)"
+  )
+  if (!any(vapply(patterns, grepl, logical(1), x = txt,
+                  ignore.case = TRUE, perl = TRUE))) {
+    return(NA_character_)
+  }
+  status = regmatches(txt, regexpr("(408|425|429|500|502|503|504)", txt,
+                                   perl = TRUE))
+  if (length(status) < 1 || !nzchar(status)) status = "service unavailable"
+  paste("provider returned", status)
 }
 
 .plant_read_url_text = function(url, timeout = 30) {
@@ -11957,6 +12078,21 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 .plant_ncbi_taxonomy_search = function(species, cache, cache_dir, throttle,
                                        ncbi_email, ncbi_tool, ncbi_api_key,
                                        request_fun, request_timeout) {
+  if (is.null(request_fun)) {
+    url = paste0(
+      "https://api.ncbi.nlm.nih.gov/datasets/v2/taxonomy/taxon_suggest/",
+      utils::URLencode(species, reserved = TRUE)
+    )
+    api_key = .uaf_first_non_empty_text(ncbi_api_key)
+    if (!is.na(api_key)) {
+      url = paste0(url, "?api_key=", utils::URLencode(api_key,
+                                                       reserved = TRUE))
+    }
+    return(.plant_fetch_json(
+      url, cache, file.path(cache_dir, "ncbi_taxonomy_suggest"), throttle,
+      request_fun = NULL, timeout = request_timeout
+    ))
+  }
   term = paste0('"', species, '"[Scientific Name]')
   url = .plant_ncbi_url(
     endpoint = "esearch.fcgi",
@@ -11966,6 +12102,57 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   )
   .plant_fetch_json(url, cache, file.path(cache_dir, "ncbi_taxonomy"),
                     throttle, request_fun, timeout = request_timeout)
+}
+
+.plant_is_taxonomy_suggest_result = function(x) {
+  is.list(x) && !is.null(x$sci_name_and_ids)
+}
+
+.plant_verified_taxonomy_suggest_matches = function(search,
+                                                     accepted_species) {
+  columns = c("taxid", "scientific_name", "rank")
+  if (!.plant_is_taxonomy_suggest_result(search)) {
+    return(.uaf_empty_table(columns))
+  }
+  accepted = .plant_clean_name(.plant_taxon_core_name(accepted_species))
+  accepted = unique(.uaf_non_empty(accepted))
+  if (length(accepted) < 1) return(.uaf_empty_table(columns))
+  records = search$sci_name_and_ids
+  if (is.data.frame(records)) {
+    records = lapply(seq_len(nrow(records)), function(i) {
+      as.list(records[i, , drop = FALSE])
+    })
+  }
+  if (!is.list(records)) return(.uaf_empty_table(columns))
+  rows = lapply(records, function(record) {
+    if (!is.list(record)) return(NULL)
+    scientific_name = .uaf_first_non_empty_text(
+      record$sci_name, record$scientific_name, record$scientificName
+    )
+    matched_term = .uaf_first_non_empty_text(record$matched_term)
+    taxid = .uaf_first_non_empty_text(record$tax_id, record$taxid)
+    rank = tolower(.uaf_first_non_empty_text(record$rank, ""))
+    names_to_check = .plant_clean_name(.plant_taxon_core_name(
+      c(scientific_name, matched_term)
+    ))
+    names_to_check = unique(.uaf_non_empty(names_to_check))
+    rank_ok = !nzchar(rank) || rank %in%
+      c("species", "subspecies", "varietas", "forma", "hybrid")
+    if (is.na(taxid) || length(intersect(names_to_check, accepted)) < 1 ||
+        !rank_ok) {
+      return(NULL)
+    }
+    data.frame(
+      taxid = taxid,
+      scientific_name = scientific_name,
+      rank = ifelse(nzchar(rank), rank, NA_character_),
+      stringsAsFactors = FALSE
+    )
+  })
+  out = .plant_bind_tables(rows, columns)
+  if (nrow(out) < 1) return(out)
+  out[!duplicated(paste(out$taxid, out$scientific_name, sep = "\r")), ,
+      drop = FALSE]
 }
 
 .plant_ncbi_taxonomy_summary = function(taxids, cache, cache_dir, throttle,

@@ -613,3 +613,37 @@ test_that("production resource downloads resume persistent partial files", {
     sleep_fun = function(seconds) NULL
   )
 })
+
+test_that("panel distinguishes completed, service-busy, and failed discovery", {
+  make_result = function(run_status, discovery_complete, chunk_status,
+                         error_message = NA_character_) {
+    list(
+      BatchRunManifest = data.frame(
+        run_status = run_status,
+        discovery_complete = discovery_complete,
+        pause_reason = error_message,
+        stringsAsFactors = FALSE
+      ),
+      BatchChunkManifest = data.frame(
+        status = chunk_status,
+        error_message = error_message,
+        stringsAsFactors = FALSE
+      )
+    )
+  }
+
+  completed = .plant_panel_batch_completion_state(
+    make_result("completed", "Yes", "completed")
+  )
+  paused = .plant_panel_batch_completion_state(
+    make_result("incomplete", "No", "rate_limited",
+                "HTTP 500 temporarily unavailable")
+  )
+  failed = .plant_panel_batch_completion_state(
+    make_result("incomplete", "No", "failed", "malformed response")
+  )
+
+  expect_equal(completed$state, "completed")
+  expect_equal(paused$state, "paused_service_busy")
+  expect_equal(failed$state, "incomplete")
+})

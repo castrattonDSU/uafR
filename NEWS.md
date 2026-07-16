@@ -55,6 +55,13 @@
   are validated and included in the run signature. Both artifacts and portable
   source manifests are copied into the Tanimoto server handoff, whose commands
   install the exact tarball and validate the release manifest before live work.
+- Hardened live NCBI behavior for large plant panels. PubChem occurrence
+  discovery now resolves exact NCBI Taxonomy IDs through the official Datasets
+  v2 suggestion endpoint and rejects non-exact suggestions. Live JSON/XML
+  requests use bounded exponential retries, do not cache provider error
+  payloads, and classify retriable HTTP 5xx, timeout, and backend failures as
+  resumable service-busy conditions. The production pilot now pauses with exit
+  status 75 before cache replay when discovery is incomplete.
 - Hardened plant biological-context extraction by parsing each unique source
   record once and retaining sentence-local method distinctions. PubChem
   taxonomy rows no longer interpret CIDs as PMIDs, copy broad collection

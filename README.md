@@ -221,10 +221,11 @@ provenance.
 Current live-capable public adapters include PubMed literature search,
 PubTator candidate co-mentions, KNApSAcK organism-metabolite lookup, conservative
 LOTUS API parsing when taxon evidence is present, and PubChem taxonomy
-annotations after NCBI taxonomy resolution. NPASS is supported through a local,
-manifest-backed index built from the official NPASS 3.0/NPASS-2026 general,
-structure, species-source, and taxonomy downloads. Large projects should use
-local LOTUS and NPASS indexes rather than repeatedly scraping provider pages.
+annotations after exact-name verification through the official NCBI Datasets
+v2 taxonomy service. NPASS is supported through a local, manifest-backed index
+built from the official NPASS 3.0/NPASS-2026 general, structure,
+species-source, and taxonomy downloads. Large projects should use local LOTUS
+and NPASS indexes rather than repeatedly scraping provider pages.
 
 For LOTUS specifically, use a local index for serious plant panels. The LOTUS
 simple web API is useful for small smoke tests, but common species can return
@@ -888,9 +889,12 @@ passed. `pipeline_status.json`, `pipeline_progress.csv`, stage manifests,
 `failed_queries.csv`, and `retry_queue.csv` are the operational source of
 truth. Exit status 75 means a provider returned repeated service-busy responses:
 leave caches and completed checkpoints in place, wait for the service to
-recover, and rerun the identical stage. Exit status 2 at finalization means the
-validated Tanimoto server output has not yet been supplied. It is not a request
-to restart discovery.
+recover, and rerun the identical stage. Retriable HTTP 5xx responses, NCBI
+backend-failure payloads, timeouts, and connection resets are handled with
+bounded backoff before a stage pauses; error payloads are never accepted as
+valid cache entries. Exit status 2 at finalization means the validated Tanimoto
+server output has not yet been supplied. It is not a request to restart
+discovery.
 
 The NPASS downloader verifies remote byte counts, keeps interrupted transfers
 as `.partial` files, and resumes them when the server supports byte ranges.
