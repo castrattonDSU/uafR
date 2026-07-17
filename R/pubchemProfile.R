@@ -136,7 +136,8 @@ pubchemProfile = function(compounds,
     source_names = unique(c(.pubchem_profile_sources(profile), sources))
     if (identical(annotation_request_mode, "record")) {
       record_annotations = .pubchem_fetch_annotation_records(
-        cids = cids, fetch = fetch, cid_query = cid_query
+        cids = cids, fetch = fetch, cid_query = cid_query,
+        headings = headings, sources = source_names
       )
       heading_annotations = .pubchem_select_annotation_headings(
         record_annotations, headings
@@ -1006,7 +1007,9 @@ print.uaf_pubchem_profile = function(x, ...) {
   .pubchem_dedupe_annotations(out)
 }
 
-.pubchem_fetch_annotation_records = function(cids, fetch, cid_query) {
+.pubchem_fetch_annotation_records = function(cids, fetch, cid_query,
+                                              headings = NULL,
+                                              sources = NULL) {
   cols = .pubchem_annotation_cols()
   if (length(cids) < 1) return(.pubchem_empty_table(cols))
 
@@ -1020,7 +1023,9 @@ print.uaf_pubchem_profile = function(x, ...) {
       cid = cid,
       query = unname(cid_query[paste0(cid)]),
       heading = "Full PubChem record",
-      pubchem_url = url
+      pubchem_url = url,
+      include_headings = headings,
+      include_sources = sources
     )
     if (nrow(parsed) > 0) rows[[length(rows) + 1L]] = parsed
   }
@@ -1302,8 +1307,9 @@ print.uaf_pubchem_profile = function(x, ...) {
   )
   if (length(hierarchies) < 1) return(.pubchem_empty_table(cols))
 
-  rows = list()
-  for (hierarchy in hierarchies) {
+  rows = vector("list", length(hierarchies))
+  for (hierarchy_index in seq_along(hierarchies)) {
+    hierarchy = hierarchies[[hierarchy_index]]
     root_info = hierarchy$Information
     nodes = .pubchem_classification_node_rows(hierarchy$Node)
     if (nrow(nodes) < 1) next
@@ -1325,7 +1331,7 @@ print.uaf_pubchem_profile = function(x, ...) {
     path_terms = rev(.uaf_non_empty(leaf_to_root$ClassName))
     class_path = .pubchem_collapse(path_terms)
 
-    rows[[length(rows) + 1]] = data.frame(
+    rows[[hierarchy_index]] = data.frame(
       Query = link$Query,
       CID = link$CID,
       Source = .uaf_first_non_empty_text(link$Source,
@@ -1356,6 +1362,7 @@ print.uaf_pubchem_profile = function(x, ...) {
     )
   }
 
+  rows = rows[lengths(rows) > 0]
   if (length(rows) < 1) return(.pubchem_empty_table(cols))
   out = do.call(rbind, rows)
   row.names(out) = NULL
@@ -1371,9 +1378,9 @@ print.uaf_pubchem_profile = function(x, ...) {
   )
   if (length(node_list) < 1) return(.pubchem_empty_table(cols))
 
-  rows = lapply(node_list, function(node) {
+  parsed = lapply(node_list, function(node) {
     info = node$Information
-    data.frame(
+    list(
       NodeID = .uaf_first_non_empty_text(node$NodeID, info$NodeID),
       ParentNodeID = .uaf_first_non_empty_text(node$ParentID,
                                                node$ParentNodeID,
@@ -1385,13 +1392,21 @@ print.uaf_pubchem_profile = function(x, ...) {
       CompoundCount = .pubchem_classification_count(info, "Compound"),
       TaxonomyCount = .pubchem_classification_count(info, "Taxonomy"),
       DOICount = .pubchem_classification_count(info, "DOI"),
-      PubMedCount = .pubchem_classification_count(info, "PubMed"),
-      stringsAsFactors = FALSE
+      PubMedCount = .pubchem_classification_count(info, "PubMed")
     )
   })
-  out = do.call(rbind, rows)
-  row.names(out) = NULL
-  out
+  data.frame(
+    NodeID = vapply(parsed, `[[`, character(1), "NodeID"),
+    ParentNodeID = vapply(parsed, `[[`, character(1), "ParentNodeID"),
+    HNID = vapply(parsed, `[[`, character(1), "HNID"),
+    ClassName = vapply(parsed, `[[`, character(1), "ClassName"),
+    Match = vapply(parsed, `[[`, logical(1), "Match"),
+    CompoundCount = vapply(parsed, `[[`, integer(1), "CompoundCount"),
+    TaxonomyCount = vapply(parsed, `[[`, integer(1), "TaxonomyCount"),
+    DOICount = vapply(parsed, `[[`, integer(1), "DOICount"),
+    PubMedCount = vapply(parsed, `[[`, integer(1), "PubMedCount"),
+    stringsAsFactors = FALSE
+  )
 }
 
 .pubchem_classification_leaf_order = function(nodes, match_index) {
@@ -1556,7 +1571,9 @@ print.uaf_pubchem_profile = function(x, ...) {
                         use.names = FALSE))
 }
 
-.pubchem_parse_pugview = function(json, cid, query, heading, pubchem_url) {
+.pubchem_parse_pugview = function(json, cid, query, heading, pubchem_url,
+                                  include_headings = NULL,
+                                  include_sources = NULL) {
   cols = .pubchem_annotation_cols()
   if (is.null(json) || is.null(json$Record)) return(.pubchem_empty_table(cols))
 
@@ -1568,7 +1585,9 @@ print.uaf_pubchem_profile = function(x, ...) {
                                  query = query,
                                  heading = heading,
                                  references = references,
-                                 pubchem_url = pubchem_url)
+                                 pubchem_url = pubchem_url,
+                                 include_headings = include_headings,
+                                 include_sources = include_sources)
   if (length(rows) < 1) return(.pubchem_empty_table(cols))
   out = do.call(rbind, rows)
   row.names(out) = NULL
@@ -1576,14 +1595,17 @@ print.uaf_pubchem_profile = function(x, ...) {
 }
 
 .pubchem_parse_sections = function(sections, path, cid, query, heading,
-                                   references, pubchem_url) {
+                                   references, pubchem_url,
+                                   include_headings = NULL,
+                                   include_sources = NULL) {
   if (is.null(sections)) return(list())
   if (!is.list(sections) || (!is.null(sections$TOCHeading) || !is.null(sections$Information))) {
     sections = list(sections)
   }
 
-  rows = list()
-  for (section in sections) {
+  rows = vector("list", length(sections))
+  for (section_index in seq_along(sections)) {
+    section = sections[[section_index]]
     section_heading = .pubchem_scalar(section$TOCHeading)
     section_path = c(path, section_heading)
     section_path = section_path[!is.na(section_path) & section_path != ""]
@@ -1595,8 +1617,9 @@ print.uaf_pubchem_profile = function(x, ...) {
                                            heading_path = paste(section_path,
                                                                 collapse = " > "),
                                            references = references,
-                                           pubchem_url = pubchem_url)
-    rows = c(rows, info_rows)
+                                           pubchem_url = pubchem_url,
+                                           include_headings = include_headings,
+                                           include_sources = include_sources)
 
     child_rows = .pubchem_parse_sections(section$Section,
                                          path = section_path,
@@ -1604,24 +1627,54 @@ print.uaf_pubchem_profile = function(x, ...) {
                                          query = query,
                                          heading = heading,
                                          references = references,
-                                         pubchem_url = pubchem_url)
-    rows = c(rows, child_rows)
+                                         pubchem_url = pubchem_url,
+                                         include_headings = include_headings,
+                                         include_sources = include_sources)
+    rows[[section_index]] = c(info_rows, child_rows)
   }
-  rows
+  rows = rows[lengths(rows) > 0]
+  if (length(rows) < 1) list() else do.call(c, rows)
 }
 
 .pubchem_parse_information = function(information, cid, query, heading,
-                                      heading_path, references, pubchem_url) {
+                                      heading_path, references, pubchem_url,
+                                      include_headings = NULL,
+                                      include_sources = NULL) {
   if (is.null(information)) return(list())
   if (!is.list(information) || !is.null(information$Value)) {
     information = list(information)
   }
 
-  rows = list()
-  for (info in information) {
+  requested_headings = unique(.pubchem_match_normalize(include_headings))
+  requested_headings = requested_headings[
+    !is.na(requested_headings) & requested_headings != ""
+  ]
+  requested_sources = unique(unlist(
+    lapply(include_sources, .pubchem_source_match_aliases),
+    use.names = FALSE
+  ))
+  requested_sources = requested_sources[
+    !is.na(requested_sources) & requested_sources != ""
+  ]
+  filter_requested = length(requested_headings) > 0 ||
+    length(requested_sources) > 0
+
+  rows = vector("list", length(information))
+  for (info_index in seq_along(information)) {
+    info = information[[info_index]]
     name = .pubchem_scalar(info$Name)
     ref_number = .pubchem_scalar(info$ReferenceNumber)
     reference = references[[paste0(ref_number)]]
+    source = .pubchem_reference_field(reference, "Source")
+    source_url = .pubchem_reference_field(reference, "URL")
+    if (filter_requested && !.pubchem_annotation_requested(
+      heading_path = heading_path,
+      name = name,
+      source = source,
+      source_url = source_url,
+      requested_headings = requested_headings,
+      requested_sources = requested_sources
+    )) next
     values = .pubchem_value_rows(info$Value)
     if (length(values) < 1) {
       values = list(list(
@@ -1633,13 +1686,15 @@ print.uaf_pubchem_profile = function(x, ...) {
       ))
     }
 
-    for (value in values) {
+    value_rows = vector("list", length(values))
+    for (value_index in seq_along(values)) {
+      value = values[[value_index]]
       value_text = .pubchem_scalar(value$value)
       value_unit = .pubchem_scalar(value$unit)
       measurement = .uaf_parse_measurement(value_text)
       unit_clean = .uaf_first_non_empty_text(value_unit,
                                              measurement$UnitClean[[1]])
-      rows[[length(rows) + 1]] = data.frame(
+      value_rows[[value_index]] = data.frame(
         Query = query,
         CID = suppressWarnings(as.integer(cid)),
         Heading = heading,
@@ -1653,14 +1708,36 @@ print.uaf_pubchem_profile = function(x, ...) {
         MarkupText = .pubchem_scalar(value$markup_text),
         MarkupURL = .pubchem_scalar(value$markup_url),
         MarkupExtra = .pubchem_scalar(value$markup_extra),
-        Source = .pubchem_reference_field(reference, "Source"),
-        SourceURL = .pubchem_reference_field(reference, "URL"),
+        Source = source,
+        SourceURL = source_url,
         PubChemURL = pubchem_url,
         stringsAsFactors = FALSE
       )
     }
+    rows[[info_index]] = value_rows
   }
-  rows
+  rows = rows[lengths(rows) > 0]
+  if (length(rows) < 1) list() else do.call(c, rows)
+}
+
+.pubchem_annotation_requested = function(heading_path, name, source,
+                                          source_url, requested_headings,
+                                          requested_sources) {
+  heading_context = .pubchem_match_normalize(paste(heading_path, name))
+  source_context = .pubchem_match_normalize(
+    paste(source, source_url, heading_path)
+  )
+  heading_match = length(requested_headings) > 0 && any(vapply(
+    requested_headings,
+    function(term) grepl(term, heading_context, fixed = TRUE),
+    logical(1)
+  ))
+  source_match = length(requested_sources) > 0 && any(vapply(
+    requested_sources,
+    function(term) grepl(term, source_context, fixed = TRUE),
+    logical(1)
+  ))
+  heading_match || source_match
 }
 
 .pubchem_reference_map = function(references) {

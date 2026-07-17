@@ -576,15 +576,15 @@ runCategorateEnrichmentBatches = function(
                                                       collapse = ", ")
     )))
   }
-  expected_source = query_map$Query[
-    query_map$SourceIdentityAvailable == "Yes" &
+  expected_source_cid = query_map$Query[
+    query_map$QueryType == "source_cid" &
       query_map$EnrichmentEligible == "Yes"
   ]
-  unresolved_source = expected_source[!expected_source %in%
+  unresolved_source = expected_source_cid[!expected_source_cid %in%
     identity$Query[!is.na(identity$CID)]]
   if (length(unresolved_source) > 0) {
     return(list(ok = FALSE, message = paste(
-      "Source-resolved compounds did not resolve in PubChem:",
+      "Source CID compounds did not resolve in PubChem:",
       paste(unresolved_source, collapse = ", ")
     )))
   }

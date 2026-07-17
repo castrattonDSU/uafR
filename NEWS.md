@@ -2,6 +2,15 @@
 
 ## Major improvements
 
+- PubChem record-mode enrichment now filters requested headings and sources
+  while traversing PUG-View records rather than materializing every unrelated
+  annotation first. Large LOTUS classification responses are parsed with
+  preallocated, vectorized structures, eliminating quadratic post-processing
+  while retaining every source-backed hierarchy returned for the compound.
+- Resumable enrichment health checks now accept source-backed InChIKey/SMILES
+  identities that have no PubChem CID. Source-provided CIDs must still resolve,
+  every query must retain an explicit PubChem outcome, and properties remain
+  required for every resolved CID.
 - KEGG FIND queries now transliterate Greek characters, remove leading
   optical-rotation markers, and convert unsupported punctuation into safe
   keyword terms before requesting the KEGG REST API. Any remaining per-name

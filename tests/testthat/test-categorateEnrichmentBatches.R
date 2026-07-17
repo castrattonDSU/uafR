@@ -108,6 +108,87 @@ test_that("incomplete enrichment is not published as a successful checkpoint", {
   expect_equal(attr(result, "exit_status"), 1L)
 })
 
+test_that("source structures may be valid without a PubChem CID", {
+  out_dir = tempfile("categorate_source_structure_")
+  on.exit(unlink(out_dir, recursive = TRUE, force = TRUE), add = TRUE)
+  source_structure_only = function(compounds, ...) {
+    list(
+      PubChemIdentity = data.frame(
+        Query = compounds,
+        CID = NA_integer_,
+        MatchStatus = "no_match",
+        stringsAsFactors = FALSE
+      ),
+      PubChemProperties = data.frame(
+        Query = character(), CID = integer(),
+        stringsAsFactors = FALSE
+      ),
+      ValidationSummary = data.frame(
+        Status = "pass", ErrorCount = 0L,
+        stringsAsFactors = FALSE
+      )
+    )
+  }
+  compounds = data.frame(
+    compound_name = "source-backed compound",
+    InChIKey = "NGFMICBWJRZIBI-UHFFFAOYSA-N",
+    SMILES = "C1=CC=CC=C1",
+    stringsAsFactors = FALSE
+  )
+
+  result = runCategorateEnrichmentBatches(
+    compounds, out_dir = out_dir, cache = TRUE,
+    periodic_cooldown_batches = Inf, periodic_cooldown_seconds = 0,
+    enrichment_fun = source_structure_only, progress = FALSE
+  )
+
+  expect_equal(result$QueryMap$QueryType, "source_inchikey")
+  expect_equal(result$BatchManifest$status, "completed")
+  expect_equal(result$BatchManifest$resolved_count, 0L)
+  expect_equal(nrow(result$RetryQueue), 0L)
+  expect_equal(attr(result, "exit_status"), 0L)
+})
+
+test_that("source CID queries must resolve to their PubChem record", {
+  out_dir = tempfile("categorate_source_cid_")
+  on.exit(unlink(out_dir, recursive = TRUE, force = TRUE), add = TRUE)
+  unresolved_source_cid = function(compounds, ...) {
+    list(
+      PubChemIdentity = data.frame(
+        Query = compounds,
+        CID = NA_integer_,
+        MatchStatus = "no_match",
+        stringsAsFactors = FALSE
+      ),
+      PubChemProperties = data.frame(
+        Query = character(), CID = integer(),
+        stringsAsFactors = FALSE
+      ),
+      ValidationSummary = data.frame(
+        Status = "pass", ErrorCount = 0L,
+        stringsAsFactors = FALSE
+      )
+    )
+  }
+  compounds = data.frame(
+    compound_name = "source CID compound",
+    CID = 2519L,
+    stringsAsFactors = FALSE
+  )
+
+  result = runCategorateEnrichmentBatches(
+    compounds, out_dir = out_dir, cache = TRUE,
+    periodic_cooldown_batches = Inf, periodic_cooldown_seconds = 0,
+    enrichment_fun = unresolved_source_cid, progress = FALSE
+  )
+
+  expect_equal(result$BatchManifest$status, "failed")
+  expect_match(result$BatchManifest$error_message,
+               "Source CID compounds did not resolve in PubChem")
+  expect_equal(nrow(result$RetryQueue), 1L)
+  expect_equal(attr(result, "exit_status"), 1L)
+})
+
 test_that("service-busy enrichment pauses with retryable state", {
   out_dir = tempfile("categorate_busy_")
   on.exit(unlink(out_dir, recursive = TRUE, force = TRUE), add = TRUE)

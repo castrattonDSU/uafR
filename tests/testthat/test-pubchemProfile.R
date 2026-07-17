@@ -466,6 +466,123 @@ test_that("pubchemProfile can fetch and locally filter one full PUG-View record"
   expect_identical(profile$annotation_request_mode, "record")
 })
 
+test_that("record parsing materializes only requested headings and sources", {
+  json = list(Record = list(
+    Reference = list(
+      list(ReferenceNumber = 1, SourceName = "Fixture Safety",
+           URL = "https://example.test/safety"),
+      list(ReferenceNumber = 2,
+           SourceName = "LOTUS - the natural products occurrence database",
+           URL = "https://example.test/lotus"),
+      list(ReferenceNumber = 3, SourceName = "Fixture Literature",
+           URL = "https://example.test/literature")
+    ),
+    Section = list(
+      list(
+        TOCHeading = "Safety and Hazards",
+        Information = list(list(
+          Name = "Signal", ReferenceNumber = 1,
+          Value = list(StringWithMarkup = list(list(String = "Warning")))
+        ))
+      ),
+      list(
+        TOCHeading = "Natural Products",
+        Information = list(list(
+          Name = "Occurrence", ReferenceNumber = 2,
+          Value = list(StringWithMarkup = list(list(
+            String = "Reported natural-product record"
+          )))
+        ))
+      ),
+      list(
+        TOCHeading = "Literature",
+        Information = list(list(
+          Name = "Reference", ReferenceNumber = 3,
+          Value = list(StringWithMarkup = list(list(
+            String = "Irrelevant full-record literature row"
+          )))
+        ))
+      )
+    )
+  ))
+
+  full = uafR:::.pubchem_parse_pugview(
+    json, cid = 2244, query = "aspirin",
+    heading = "Full PubChem record",
+    pubchem_url = "https://pubchem.ncbi.nlm.nih.gov/compound/2244"
+  )
+  selected = uafR:::.pubchem_parse_pugview(
+    json, cid = 2244, query = "aspirin",
+    heading = "Full PubChem record",
+    pubchem_url = "https://pubchem.ncbi.nlm.nih.gov/compound/2244",
+    include_headings = "Safety and Hazards",
+    include_sources = "LOTUS - the natural products occurrence database"
+  )
+  expected = uafR:::.pubchem_bind_tables(
+    uafR:::.pubchem_select_annotation_headings(
+      full, "Safety and Hazards"
+    ),
+    uafR:::.pubchem_select_annotation_sources(
+      full, "LOTUS - the natural products occurrence database"
+    )
+  )
+
+  expect_equal(selected, expected)
+  expect_setequal(selected$HeadingPath,
+                  c("Safety and Hazards", "Natural Products"))
+  expect_false(any(grepl("Irrelevant", selected$CleanValue, fixed = TRUE)))
+})
+
+test_that("classification parsing retains large source-backed hierarchy sets", {
+  hierarchy = function(index) {
+    list(
+      SourceName = "LOTUS - the natural products occurrence database",
+      HID = 115,
+      Information = list(HID = 115),
+      Node = list(
+        list(
+          NodeID = paste0("leaf_", index),
+          ParentID = paste0("parent_", index),
+          Information = list(
+            HNID = paste0("hnid_", index),
+            Match = TRUE,
+            Name = list(StringWithMarkup = list(list(
+              String = paste("Species", index)
+            )))
+          )
+        ),
+        list(
+          NodeID = paste0("parent_", index),
+          Information = list(
+            HNID = paste0("parent_hnid_", index),
+            Name = list(StringWithMarkup = list(list(String = "Plantae")))
+          )
+        )
+      )
+    )
+  }
+  json = list(Hierarchies = list(
+    Hierarchy = lapply(seq_len(1000), hierarchy)
+  ))
+  link = data.frame(
+    Query = "fixture compound", CID = 1L,
+    Source = "LOTUS - the natural products occurrence database",
+    TreeID = "115", TreeName = "Biological Classification",
+    TreeType = "biological", SourceURL = "https://example.test/source",
+    PubChemURL = "https://example.test/compound",
+    stringsAsFactors = FALSE
+  )
+
+  parsed = uafR:::.pubchem_parse_classification_response(
+    json, link, "https://example.test/classification"
+  )
+
+  expect_equal(nrow(parsed), 1000L)
+  expect_equal(length(unique(parsed$ClassName)), 1000L)
+  expect_true(all(parsed$ParentClass == "Plantae"))
+  expect_true(all(parsed$ClassDepth == 2L))
+})
+
 test_that("pubchemProfile strict requests preserve retryable failures", {
   expect_error(
     pubchemProfile(
