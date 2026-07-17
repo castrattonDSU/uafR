@@ -28,7 +28,8 @@ usage = function() {
     "    [--max-pubmed-records 100] [--max-provider-records Inf] \\",
     "    [--provider-throttle 0.5] [--knapsack-throttle 1] \\",
     "    [--pubchem-throttle 1.1] [--kegg-throttle 0.5] \\",
-    "    [--request-timeout 60] [--full-enrichment-limit 250] \\",
+    "    [--request-timeout 60] [--research-enrichment-limit 1000] \\",
+    "    [--full-enrichment-limit 250] \\",
     "    [--release-manifest uafR_release_manifest.json] \\",
     "    [--source-tarball uafR_<version>.tar.gz] \\",
     "    [--require-release-artifact true] \\",
@@ -144,7 +145,8 @@ normalize_values = function(x) {
                      "max_pubmed_records", "full_enrichment_limit")
   numeric_fields = c("max_provider_records", "provider_throttle",
                      "knapsack_throttle", "pubchem_throttle",
-                     "kegg_throttle", "request_timeout")
+                     "kegg_throttle", "request_timeout",
+                     "research_enrichment_limit")
   for (name in intersect(names(x), vector_fields)) {
     x[[name]] = as_vector(x[[name]])
   }

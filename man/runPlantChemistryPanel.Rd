@@ -34,6 +34,7 @@ runPlantChemistryPanel(
   pubchem_throttle = 1.1,
   kegg_throttle = 0.5,
   request_timeout = 60,
+  research_enrichment_limit = 1000,
   full_enrichment_limit = 250,
   release_manifest = NULL,
   source_tarball = NULL,
@@ -119,6 +120,13 @@ pilot cannot silently become a full production identity run.}
 \item{kegg_throttle}{KEGG enrichment delay in seconds.}
 
 \item{request_timeout}{Live request timeout in seconds.}
+
+\item{research_enrichment_limit}{Maximum compounds sent to rich
+`detail = "research"` enrichment. Selection is deterministic, prioritizes
+direct/source-supported evidence, and attempts one eligible compound per
+represented species before filling remaining slots globally. All deferred
+identities remain in the result and are written to the exclusion audit. Use
+`Inf` only when the provider request estimate has been reviewed.}
 
 \item{full_enrichment_limit}{Maximum deterministic priority compounds sent
 to `detail = "full"` enrichment.}

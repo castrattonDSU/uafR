@@ -66,6 +66,12 @@
 #' @param pubchem_throttle PubChem identity/enrichment delay in seconds.
 #' @param kegg_throttle KEGG enrichment delay in seconds.
 #' @param request_timeout Live request timeout in seconds.
+#' @param research_enrichment_limit Maximum compounds sent to rich
+#' `detail = "research"` enrichment. Selection is deterministic, prioritizes
+#' direct/source-supported evidence, and attempts one eligible compound per
+#' represented species before filling remaining slots globally. All deferred
+#' identities remain in the result and are written to the exclusion audit. Use
+#' `Inf` only when the provider request estimate has been reviewed.
 #' @param full_enrichment_limit Maximum deterministic priority compounds sent
 #' to `detail = "full"` enrichment.
 #' @param release_manifest Optional checked uafR release-manifest JSON produced
@@ -124,6 +130,7 @@ runPlantChemistryPanel = function(
     pubchem_throttle = 1.1,
     kegg_throttle = 0.5,
     request_timeout = 60,
+    research_enrichment_limit = 1000,
     full_enrichment_limit = 250,
     release_manifest = NULL,
     source_tarball = NULL,
@@ -160,6 +167,7 @@ runPlantChemistryPanel = function(
     knapsack_throttle = knapsack_throttle,
     pubchem_throttle = pubchem_throttle, kegg_throttle = kegg_throttle,
     request_timeout = request_timeout,
+    research_enrichment_limit = research_enrichment_limit,
     full_enrichment_limit = full_enrichment_limit,
     release_manifest = release_manifest, source_tarball = source_tarball,
     require_release_artifact = require_release_artifact,
@@ -279,7 +287,8 @@ runPlantChemistryPanel = function(
                                  max_pubmed_records, max_provider_records,
                                  provider_throttle, knapsack_throttle,
                                  pubchem_throttle, kegg_throttle,
-                                 request_timeout, full_enrichment_limit,
+                                 request_timeout, research_enrichment_limit,
+                                 full_enrichment_limit,
                                  release_manifest, source_tarball,
                                  require_release_artifact,
                                  server_results_dir, project_id, resume,
@@ -359,6 +368,9 @@ runPlantChemistryPanel = function(
                                               "kegg_throttle"),
     request_timeout = .plant_panel_nonnegative(request_timeout,
                                                 "request_timeout"),
+    research_enrichment_limit = .plant_panel_positive_or_inf(
+      research_enrichment_limit, "research_enrichment_limit"
+    ),
     full_enrichment_limit = .plant_panel_positive_integer(
       full_enrichment_limit, "full_enrichment_limit"
     ),
@@ -394,6 +406,7 @@ runPlantChemistryPanel = function(
     config$max_pubmed_records, config$max_provider_records,
     config$provider_throttle, config$knapsack_throttle,
     config$pubchem_throttle, config$kegg_throttle, config$request_timeout,
+    config$research_enrichment_limit,
     config$full_enrichment_limit,
     .plant_panel_input_signature(c(config$release_manifest,
                                    config$source_tarball)),
@@ -1348,13 +1361,19 @@ runPlantChemistryPanel = function(
     "Run identity before research enrichment."
   )
   result = readRDS(identity_file)
-  selection = .plant_panel_enrichment_selection(result)
+  selection = .plant_panel_enrichment_selection(
+    result, limit = config$research_enrichment_limit
+  )
   stage_dir = file.path(context$paths$stages, "research_enrichment")
   dir.create(stage_dir, recursive = TRUE, showWarnings = FALSE)
   selection_file = file.path(stage_dir, "research_enrichment_selection.csv")
   exclusion_file = file.path(stage_dir, "research_enrichment_exclusions.csv")
+  selection_summary_file = file.path(
+    stage_dir, "research_enrichment_selection_summary.csv"
+  )
   .plant_atomic_write_csv(selection$included, selection_file)
   .plant_atomic_write_csv(selection$excluded, exclusion_file)
+  .plant_atomic_write_csv(selection$Summary, selection_summary_file)
   if (nrow(selection$included) < 1) {
     stop("No conservatively resolved compounds are eligible for research enrichment.",
          call. = FALSE)
@@ -1379,13 +1398,13 @@ runPlantChemistryPanel = function(
     return(list(status = "paused_service_busy", exit_status = 75L,
                 message = "Research enrichment paused; completed batches and caches were preserved.",
                 artifacts = c(selection_file, exclusion_file,
-                              enrichment_file)))
+                              selection_summary_file, enrichment_file)))
   }
   if (nrow(enrichment$RetryQueue) > 0) {
     return(list(status = "incomplete", exit_status = 1L,
                 message = "Research enrichment has retryable incomplete batches.",
                 artifacts = c(selection_file, exclusion_file,
-                              enrichment_file)))
+                              selection_summary_file, enrichment_file)))
   }
   combined = combineCategorateTables(
     enrichment$Batches, include_batch_metadata = FALSE,
@@ -1399,9 +1418,15 @@ runPlantChemistryPanel = function(
   .plant_atomic_save_rds(result, result_file)
   .plant_atomic_save_rds(combined, combined_file)
   list(status = "completed", exit_status = 0L,
-       message = paste(nrow(selection$included),
-                       "resolved compounds completed research enrichment."),
+       message = paste(
+         nrow(selection$included), "of", nrow(selection$eligible),
+         "eligible resolved compounds completed prioritized research enrichment;",
+         nrow(selection$excluded[selection$excluded$enrichment_exclusion_reason ==
+                                   "research_enrichment_limit", , drop = FALSE]),
+         "eligible compounds were retained for deferred enrichment."
+       ),
        artifacts = c(selection_file, exclusion_file, enrichment_file,
+                     selection_summary_file,
                      result_file, combined_file,
                      file.path(stage_dir, "research_batch_manifest.csv"),
                      file.path(stage_dir, "research_retry_queue.csv")))
@@ -1935,7 +1960,8 @@ runPlantChemistryPanel = function(
   result
 }
 
-.plant_panel_enrichment_selection = function(result) {
+.plant_panel_enrichment_selection = function(result, limit = Inf) {
+  limit = .plant_panel_positive_or_inf(limit, "research_enrichment_limit")
   resolution = result$CompoundResolution
   review = plantCompoundIdentityReviewTable(result)
   review_keys = unique(.uaf_non_empty(review$compound_name_clean))
@@ -1943,19 +1969,204 @@ runPlantChemistryPanel = function(
   identity = !is.na(.uaf_squish_text(resolution$CID)) |
     vapply(resolution$InChIKey, .uaf_is_inchikey, logical(1))
   review_ok = !resolution$compound_name_clean %in% review_keys
-  keep = resolved & identity & review_ok
-  included = resolution[keep, , drop = FALSE]
-  excluded = resolution[!keep, , drop = FALSE]
+  eligible_flag = resolved & identity & review_ok
+  priority = .plant_panel_enrichment_priority_metrics(
+    resolution, result$PlantCompoundOccurrences
+  )
+  for (column in setdiff(names(priority), "compound_name_clean")) {
+    resolution[[column]] = priority[[column]][match(
+      resolution$compound_name_clean, priority$compound_name_clean
+    )]
+  }
+  resolution$research_enrichment_eligible = .uaf_yes_no(eligible_flag)
+  resolution$research_enrichment_selected = "No"
+  resolution$research_priority_reason = NA_character_
+  resolution$research_priority_rank = NA_integer_
+  resolution$research_priority_global_rank = NA_integer_
+
+  eligible = resolution[eligible_flag, , drop = FALSE]
+  global_order = order(
+    -(eligible$direct_species_evidence == "Yes"),
+    -eligible$direct_source_database_count,
+    -eligible$direct_species_count,
+    -eligible$direct_occurrence_count,
+    -eligible$total_species_count,
+    -eligible$total_occurrence_count,
+    -eligible$max_evidence_quality_score,
+    -(eligible$cid_available == "Yes"),
+    eligible$compound_name_clean,
+    na.last = TRUE
+  )
+  eligible = eligible[global_order, , drop = FALSE]
+  eligible$research_priority_global_rank = seq_len(nrow(eligible))
+  global_index = match(eligible$compound_name_clean,
+                       resolution$compound_name_clean)
+  resolution$research_priority_global_rank[global_index] =
+    eligible$research_priority_global_rank
+  coverage_keys = .plant_panel_species_coverage_keys(
+    result$PlantCompoundOccurrences, eligible
+  )
+  global_keys = eligible$compound_name_clean
+  selected_order = unique(c(coverage_keys, global_keys))
+  if (is.finite(limit)) {
+    selected_order = utils::head(
+      selected_order, as.integer(min(limit, length(selected_order)))
+    )
+  }
+  selected_order = .uaf_non_empty(selected_order)
+  selected_index = match(selected_order, resolution$compound_name_clean)
+  selected_index = selected_index[!is.na(selected_index)]
+  resolution$research_enrichment_selected[selected_index] = "Yes"
+  resolution$research_priority_rank[selected_index] = seq_along(selected_index)
+  resolution$research_priority_reason[selected_index] = ifelse(
+    resolution$compound_name_clean[selected_index] %in% coverage_keys,
+    "species_coverage", "global_evidence_priority"
+  )
+  eligible = resolution[eligible_flag, , drop = FALSE]
+  eligible = eligible[order(eligible$research_priority_global_rank,
+                            eligible$compound_name_clean), , drop = FALSE]
+  included = resolution[
+    resolution$research_enrichment_selected == "Yes", , drop = FALSE
+  ]
+  included = included[order(included$research_priority_rank), , drop = FALSE]
+  excluded = resolution[
+    resolution$research_enrichment_selected != "Yes", , drop = FALSE
+  ]
+  excluded_index = match(excluded$compound_name_clean,
+                         resolution$compound_name_clean)
   excluded$enrichment_exclusion_reason = vapply(
-    which(!keep), function(i) {
+    excluded_index, function(i) {
       reason = character()
       if (!resolved[[i]]) reason = c(reason, "unresolved")
       if (!identity[[i]]) reason = c(reason, "no_verified_cid_or_inchikey")
       if (!review_ok[[i]]) reason = c(reason, "identity_review_required")
+      if (eligible_flag[[i]]) reason = c(reason, "research_enrichment_limit")
       paste(reason, collapse = "; ")
     }, character(1)
   )
-  list(included = included, excluded = excluded)
+  occurrence = .plant_normalize_occurrences(result$PlantCompoundOccurrences)
+  eligible_species = unique(.uaf_non_empty(occurrence$species[
+    occurrence$compound_name_clean %in% eligible$compound_name_clean
+  ]))
+  selected_species = unique(.uaf_non_empty(occurrence$species[
+    occurrence$compound_name_clean %in% included$compound_name_clean
+  ]))
+  summary = data.frame(
+    identity_rows = nrow(resolution),
+    enrichment_eligible_rows = nrow(eligible),
+    research_selected_rows = nrow(included),
+    research_deferred_eligible_rows = sum(
+      excluded$enrichment_exclusion_reason == "research_enrichment_limit",
+      na.rm = TRUE
+    ),
+    eligible_species_count = length(eligible_species),
+    selected_species_count = length(selected_species),
+    selected_species_coverage_fraction = if (length(eligible_species) > 0L) {
+      length(selected_species) / length(eligible_species)
+    } else NA_real_,
+    cid_selected_count = sum(
+      included$cid_available == "Yes", na.rm = TRUE
+    ),
+    inchikey_only_selected_count = sum(
+      included$cid_available != "Yes" &
+        included$inchikey_available == "Yes", na.rm = TRUE
+    ),
+    research_enrichment_limit = as.numeric(limit),
+    selection_rule = paste(
+      "One best eligible compound per represented species where capacity",
+      "allows, then global direct/source evidence priority."
+    ),
+    stringsAsFactors = FALSE
+  )
+  list(included = included, excluded = excluded, eligible = eligible,
+       Summary = summary)
+}
+
+.plant_panel_enrichment_priority_metrics = function(resolution, occurrences) {
+  occurrences = .plant_normalize_occurrences(occurrences)
+  keys = resolution$compound_name_clean
+  occurrence_key = .uaf_squish_text(occurrences$compound_name_clean)
+  valid = !is.na(occurrence_key) & occurrence_key %in% keys
+  occurrences = occurrences[valid, , drop = FALSE]
+  occurrence_key = occurrence_key[valid]
+  direct = occurrences$matched_rank == "species" &
+    occurrences$occurrence_status %in% c("direct_reported",
+                                          "curated_reported")
+  direct[is.na(direct)] = FALSE
+  score = if ("evidence_quality_score" %in% names(occurrences)) {
+    suppressWarnings(as.numeric(occurrences$evidence_quality_score))
+  } else rep(NA_real_, nrow(occurrences))
+  score[!is.finite(score)] = 0
+
+  count_lookup = function(values) {
+    counts = table(values)
+    out = as.integer(counts[keys])
+    out[is.na(out)] = 0L
+    out
+  }
+  unique_count_lookup = function(values, groups) {
+    values = .uaf_squish_text(values)
+    keep = !is.na(values) & values != ""
+    pair = paste(groups[keep], values[keep], sep = "\r")
+    pair = pair[!duplicated(pair)]
+    pair_groups = sub("\r.*$", "", pair, perl = TRUE)
+    count_lookup(pair_groups)
+  }
+  max_score = if (length(score) > 0L) {
+    tapply(score, occurrence_key, max, na.rm = TRUE)
+  } else {
+    numeric()
+  }
+  max_score_lookup = as.numeric(max_score[keys])
+  max_score_lookup[!is.finite(max_score_lookup)] = 0
+  direct_key = occurrence_key[direct]
+
+  data.frame(
+    compound_name_clean = keys,
+    total_occurrence_count = count_lookup(occurrence_key),
+    total_species_count = unique_count_lookup(occurrences$species,
+                                               occurrence_key),
+    total_source_database_count = unique_count_lookup(
+      occurrences$source_database, occurrence_key
+    ),
+    direct_occurrence_count = count_lookup(direct_key),
+    direct_species_count = unique_count_lookup(
+      occurrences$species[direct], direct_key
+    ),
+    direct_source_database_count = unique_count_lookup(
+      occurrences$source_database[direct], direct_key
+    ),
+    direct_species_evidence = .uaf_yes_no(count_lookup(direct_key) > 0L),
+    max_evidence_quality_score = max_score_lookup,
+    cid_available = .uaf_yes_no(
+      !is.na(.uaf_squish_text(resolution$CID))
+    ),
+    inchikey_available = .uaf_yes_no(vapply(
+      resolution$InChIKey, .uaf_is_inchikey, logical(1)
+    )),
+    stringsAsFactors = FALSE
+  )
+}
+
+.plant_panel_species_coverage_keys = function(occurrences, eligible) {
+  if (!is.data.frame(eligible) || nrow(eligible) < 1L) return(character())
+  occurrences = .plant_normalize_occurrences(occurrences)
+  keep = occurrences$compound_name_clean %in% eligible$compound_name_clean &
+    !is.na(.uaf_squish_text(occurrences$species))
+  occurrences = occurrences[keep, , drop = FALSE]
+  if (nrow(occurrences) < 1L) return(character())
+  rank_map = stats::setNames(eligible$research_priority_global_rank,
+                             eligible$compound_name_clean)
+  direct = occurrences$matched_rank == "species" &
+    occurrences$occurrence_status %in% c("direct_reported",
+                                          "curated_reported")
+  rank = as.integer(rank_map[occurrences$compound_name_clean])
+  ordering = order(occurrences$species, !direct, rank,
+                   occurrences$compound_name_clean, na.last = TRUE)
+  occurrences = occurrences[ordering, , drop = FALSE]
+  best = occurrences[!duplicated(occurrences$species), , drop = FALSE]
+  keys = unique(best$compound_name_clean)
+  keys[order(as.integer(rank_map[keys]), keys)]
 }
 
 .plant_panel_full_priority = function(result, limit) {

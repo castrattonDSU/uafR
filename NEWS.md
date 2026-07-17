@@ -2,6 +2,14 @@
 
 ## Major improvements
 
+- Production plant panels now bound rich `detail = "research"` enrichment to
+  a configurable, deterministic evidence-priority sample (1,000 compounds by
+  default). Selection first attempts one eligible structure-resolved compound
+  per represented species, then fills remaining capacity by direct-species
+  and source-support strength. Every deferred identity remains in the
+  discovery result and exclusion audit, with a selection summary that reports
+  species coverage; `Inf` remains an explicit, review-required opt-in for
+  smaller runs.
 - Hardened large PubChem identity and categorate enrichment runs. Identity
   batches now omit unused synonym requests, require complete properties for
   resolved CIDs, write manifest/retry files, and pause on retry-exhausted or

@@ -789,6 +789,19 @@ validated analysis bundle. Public-service calls are cached. Re-running the
 same command reuses only checkpoints whose input, parameter, provider-resource,
 and artifact signatures still match.
 
+Rich PubChem/KEGG research enrichment is intentionally bounded separately from
+source discovery and identity resolution. The production default selects up to
+1,000 conservatively resolved compounds: it first attempts one eligible
+compound for every represented species, then fills the remaining slots using
+direct-species and source-evidence priority. All other source records,
+structures, and identities remain in the result. Deferred eligible compounds
+are written to `research_enrichment_exclusions.csv` with
+`research_enrichment_limit`, and
+`research_enrichment_selection_summary.csv` reports compound and species
+coverage. Set `research_enrichment_limit = Inf` (or
+`--research-enrichment-limit Inf`) only after reviewing the request estimate;
+that setting can turn a large project into a multi-day or multi-week live run.
+
 An audited production panel should run from a checked source artifact, not from
 `devtools::load_all()`. After creating the approved clean Git commit, generate
 the release manifest and tarball together:
@@ -846,6 +859,7 @@ Rscript tools/run_plant_chemistry_panel.R \
   --npass-raw-dir resources/NPASS_3.0_2026/raw \
   --sources lotus,npass,knapsack,pubchem,pubmed,pubtator \
   --expected-species-count 701 \
+  --research-enrichment-limit 1000 \
   --resume true
 
 Rscript tools/run_plant_chemistry_panel.R \

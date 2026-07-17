@@ -450,6 +450,66 @@ test_that("panel pilot limits discovery and selects source identities", {
   expect_equal(length(unique(selected$PubChemQuery)), nrow(selected))
 })
 
+test_that("research enrichment selection is bounded and species aware", {
+  occurrences = .plant_normalize_occurrences(data.frame(
+    species = c("Plant one", "Plant two", "Plant three", "Plant one"),
+    matched_taxon = c("Plant one", "Plant two", "Plant three", "Plant"),
+    matched_rank = c("species", "species", "species", "genus"),
+    compound_name = c("caffeine", "salicin", "limonene", "quercetin"),
+    source_database = c("NPASS", "LOTUS", "LOTUS", "LOTUS"),
+    source_record_id = c("N1", "L1", "L2", "L3"),
+    evidence_tier = c(
+      "direct_species_database", "direct_species_database",
+      "direct_species_database", "genus_database_fallback"
+    ),
+    confidence = c("high", "high", "high", "medium"),
+    stringsAsFactors = FALSE
+  ))
+  resolution = data.frame(
+    compound_name = c("caffeine", "salicin", "limonene", "quercetin"),
+    compound_name_clean = c("caffeine", "salicin", "limonene", "quercetin"),
+    query_count = 1L,
+    resolved = TRUE,
+    CID = c("2519", "439503", "22311", "5280343"),
+    InChIKey = NA_character_,
+    SMILES = c("CN", "CO", "CC", "C1=CC=CC=C1"),
+    MolecularFormula = c("C8H10N4O2", "C13H18O7", "C10H16", "C15H10O7"),
+    resolution_source = "source_record",
+    notes = NA_character_,
+    stringsAsFactors = FALSE
+  )
+  result = list(
+    CompoundResolution = resolution,
+    PlantCompoundOccurrences = occurrences
+  )
+
+  first = .plant_panel_enrichment_selection(result, limit = 3L)
+  second = .plant_panel_enrichment_selection(result, limit = 3L)
+
+  expect_equal(first$included$compound_name_clean,
+               second$included$compound_name_clean)
+  expect_equal(nrow(first$included), 3L)
+  expect_setequal(first$included$compound_name_clean,
+                  c("caffeine", "salicin", "limonene"))
+  expect_true(all(first$included$research_priority_reason ==
+                    "species_coverage"))
+  expect_equal(first$Summary$eligible_species_count, 3L)
+  expect_equal(first$Summary$selected_species_count, 3L)
+  expect_equal(first$Summary$selected_species_coverage_fraction, 1)
+  expect_equal(first$Summary$research_deferred_eligible_rows, 1L)
+  expect_equal(
+    first$excluded$enrichment_exclusion_reason[
+      first$excluded$compound_name_clean == "quercetin"
+    ],
+    "research_enrichment_limit"
+  )
+
+  expanded = .plant_panel_enrichment_selection(result, limit = 4L)
+  expect_equal(expanded$included$research_priority_reason[[4L]],
+               "global_evidence_priority")
+  expect_equal(expanded$included$compound_name_clean[[4L]], "quercetin")
+})
+
 test_that("pilot resume clears derived exports but preserves checkpoints", {
   root = tempfile("pilot_resume_exports_")
   on.exit(unlink(root, recursive = TRUE, force = TRUE), add = TRUE)
