@@ -2,6 +2,11 @@
 
 ## Major improvements
 
+- KEGG FIND queries now transliterate Greek characters, remove leading
+  optical-rotation markers, and convert unsupported punctuation into safe
+  keyword terms before requesting the KEGG REST API. Any remaining per-name
+  HTTP 400 response is retained as an auditable rejected search candidate
+  instead of failing an otherwise valid multi-compound enrichment batch.
 - Production plant panels now bound rich `detail = "research"` enrichment to
   a configurable, deterministic evidence-priority sample (1,000 compounds by
   default). Selection first attempts one eligible structure-resolved compound

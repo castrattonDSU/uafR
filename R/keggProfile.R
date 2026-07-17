@@ -287,11 +287,40 @@ print.uaf_kegg_profile = function(x, ...) {
   }
 
   rows = list()
+  invalid_rows = list()
   for (query in compound_queries) {
     for (database in c("compound", "drug")) {
+      encoded_query = .kegg_encode_find_query(query)
       url = paste0(.kegg_base_url(), "/find/", database, "/",
-                   .kegg_encode_find_query(query))
-      txt = fetch(url)
+                   encoded_query)
+      if (!nzchar(encoded_query)) {
+        invalid_rows[[length(invalid_rows) + 1L]] =
+          .kegg_invalid_search_candidate(
+            query, database, url, retrieved_at,
+            "kegg_query_empty_after_normalization"
+          )
+        next
+      }
+      fetched = tryCatch(
+        list(text = fetch(url), invalid = NULL),
+        error = function(error) {
+          status = .kegg_http_status(conditionMessage(error))
+          if (!is.na(status) && status == 400L) {
+            return(list(
+              text = "",
+              invalid = .kegg_invalid_search_candidate(
+                query, database, url, retrieved_at,
+                "kegg_http_400_invalid_query"
+              )
+            ))
+          }
+          stop(error)
+        }
+      )
+      if (is.data.frame(fetched$invalid)) {
+        invalid_rows[[length(invalid_rows) + 1L]] = fetched$invalid
+      }
+      txt = fetched$text
       parsed = .kegg_parse_find(txt = txt,
                                 query = query,
                                 database = database,
@@ -303,7 +332,9 @@ print.uaf_kegg_profile = function(x, ...) {
 
   if (length(rows) < 1) {
     out = .uaf_empty_table(cols)
-    attr(out, "SearchCandidates") = .kegg_empty_search_candidates()
+    attr(out, "SearchCandidates") = .plant_bind_tables(
+      invalid_rows, .kegg_search_candidate_cols()
+    )
     return(out)
   }
   out = do.call(rbind, rows)
@@ -316,6 +347,9 @@ print.uaf_kegg_profile = function(x, ...) {
   out$MatchStatus[out$MatchScore == 0] = "exact_name_match"
   candidates = .plant_bind_tables(list(out),
                                   .kegg_search_candidate_cols())
+  candidates = .plant_bind_tables(
+    c(list(candidates), invalid_rows), .kegg_search_candidate_cols()
+  )
   accepted = out[out$Accepted == "Yes", cols, drop = FALSE]
   accepted = .kegg_limit_matches(accepted, max_matches_per_query)
   if (nrow(accepted) > 0L) {
@@ -341,8 +375,26 @@ print.uaf_kegg_profile = function(x, ...) {
   .uaf_empty_table(.kegg_search_candidate_cols())
 }
 
+.kegg_invalid_search_candidate = function(query, database, url,
+                                           retrieved_at, reason) {
+  data.frame(
+    Query = query,
+    KEGG_ID = NA_character_,
+    Database = database,
+    MatchName = NA_character_,
+    MatchStatus = "invalid_query_no_records",
+    MatchScore = NA_real_,
+    MatchRank = NA_integer_,
+    SourceURL = url,
+    RetrievedAt = retrieved_at,
+    Accepted = "No",
+    RejectionReason = reason,
+    stringsAsFactors = FALSE
+  )
+}
+
 .kegg_encode_find_query = function(query) {
-  query = .uaf_squish_text(query)
+  query = .kegg_safe_find_query(query)
   if (is.na(query) || !nzchar(query)) return("")
   # KEGG documents `+` as the keyword separator for FIND. Commas embedded in
   # chemical names cause HTTP 400 responses when sent literally or as `%2C`,
@@ -353,6 +405,21 @@ print.uaf_kegg_profile = function(x, ...) {
   terms = terms[nzchar(terms)]
   paste(vapply(terms, utils::URLencode, character(1), reserved = TRUE),
         collapse = "+")
+}
+
+.kegg_safe_find_query = function(query) {
+  query = .uaf_squish_text(query)
+  if (is.na(query) || !nzchar(query)) return(NA_character_)
+  query = .pubchem_transliterate_name(query)
+  query = sub(
+    "^\\s*\\((?:\\+|-|\\+\\s*/\\s*-|-\\s*/\\s*\\+|\\+/-)\\)\\s*-?\\s*",
+    "", query, perl = TRUE
+  )
+  ascii = suppressWarnings(iconv(query, from = "", to = "ASCII//TRANSLIT",
+                                 sub = " "))
+  if (!is.na(ascii) && nzchar(ascii)) query = ascii
+  query = gsub("[^A-Za-z0-9._-]+", " ", query, perl = TRUE)
+  .uaf_squish_text(query)
 }
 
 .kegg_parse_find = function(txt, query, database, url, retrieved_at) {
@@ -460,6 +527,9 @@ print.uaf_kegg_profile = function(x, ...) {
 }
 
 .kegg_match_key = function(x) {
+  x = .pubchem_transliterate_name(x)
+  x = suppressWarnings(iconv(x, from = "", to = "ASCII//TRANSLIT",
+                             sub = ""))
   gsub("[^a-z0-9]", "", tolower(x))
 }
 

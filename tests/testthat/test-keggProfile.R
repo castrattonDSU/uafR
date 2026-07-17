@@ -137,6 +137,74 @@ test_that("keggProfile uses KEGG-safe keyword paths for punctuated names", {
   expect_equal(.kegg_encode_find_query("alpha beta"), "alpha+beta")
 })
 
+test_that("keggProfile normalizes Greek and optical-prefix FIND queries", {
+  requested = character()
+  fixture = function(url) {
+    requested <<- c(requested, url)
+    if (grepl("/find/compound/beta-cadinene$", url)) {
+      return("cpd:C09625\tbeta-Cadinene; Cadina-3,9-diene")
+    }
+    if (grepl("/find/compound/Epicatechin$", url)) {
+      return("cpd:C09727\t(-)-Epicatechin; Epicatechin")
+    }
+    ""
+  }
+
+  profile = keggProfile(
+    c("β-cadinene", "(+)-Epicatechin"), cache = FALSE, throttle = 0,
+    link_targets = character(), request_fun = fixture
+  )
+
+  expect_setequal(profile$matches$Query,
+                  c("β-cadinene", "(+)-Epicatechin"))
+  expect_true(all(profile$matches$MatchStatus == "exact_name_match"))
+  expect_true(any(grepl("/find/compound/beta-cadinene$", requested)))
+  expect_true(any(grepl("/find/compound/Epicatechin$", requested)))
+  expect_false(any(grepl("%CE|%28|%2B", requested)))
+  expect_equal(.kegg_encode_find_query("β-cadinene"), "beta-cadinene")
+  expect_equal(.kegg_encode_find_query("(+)-Epicatechin"), "Epicatechin")
+})
+
+test_that("KEGG HTTP 400 search names remain auditable without aborting", {
+  fixture = function(url) {
+    if (grepl("/find/compound/", url)) {
+      stop("HTTP 400 returned for ", url, call. = FALSE)
+    }
+    ""
+  }
+
+  profile = keggProfile(
+    "unqueryable name", cache = FALSE, throttle = 0,
+    link_targets = character(), request_fun = fixture
+  )
+
+  expect_equal(nrow(profile$matches), 0L)
+  invalid = profile$search_candidates[
+    profile$search_candidates$Database == "compound", , drop = FALSE
+  ]
+  expect_equal(nrow(invalid), 1L)
+  expect_equal(invalid$MatchStatus, "invalid_query_no_records")
+  expect_equal(invalid$Accepted, "No")
+  expect_equal(invalid$RejectionReason, "kegg_http_400_invalid_query")
+})
+
+test_that("empty KEGG-safe names are rejected without a request", {
+  calls = 0L
+  profile = keggProfile(
+    "+++", cache = FALSE, throttle = 0, link_targets = character(),
+    request_fun = function(url) {
+      calls <<- calls + 1L
+      ""
+    }
+  )
+
+  expect_equal(calls, 0L)
+  expect_equal(nrow(profile$matches), 0L)
+  expect_equal(nrow(profile$search_candidates), 2L)
+  expect_true(all(profile$search_candidates$RejectionReason ==
+                    "kegg_query_empty_after_normalization"))
+})
+
 test_that("KEGG broad substring hits remain rejected search candidates", {
   fixture = function(url) {
     if (grepl("/find/compound/1-Hexanol$", url)) {
