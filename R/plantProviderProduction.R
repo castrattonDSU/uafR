@@ -302,7 +302,8 @@ mergePlantPhytochemistryResults = function(..., strict = FALSE) {
   }
   queries = .plant_merge_query_tables(results)
   merged = .plant_combine_batch_results(results, queries,
-                                        unique(queries$taxon_fallback))
+                                        unique(queries$taxon_fallback),
+                                        validate_result = FALSE)
   merged$PlantQueryAliases = .plant_merge_alias_tables(results, queries)
   merged$ProviderQueryAccounting = .plant_merge_accounting_tables(
     results, queries

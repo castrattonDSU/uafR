@@ -6,6 +6,21 @@
   the final merge. Mixed deferred and precomputed provider results derive
   context from the complete occurrence table before reconciling existing
   evidence, preventing direct-species context omissions and repeated work.
+- Biological-context extraction now prefilters rows with actual context
+  signals and applies best exact or conservative relaxed evidence through
+  vectorized key matching. This avoids per-evidence data-frame copies during
+  large plant-panel merges without changing source-backed context rules.
+- Large plant-panel assembly now indexes query/species matches, occurrence
+  counts, compound-property records, species summaries, and identity-review
+  context instead of repeatedly scanning complete occurrence tables. The
+  automatic discovery matrix is limited to the 5,000 most frequent features
+  to prevent memory-heavy wide-table expansion; complete long-form occurrence
+  and comparability tables remain available, and users can still request an
+  explicit uncapped matrix with `plantPhytochemistryMatrix(max_traits = Inf)`.
+- Full-panel validation now reports representative unresolved-identity
+  examples instead of concatenating every unresolved name, and merged results
+  perform one final validation pass rather than validating the same assembled
+  object twice.
 - Added a phase-one species-first plant phytochemistry resolver with
   `resolvePlantPhytochemistry()`, curated intake normalization, provider
   diagnostics, conservative PubMed/PubTator candidate handling, species

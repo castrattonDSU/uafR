@@ -1881,19 +1881,21 @@ runPlantChemistryPanel = function(
 }
 
 .plant_panel_refresh_derived = function(result) {
+  result$ChemistryComparability = plantChemistryComparability(
+    result, min_confidence = "low"
+  )
   result$SpeciesChemistrySummary = summarizePlantPhytochemistry(
     plant_compounds = result$PlantCompoundOccurrences,
     categorate_result = result$CategorateResult,
     compound_resolution = result$CompoundResolution,
     plant_queries = result$PlantQueries,
-    provider_diagnostics = result$ProviderDiagnostics
+    provider_diagnostics = result$ProviderDiagnostics,
+    comparability = result$ChemistryComparability
   )
   result$SpeciesChemistryMatrix = plantPhytochemistryMatrix(
     result, level = "species", profile = "core", mode = "binary",
-    min_confidence = "medium"
-  )
-  result$ChemistryComparability = plantChemistryComparability(
-    result, min_confidence = "low"
+    min_confidence = "medium",
+    max_traits = .plant_automatic_matrix_max_traits()
   )
   result$ComparableChemistryMatrix = plantComparableChemistryMatrix(
     result, level = "species", comparison_scope = "all_classified",

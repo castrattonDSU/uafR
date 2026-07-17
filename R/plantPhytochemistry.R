@@ -306,7 +306,8 @@ resolvePlantPhytochemistry = function(plants,
       level = "species",
       profile = "core",
       mode = "binary",
-      min_confidence = min_confidence
+      min_confidence = min_confidence,
+      max_traits = .plant_automatic_matrix_max_traits()
     )
     comparable_matrix = plantComparableChemistryMatrix(
       list(ChemistryComparability = comparability),
@@ -975,53 +976,76 @@ plantCompoundIdentityReviewTable = function(x,
   counts[!is.finite(counts)] = 0L
   keep = keep & counts >= min_query_count
   resolution = resolution[keep, , drop = FALSE]
+  issues = issues[keep]
   if (nrow(resolution) < 1) return(.plant_empty_compound_identity_review())
-  rows = lapply(seq_len(nrow(resolution)), function(i) {
-    row = resolution[i, , drop = FALSE]
-    occ = occurrences[occurrences$compound_name_clean ==
-                        row$compound_name_clean, , drop = FALSE]
-    issue = .plant_identity_issue(row)
-    priority = .plant_identity_review_priority(row, occ, issue$type)
-    data.frame(
-      review_id = sprintf("compound_identity_%04d", i),
-      review_decision = "needs_review",
-      reviewed_by = NA_character_,
-      reviewed_at = NA_character_,
-      review_note = NA_character_,
-      compound_name = row$compound_name,
-      compound_name_clean = row$compound_name_clean,
-      query_count = row$query_count,
-      resolved = row$resolved,
-      CID = row$CID,
-      InChIKey = row$InChIKey,
-      SMILES = row$SMILES,
-      MolecularFormula = row$MolecularFormula,
-      resolution_source = row$resolution_source,
-      identity_issue_type = issue$type,
-      review_priority = priority,
-      recommended_decision = issue$decision,
-      proposed_compound_name = NA_character_,
-      proposed_cid = NA_character_,
-      proposed_inchikey = NA_character_,
-      proposed_smiles = NA_character_,
-      proposed_molecular_formula = NA_character_,
-      proposed_resolution_source = NA_character_,
-      suggested_query = issue$suggested_query,
-      suggested_source = issue$suggested_source,
-      source_record_count = length(unique(.uaf_non_empty(occ$source_record_id))),
-      source_databases = .pubchem_collapse(unique(.uaf_non_empty(
-        occ$source_database))),
-      source_record_ids = .pubchem_collapse(utils::head(unique(.uaf_non_empty(
-        occ$source_record_id)), 25)),
-      species_count = length(unique(.uaf_non_empty(occ$species))),
-      example_species = .pubchem_collapse(utils::head(unique(.uaf_non_empty(
-        occ$species)), 10)),
-      review_reason = issue$reason,
-      notes = row$notes,
-      stringsAsFactors = FALSE
+  occurrence_index = split(seq_len(nrow(occurrences)),
+                           occurrences$compound_name_clean)
+  occurrence_info = lapply(resolution$compound_name_clean, function(key) {
+    idx = occurrence_index[[key]]
+    if (is.null(idx)) idx = integer()
+    source_records = unique(.uaf_non_empty(occurrences$source_record_id[idx]))
+    source_databases = unique(.uaf_non_empty(occurrences$source_database[idx]))
+    species = unique(.uaf_non_empty(occurrences$species[idx]))
+    list(
+      occurrence_count = length(idx),
+      source_record_count = length(source_records),
+      source_databases = .pubchem_collapse(source_databases),
+      source_record_ids = .pubchem_collapse(utils::head(source_records, 25)),
+      species_count = length(species),
+      example_species = .pubchem_collapse(utils::head(species, 10))
     )
   })
-  out = .plant_bind_tables(rows, .plant_compound_identity_review_cols())
+  issue_type = vapply(issues, `[[`, character(1), "type")
+  occurrence_count = vapply(occurrence_info, `[[`, integer(1),
+                            "occurrence_count")
+  species_count = vapply(occurrence_info, `[[`, integer(1), "species_count")
+  priority = .plant_identity_review_priority_vector(
+    resolved = resolution$resolved,
+    query_count = resolution$query_count,
+    occurrence_count = occurrence_count,
+    species_count = species_count,
+    issue_type = issue_type
+  )
+  out = data.frame(
+    review_id = sprintf("compound_identity_%04d", seq_len(nrow(resolution))),
+    review_decision = "needs_review",
+    reviewed_by = NA_character_,
+    reviewed_at = NA_character_,
+    review_note = NA_character_,
+    compound_name = resolution$compound_name,
+    compound_name_clean = resolution$compound_name_clean,
+    query_count = resolution$query_count,
+    resolved = resolution$resolved,
+    CID = resolution$CID,
+    InChIKey = resolution$InChIKey,
+    SMILES = resolution$SMILES,
+    MolecularFormula = resolution$MolecularFormula,
+    resolution_source = resolution$resolution_source,
+    identity_issue_type = issue_type,
+    review_priority = priority,
+    recommended_decision = vapply(issues, `[[`, character(1), "decision"),
+    proposed_compound_name = NA_character_,
+    proposed_cid = NA_character_,
+    proposed_inchikey = NA_character_,
+    proposed_smiles = NA_character_,
+    proposed_molecular_formula = NA_character_,
+    proposed_resolution_source = NA_character_,
+    suggested_query = vapply(issues, `[[`, character(1), "suggested_query"),
+    suggested_source = vapply(issues, `[[`, character(1), "suggested_source"),
+    source_record_count = vapply(occurrence_info, `[[`, integer(1),
+                                 "source_record_count"),
+    source_databases = vapply(occurrence_info, `[[`, character(1),
+                               "source_databases"),
+    source_record_ids = vapply(occurrence_info, `[[`, character(1),
+                                "source_record_ids"),
+    species_count = species_count,
+    example_species = vapply(occurrence_info, `[[`, character(1),
+                             "example_species"),
+    review_reason = vapply(issues, `[[`, character(1), "reason"),
+    notes = resolution$notes,
+    stringsAsFactors = FALSE
+  )
+  out = .plant_bind_tables(list(out), .plant_compound_identity_review_cols())
   out$.priority_rank = match(out$review_priority,
                              c("high", "medium", "low", "resolved"))
   out$.priority_rank[is.na(out$.priority_rank)] = 99L
@@ -1785,12 +1809,18 @@ runPlantPhytochemistryBatch = function(
     .plant_provenance_cols()
   )
   if (!isTRUE(defer_derived)) {
+    combined$ChemistryComparability = plantChemistryComparability(
+      list(PlantCompoundOccurrences = combined$PlantCompoundOccurrences,
+           CategorateResult = categorate_result),
+      min_confidence = "low"
+    )
     combined$SpeciesChemistrySummary = summarizePlantPhytochemistry(
       plant_compounds = combined$PlantCompoundOccurrences,
       categorate_result = categorate_result,
       compound_resolution = compound_resolution,
       plant_queries = combined$PlantQueries,
-      provider_diagnostics = combined$ProviderDiagnostics
+      provider_diagnostics = combined$ProviderDiagnostics,
+      comparability = combined$ChemistryComparability
     )
     combined$SpeciesChemistryMatrix = plantPhytochemistryMatrix(
       list(PlantCompoundOccurrences = combined$PlantCompoundOccurrences,
@@ -1798,12 +1828,8 @@ runPlantPhytochemistryBatch = function(
       level = "species",
       profile = "core",
       mode = "binary",
-      min_confidence = min_confidence
-    )
-    combined$ChemistryComparability = plantChemistryComparability(
-      list(PlantCompoundOccurrences = combined$PlantCompoundOccurrences,
-           CategorateResult = categorate_result),
-      min_confidence = "low"
+      min_confidence = min_confidence,
+      max_traits = .plant_automatic_matrix_max_traits()
     )
     combined$ComparableChemistryMatrix = plantComparableChemistryMatrix(
       list(ChemistryComparability = combined$ChemistryComparability),
@@ -2358,13 +2384,40 @@ summarizePlantPhytochemistry = function(plant_compounds,
   base_species = unique(.uaf_non_empty(c(plant_queries$species,
                                          occurrences$species)))
   if (length(base_species) < 1) return(.uaf_empty_table(.plant_summary_cols()))
+  occurrence_index = split(seq_len(nrow(occurrences)), occurrences$species)
+  query_index = split(seq_len(nrow(plant_queries)), plant_queries$species)
+  comparability_index = if (is.data.frame(comparability) &&
+                            nrow(comparability) > 0L) {
+    split(seq_len(nrow(comparability)), comparability$species)
+  } else {
+    list()
+  }
+  resolution_key = .plant_clean_compound(
+    compound_resolution$compound_name_clean
+  )
+  resolution_unique = !anyDuplicated(resolution_key)
+  resolution_index = if (resolution_unique) {
+    NULL
+  } else {
+    split(seq_len(nrow(compound_resolution)), resolution_key)
+  }
   rows = lapply(base_species, function(species) {
-    group = occurrences[occurrences$species == species, , drop = FALSE]
-    query = plant_queries[plant_queries$species == species, , drop = FALSE]
-    resolved = compound_resolution[
-      compound_resolution$compound_name_clean %in% group$compound_name_clean,
-      , drop = FALSE
-    ]
+    group_idx = occurrence_index[[species]]
+    if (is.null(group_idx)) group_idx = integer()
+    group = occurrences[group_idx, , drop = FALSE]
+    query_idx = query_index[[species]]
+    if (is.null(query_idx)) query_idx = integer()
+    query = plant_queries[query_idx, , drop = FALSE]
+    group_compounds = unique(.uaf_non_empty(group$compound_name_clean))
+    if (resolution_unique) {
+      resolved_idx = match(group_compounds, resolution_key, nomatch = 0L)
+      resolved_idx = resolved_idx[resolved_idx > 0L]
+    } else {
+      resolved_idx = unlist(resolution_index[group_compounds],
+                            use.names = FALSE)
+      resolved_idx = resolved_idx[!is.na(resolved_idx)]
+    }
+    resolved = compound_resolution[resolved_idx, , drop = FALSE]
     source_count = length(unique(.uaf_non_empty(group$source_database)))
     direct_species = group[group$matched_rank == "species", , drop = FALSE]
     genus_fallback = group[group$matched_rank == "genus", , drop = FALSE]
@@ -2378,9 +2431,12 @@ summarizePlantPhytochemistry = function(plant_compounds,
     context_known = group[group$biological_context_status !=
                             "context_missing", , drop = FALSE]
     trait_info = .plant_summary_trait_info(group, categorate_result)
-    group_comparability = comparability[
-      comparability$species == species, , drop = FALSE
-    ]
+    group_comparability_idx = comparability_index[[species]]
+    if (is.null(group_comparability_idx)) {
+      group_comparability_idx = integer()
+    }
+    group_comparability = comparability[group_comparability_idx, ,
+                                        drop = FALSE]
     comparability_info = .plant_summary_comparability_info(group,
                                                            categorate_result,
                                                            group_comparability)
@@ -2459,6 +2515,8 @@ summarizePlantPhytochemistry = function(plant_compounds,
   row.names(out) = NULL
   out
 }
+
+.plant_automatic_matrix_max_traits = function() 5000L
 
 #' Build plant phytochemistry matrices
 #'
@@ -2627,6 +2685,37 @@ plantChemistryComparability = function(x,
   traits = .plant_comparability_traits(categorate_result)
   classes = .plant_comparability_classes(categorate_result)
   class_sources = .plant_comparability_class_sources(categorate_result)
+  if (nrow(traits) < 1L && nrow(classes) < 1L && nrow(class_sources) < 1L) {
+    classification = .plant_comparability_unenriched_table(occurrences)
+    out = data.frame(
+      species = occurrences$species,
+      species_slug = .plant_slug(occurrences$species),
+      genus = occurrences$genus,
+      family = occurrences$family,
+      compound_name = occurrences$compound_name,
+      compound_name_clean = occurrences$compound_name_clean,
+      source_database = occurrences$source_database,
+      source_record_id = occurrences$source_record_id,
+      pmid = occurrences$pmid,
+      evidence_url = occurrences$evidence_url,
+      evidence_tier = occurrences$evidence_tier,
+      confidence = occurrences$confidence,
+      occurrence_status = occurrences$occurrence_status,
+      analysis_ready = occurrences$analysis_ready,
+      matched_rank = occurrences$matched_rank,
+      plant_part_group = occurrences$plant_part_group,
+      tissue_group = occurrences$tissue_group,
+      method_group = occurrences$method_group,
+      biological_context_status = occurrences$biological_context_status,
+      evidence_quality_score = occurrences$evidence_quality_score,
+      classification,
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+    out = out[, .plant_comparability_cols(), drop = FALSE]
+    row.names(out) = NULL
+    return(out)
+  }
   rows = lapply(seq_len(nrow(occurrences)), function(i) {
     occ = occurrences[i, , drop = FALSE]
     classification = .plant_comparability_classify(occ, traits, classes,
@@ -2864,17 +2953,15 @@ plantContextEvidence = function(x, min_confidence = "low") {
   if (nrow(occurrences) < 1) {
     return(.uaf_empty_table(.plant_context_evidence_cols()))
   }
-  if (!.plant_has_context_signal(occurrences)) {
+  signal_rows = .plant_context_signal_rows(occurrences)
+  if (length(signal_rows) < 1L) {
     return(.uaf_empty_table(.plant_context_evidence_cols()))
   }
-  rows = vector("list", nrow(occurrences))
-  for (i in seq_len(nrow(occurrences))) {
-    occ = occurrences[i, , drop = FALSE]
-    rows[[i]] = .plant_bind_tables(
-      c(.plant_direct_context_rows(occ), .plant_text_context_rows(occ)),
-      .plant_context_evidence_cols()
-    )
-  }
+  occurrences = occurrences[signal_rows, , drop = FALSE]
+  rows = list(
+    .plant_direct_context_table(occurrences),
+    .plant_text_context_table(occurrences)
+  )
   out = .plant_normalize_context_evidence(
     .plant_bind_tables(rows, .plant_context_evidence_cols())
   )
@@ -3007,21 +3094,29 @@ enrichPlantContextEvidence = function(x,
 }
 
 .plant_has_context_signal = function(occurrences) {
-  direct = c(
-    .plant_col_or_default(occurrences, "plant_part", NA_character_),
-    .plant_col_or_default(occurrences, "tissue", NA_character_),
-    .plant_col_or_default(occurrences, "method", NA_character_)
-  )
-  if (length(.uaf_non_empty(direct)) > 0) return(TRUE)
+  length(.plant_context_signal_rows(occurrences)) > 0L
+}
+
+.plant_context_signal_rows = function(occurrences) {
+  if (!is.data.frame(occurrences) || nrow(occurrences) < 1L) {
+    return(integer())
+  }
+  direct = rep(FALSE, nrow(occurrences))
+  for (field in c("plant_part", "tissue", "method")) {
+    value = .uaf_squish_text(
+      .plant_col_or_default(occurrences, field, NA_character_)
+    )
+    direct = direct | (!is.na(value) & value != "")
+  }
   text = paste(
     .plant_col_or_default(occurrences, "evidence_text", NA_character_),
     .plant_col_or_default(occurrences, "occurrence_type", NA_character_),
     sep = " "
   )
-  text = .uaf_non_empty(text)
-  if (length(text) < 1) return(FALSE)
   pattern = paste(.plant_context_patterns()$pattern, collapse = "|")
-  any(grepl(pattern, text, ignore.case = TRUE, perl = TRUE), na.rm = TRUE)
+  text_signal = grepl(pattern, text, ignore.case = TRUE, perl = TRUE)
+  text_signal[is.na(text_signal)] = FALSE
+  which(direct | text_signal)
 }
 
 .plant_normalize_context_sources = function(context_sources) {
@@ -6690,45 +6785,89 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   x
 }
 
-.plant_match_occurrences_to_queries = function(occurrences, plant_queries) {
-  occurrences = .plant_normalize_occurrences(occurrences)
+.plant_match_occurrences_to_queries = function(occurrences, plant_queries,
+                                                normalize = TRUE) {
+  if (isTRUE(normalize)) {
+    occurrences = .plant_normalize_occurrences(occurrences)
+  }
   if (nrow(occurrences) < 1) return(occurrences)
   lookup = plant_queries[, c("query_plant", "query_plant_clean", "species",
                              "genus", "family"), drop = FALSE]
-  for (i in seq_len(nrow(occurrences))) {
-    key = .plant_clean_name(occurrences$species[[i]])
-    hit = lookup[lookup$query_plant_clean == key |
-                   .plant_clean_name(lookup$species) == key, , drop = FALSE]
-    if (nrow(hit) > 0) {
-      occurrences$query_plant[[i]] = hit$query_plant[[1]]
-      occurrences$query_plant_clean[[i]] = hit$query_plant_clean[[1]]
-      occurrences$family[[i]] =
-        .uaf_first_non_empty_text(occurrences$family[[i]], hit$family[[1]])
-      occurrences$genus[[i]] =
-        .uaf_first_non_empty_text(occurrences$genus[[i]], hit$genus[[1]])
-    }
-  }
+  match_index = .plant_query_lookup_match(
+    lookup, .plant_clean_name(occurrences$species)
+  )
+  matched = !is.na(match_index)
+  if (!any(matched)) return(occurrences)
+  occurrences$query_plant[matched] = lookup$query_plant[match_index[matched]]
+  occurrences$query_plant_clean[matched] =
+    lookup$query_plant_clean[match_index[matched]]
+  occurrences$family = .plant_fill_matched_values(
+    occurrences$family, lookup$family, match_index
+  )
+  occurrences$genus = .plant_fill_matched_values(
+    occurrences$genus, lookup$genus, match_index
+  )
   occurrences
 }
 
-.plant_match_literature_to_queries = function(literature, plant_queries) {
-  literature = .plant_normalize_literature(literature)
-  if (nrow(literature) < 1) return(literature)
-  for (i in seq_len(nrow(literature))) {
-    key = .plant_clean_name(literature$species[[i]])
-    hit = plant_queries[plant_queries$query_plant_clean == key |
-                          .plant_clean_name(plant_queries$species) == key,
-                        , drop = FALSE]
-    if (nrow(hit) > 0) {
-      literature$query_plant[[i]] = hit$query_plant[[1]]
-      literature$query_plant_clean[[i]] = hit$query_plant_clean[[1]]
-      literature$family[[i]] =
-        .uaf_first_non_empty_text(literature$family[[i]], hit$family[[1]])
-      literature$genus[[i]] =
-        .uaf_first_non_empty_text(literature$genus[[i]], hit$genus[[1]])
-    }
+.plant_match_literature_to_queries = function(literature, plant_queries,
+                                               normalize = TRUE) {
+  if (isTRUE(normalize)) {
+    literature = .plant_normalize_literature(literature)
   }
+  if (nrow(literature) < 1) return(literature)
+  lookup = plant_queries[, c("query_plant", "query_plant_clean", "species",
+                             "genus", "family"), drop = FALSE]
+  match_index = .plant_query_lookup_match(
+    lookup, .plant_clean_name(literature$species)
+  )
+  matched = !is.na(match_index)
+  if (!any(matched)) return(literature)
+  literature$query_plant[matched] = lookup$query_plant[match_index[matched]]
+  literature$query_plant_clean[matched] =
+    lookup$query_plant_clean[match_index[matched]]
+  literature$family = .plant_fill_matched_values(
+    literature$family, lookup$family, match_index
+  )
+  literature$genus = .plant_fill_matched_values(
+    literature$genus, lookup$genus, match_index
+  )
   literature
+}
+
+.plant_query_lookup_match = function(lookup, keys) {
+  if (!is.data.frame(lookup) || nrow(lookup) < 1L || length(keys) < 1L) {
+    return(rep(NA_integer_, length(keys)))
+  }
+  lookup_query = .plant_clean_name(lookup$query_plant_clean)
+  lookup_species = .plant_clean_name(lookup$species)
+  lookup_rows = seq_len(nrow(lookup))
+  map_key = c(lookup_query, lookup_species)
+  map_row = rep(lookup_rows, 2L)
+  valid = !is.na(map_key) & map_key != ""
+  map_key = map_key[valid]
+  map_row = map_row[valid]
+  ordered = order(map_row)
+  map_key = map_key[ordered]
+  map_row = map_row[ordered]
+  keep = !duplicated(map_key)
+  map_key = map_key[keep]
+  map_row = map_row[keep]
+  map_row[match(keys, map_key, nomatch = NA_integer_)]
+}
+
+.plant_fill_matched_values = function(current, lookup_values, match_index) {
+  current = .uaf_squish_text(current)
+  lookup_values = .uaf_squish_text(lookup_values)
+  matched = !is.na(match_index)
+  missing = is.na(current) | current == ""
+  fill = matched & missing
+  if (any(fill)) {
+    replacement = lookup_values[match_index[fill]]
+    available = !is.na(replacement) & replacement != ""
+    current[which(fill)[available]] = replacement[available]
+  }
+  current
 }
 
 .plant_bind_occurrences = function(parts) {
@@ -6750,14 +6889,23 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     value
   })
   key = do.call(paste, c(key_data, sep = "||"))
-  groups = split(seq_len(nrow(occurrences)), key)
+  duplicate = duplicated(key) | duplicated(key, fromLast = TRUE)
+  if (!any(duplicate)) {
+    out = occurrences[order(key), , drop = FALSE]
+    row.names(out) = NULL
+    return(out)
+  }
+  groups = split(which(duplicate), key[duplicate])
   rows = lapply(groups, function(idx) {
-    if (length(idx) == 1) return(occurrences[idx, , drop = FALSE])
     .plant_merge_occurrence_group(occurrences[idx, , drop = FALSE])
   })
-  out = do.call(rbind, rows)
+  merged = .plant_normalize_occurrences(do.call(rbind, rows))
+  unique_idx = which(!duplicate)
+  out = rbind(occurrences[unique_idx, , drop = FALSE], merged)
+  out_key = c(key[unique_idx], names(groups))
+  out = out[order(out_key), , drop = FALSE]
   row.names(out) = NULL
-  .plant_normalize_occurrences(out)
+  out
 }
 
 .plant_merge_occurrence_group = function(group) {
@@ -6830,31 +6978,54 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   } else {
     "No compound enrichment hit."
   }
-  rows = lapply(compounds, function(compound) {
-    clean = .plant_clean_compound(compound)
-    hit = props[.plant_clean_compound(props$Query) == clean, , drop = FALSE]
-    data.frame(
-      compound_name = compound,
-      compound_name_clean = clean,
-      query_count = sum(occurrences$compound_name_clean == clean),
-      resolved = nrow(hit) > 0 &&
-        length(.uaf_non_empty(c(hit$CID, hit$InChIKey, hit$CanonicalSMILES,
-                                hit$IsomericSMILES, hit$SMILES,
-                                hit$ConnectivitySMILES))) > 0,
-      CID = .uaf_first_non_empty_text(hit$CID),
-      InChIKey = .uaf_first_non_empty_text(hit$InChIKey),
-      SMILES = .uaf_first_non_empty_text(hit$IsomericSMILES,
-                                         hit$CanonicalSMILES, hit$SMILES,
-                                         hit$ConnectivitySMILES),
-      MolecularFormula = .uaf_first_non_empty_text(hit$MolecularFormula),
-      resolution_source = ifelse(nrow(hit) > 0, resolved_source,
-                                 "unresolved"),
-      notes = ifelse(nrow(hit) > 0, "", unresolved_note),
-      stringsAsFactors = FALSE
-    )
-  })
-  out = do.call(rbind, rows)
-  row.names(out) = NULL
+  compound_keys = .plant_clean_compound(compounds)
+  occurrence_keys = occurrences$compound_name_clean
+  occurrence_keys[is.na(occurrence_keys)] = ""
+  occurrence_counts = table(occurrence_keys)
+  query_count = as.integer(occurrence_counts[compound_keys])
+  query_count[is.na(query_count)] = 0L
+
+  props_keys = .plant_clean_compound(props$Query)
+  props_keys[is.na(props_keys)] = ""
+  hit_keys = unique(props_keys)
+  has_hit = compound_keys %in% hit_keys
+  first_non_empty_by_key = function(values) {
+    values = .uaf_squish_text(values)
+    keep = !is.na(values) & values != "" & props_keys != ""
+    candidates = which(keep)
+    first = candidates[!duplicated(props_keys[candidates])]
+    if (length(first) < 1L) return(rep(NA_character_, length(compound_keys)))
+    values[first][match(compound_keys, props_keys[first])]
+  }
+  cid = first_non_empty_by_key(props$CID)
+  inchikey = first_non_empty_by_key(props$InChIKey)
+  molecular_formula = first_non_empty_by_key(props$MolecularFormula)
+  isomeric_smiles = first_non_empty_by_key(props$IsomericSMILES)
+  canonical_smiles = first_non_empty_by_key(props$CanonicalSMILES)
+  general_smiles = first_non_empty_by_key(props$SMILES)
+  connectivity_smiles = first_non_empty_by_key(props$ConnectivitySMILES)
+  smiles = isomeric_smiles
+  fill = is.na(smiles) | smiles == ""
+  smiles[fill] = canonical_smiles[fill]
+  fill = is.na(smiles) | smiles == ""
+  smiles[fill] = general_smiles[fill]
+  fill = is.na(smiles) | smiles == ""
+  smiles[fill] = connectivity_smiles[fill]
+  resolved = has_hit & (!is.na(cid) | !is.na(inchikey) | !is.na(smiles))
+
+  out = data.frame(
+    compound_name = compounds,
+    compound_name_clean = compound_keys,
+    query_count = query_count,
+    resolved = resolved,
+    CID = cid,
+    InChIKey = inchikey,
+    SMILES = smiles,
+    MolecularFormula = molecular_formula,
+    resolution_source = ifelse(has_hit, resolved_source, "unresolved"),
+    notes = ifelse(has_hit, "", unresolved_note),
+    stringsAsFactors = FALSE
+  )
   .plant_collapse_compound_resolution_keys(out)
 }
 
@@ -6864,10 +7035,17 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   if (nrow(resolution) < 2) return(resolution)
   key = resolution$compound_name_clean
   key[is.na(key)] = ""
-  groups = split(seq_len(nrow(resolution)), key)
+  duplicate_key = duplicated(key) | duplicated(key, fromLast = TRUE)
+  if (!any(duplicate_key)) {
+    out = resolution[order(key), , drop = FALSE]
+    row.names(out) = NULL
+    return(out)
+  }
+  unique_rows = resolution[!duplicate_key, , drop = FALSE]
+  duplicate_rows = which(duplicate_key)
+  groups = split(duplicate_rows, key[duplicate_rows])
   rows = lapply(groups, function(idx) {
     group = resolution[idx, , drop = FALSE]
-    if (nrow(group) == 1) return(group)
     score = as.numeric(group$resolved %in% TRUE) * 100
     score = score + as.numeric(!is.na(group$SMILES) & group$SMILES != "") * 20
     score = score + as.numeric(!is.na(group$InChIKey) &
@@ -6897,7 +7075,7 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     row$notes = .plant_truncate(.pubchem_collapse(notes), 1200)
     row
   })
-  out = do.call(rbind, rows)
+  out = rbind(unique_rows, do.call(rbind, rows))
   out = out[order(out$compound_name_clean), , drop = FALSE]
   row.names(out) = NULL
   out
@@ -7464,6 +7642,42 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   if (count >= 5 || species_count >= 5) return("high")
   if (count >= 2 || species_count >= 2) return("medium")
   "low"
+}
+
+.plant_identity_review_priority_vector = function(resolved, query_count,
+                                                   occurrence_count,
+                                                   species_count,
+                                                   issue_type) {
+  n = length(issue_type)
+  resolved = rep_len(resolved %in% TRUE, n)
+  count = suppressWarnings(as.integer(rep_len(query_count, n)))
+  occurrence_count = suppressWarnings(as.integer(rep_len(occurrence_count, n)))
+  species_count = suppressWarnings(as.integer(rep_len(species_count, n)))
+  count[!is.finite(count)] = occurrence_count[!is.finite(count)]
+  count[!is.finite(count)] = 0L
+  species_count[!is.finite(species_count)] = 0L
+  issue_type = rep_len(as.character(issue_type), n)
+  required = issue_type %in% .plant_identity_review_required_types()
+  high_types = issue_type %in% c(
+    "ambiguous_source_structure",
+    "short_name_synonym_or_spelling_review",
+    "remaining_greek_alias"
+  )
+  low_types = issue_type %in% c(
+    "broad_class_or_family_label",
+    "source_or_product_label",
+    "mixture_or_isomer_group"
+  )
+  threshold_3 = count >= 3L | species_count >= 3L
+  out = rep("low", n)
+  out[count >= 2L | species_count >= 2L] = "medium"
+  out[count >= 5L | species_count >= 5L] = "high"
+  out[low_types] = "low"
+  out[high_types & threshold_3] = "high"
+  out[required] = "medium"
+  out[required & threshold_3] = "high"
+  out[resolved & !required] = "resolved"
+  out
 }
 
 .plant_compound_identity_review_decision = function(x) {
@@ -8560,7 +8774,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 .plant_combine_batch_results = function(results, plant_queries,
                                         taxon_fallback,
                                         link_source_context = FALSE,
-                                        defer_derived = FALSE) {
+                                        defer_derived = FALSE,
+                                        validate_result = TRUE) {
   results = results[vapply(results, is.list, logical(1))]
   if (length(results) < 1) {
     return(.plant_empty_batch_result(plant_queries$species, taxon_fallback))
@@ -8571,11 +8786,14 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     lapply(results, `[[`, "PlantCompoundOccurrences")
   )
   occurrences = .plant_match_occurrences_to_queries(occurrences,
-                                                    plant_queries)
+                                                    plant_queries,
+                                                    normalize = FALSE)
   literature = .plant_bind_literature(
     lapply(results, `[[`, "LiteratureCandidates")
   )
-  literature = .plant_match_literature_to_queries(literature, plant_queries)
+  literature = .plant_match_literature_to_queries(
+    literature, plant_queries, normalize = FALSE
+  )
   context_evidence = .plant_bind_tables(
     lapply(results, `[[`, "PlantContextEvidence"),
     .plant_context_evidence_cols()
@@ -8626,23 +8844,25 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     comparable_matrix = .uaf_empty_table(c("species"))
     compound_identity_review = .plant_empty_compound_identity_review()
   } else {
+    comparability = plantChemistryComparability(
+      list(PlantCompoundOccurrences = occurrences, CategorateResult = NULL),
+      min_confidence = "low"
+    )
     summary = summarizePlantPhytochemistry(
       plant_compounds = occurrences,
       categorate_result = NULL,
       compound_resolution = compound_resolution,
       plant_queries = plant_queries,
-      provider_diagnostics = diagnostics
+      provider_diagnostics = diagnostics,
+      comparability = comparability
     )
     matrix = plantPhytochemistryMatrix(
       list(PlantCompoundOccurrences = occurrences, CategorateResult = NULL),
       level = "species",
       profile = "core",
       mode = "binary",
-      min_confidence = "medium"
-    )
-    comparability = plantChemistryComparability(
-      list(PlantCompoundOccurrences = occurrences, CategorateResult = NULL),
-      min_confidence = "low"
+      min_confidence = "medium",
+      max_traits = .plant_automatic_matrix_max_traits()
     )
     comparable_matrix = plantComparableChemistryMatrix(
       list(ChemistryComparability = comparability),
@@ -8699,7 +8919,7 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     ), .plant_provenance_cols())
   )
   class(out) = c("uaf_plant_phytochemistry", class(out))
-  if (!isTRUE(defer_derived)) {
+  if (!isTRUE(defer_derived) && isTRUE(validate_result)) {
     out$Validation = validatePlantPhytochemistryResult(out)
   }
   out
@@ -9597,6 +9817,37 @@ print.uaf_plant_phytochemistry = function(x, ...) {
                                      traits$TraitType, traits$TraitGroup,
                                      traits$TraitValue, classes$ClassName,
                                      classes$ClassGroup)))
+  if (nrow(traits) < 1L && nrow(classes) < 1L) {
+    compound_index = split(seq_len(nrow(group)), group$compound_name_clean)
+    compound_text = vapply(compound_index, function(idx) {
+      tolower(.pubchem_collapse(group$compound_name[idx]))
+    }, character(1), USE.NAMES = FALSE)
+    fraction = function(pattern) {
+      if (length(compound_text) < 1L) return(0)
+      mean(grepl(pattern, compound_text, perl = TRUE))
+    }
+    return(list(
+      superclasses = NA_character_,
+      classes = NA_character_,
+      subclasses = NA_character_,
+      dominant_classes = NA_character_,
+      kingdoms = ifelse(grepl("plantae|plant", text),
+                        "Plantae", NA_character_),
+      volatile_fraction =
+        fraction("volatile|odor|aroma|essential oil|gc-ms|gc ms"),
+      lipophilic_fraction =
+        fraction("lipophilic|xlogp|logp|terpene|fatty|alkane|lipid"),
+      oxygenated_fraction =
+        fraction("oxygen|hydroxy|phenol|acid|ester|alcohol|ketone|aldehyde"),
+      nitrogenous_fraction =
+        fraction("nitrogen|alkaloid|amine|amide|nitrile"),
+      sulfur_fraction = fraction("sulfur|thiol|sulfide|sulfoxide"),
+      halogen_fraction = fraction("chloro|bromo|fluoro|iodo|halogen"),
+      kegg_pathway_groups = NA_character_,
+      chemical_trait_count = 0L,
+      high_confidence_trait_count = 0L
+    ))
+  }
   fraction = function(pattern) {
     if (length(compounds) < 1) return(0)
     hits = vapply(compounds, function(compound) {
@@ -9972,6 +10223,256 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   x
 }
 
+.plant_comparability_unenriched_table = function(occurrences) {
+  n = nrow(occurrences)
+  if (n < 1L) {
+    return(.uaf_empty_table(.plant_comparability_classification_cols()))
+  }
+  compound_value = .plant_row_collapse_values(list(
+    occurrences$compound_name, occurrences$compound_name_clean
+  ))
+  evidence_value = .plant_row_collapse_values(list(
+    occurrences$evidence_text, occurrences$occurrence_type,
+    occurrences$plant_part, occurrences$tissue, occurrences$method,
+    occurrences$method_group, occurrences$source_database
+  ))
+  compound_text = tolower(compound_value)
+  evidence_text = tolower(evidence_value)
+
+  family = rep("unknown", n)
+  family_pattern = rep(NA_character_, n)
+  family_source = rep("none", n)
+  family_source_value = rep(NA_character_, n)
+  family_patterns = .plant_comparability_family_patterns()
+  for (family_name in names(family_patterns)) {
+    patterns = family_patterns[[family_name]]
+    combined = paste(patterns, collapse = "|")
+    available = family == "unknown"
+    compound_hit = available & grepl(combined, compound_text, perl = TRUE)
+    compound_hit[is.na(compound_hit)] = FALSE
+    if (any(compound_hit)) {
+      family[compound_hit] = family_name
+      family_source[compound_hit] = "compound_name_rule"
+      family_source_value[compound_hit] = compound_value[compound_hit]
+      family_pattern[compound_hit] = .plant_first_pattern_vector(
+        compound_text[compound_hit], patterns
+      )
+    }
+    available = family == "unknown"
+    evidence_hit = available & grepl(combined, evidence_text, perl = TRUE)
+    evidence_hit[is.na(evidence_hit)] = FALSE
+    if (any(evidence_hit)) {
+      family[evidence_hit] = family_name
+      family_source[evidence_hit] = "occurrence_evidence_text_rule"
+      family_source_value[evidence_hit] = evidence_value[evidence_hit]
+      family_pattern[evidence_hit] = .plant_first_pattern_vector(
+        evidence_text[evidence_hit], patterns
+      )
+    }
+  }
+  broad_patterns = c("\\bnatural product", "\\bmetabolite",
+                     "\\bphytochemical", "\\bsecondary metabolite")
+  broad_combined = paste(broad_patterns, collapse = "|")
+  available = family == "unknown"
+  compound_hit = available & grepl(broad_combined, compound_text, perl = TRUE)
+  compound_hit[is.na(compound_hit)] = FALSE
+  if (any(compound_hit)) {
+    family[compound_hit] = "broad_or_uncertain"
+    family_source[compound_hit] = "compound_name_rule"
+    family_source_value[compound_hit] = compound_value[compound_hit]
+    family_pattern[compound_hit] = .plant_first_pattern_vector(
+      compound_text[compound_hit], broad_patterns
+    )
+  }
+  available = family == "unknown"
+  evidence_hit = available & grepl(broad_combined, evidence_text, perl = TRUE)
+  evidence_hit[is.na(evidence_hit)] = FALSE
+  if (any(evidence_hit)) {
+    family[evidence_hit] = "broad_or_uncertain"
+    family_source[evidence_hit] = "occurrence_evidence_text_rule"
+    family_source_value[evidence_hit] = evidence_value[evidence_hit]
+    family_pattern[evidence_hit] = .plant_first_pattern_vector(
+      evidence_text[evidence_hit], broad_patterns
+    )
+  }
+
+  family_basis = rep(NA_character_, n)
+  family_matched = !is.na(family_pattern) & family_pattern != ""
+  family_field = ifelse(family_source == "compound_name_rule",
+                        "compound_name", "evidence_text/occurrence_context")
+  family_basis[family_matched] = paste0(
+    family_source[family_matched], " matched `",
+    family_pattern[family_matched], "` in ", family_field[family_matched], "."
+  )
+
+  volatile_patterns = .plant_comparability_volatile_patterns()
+  volatile_combined = paste(volatile_patterns, collapse = "|")
+  behavior = rep("nonvolatile_or_unspecified", n)
+  behavior_source = rep("default", n)
+  behavior_pattern = rep(NA_character_, n)
+  compound_volatile = grepl(volatile_combined, compound_text, perl = TRUE)
+  compound_volatile[is.na(compound_volatile)] = FALSE
+  if (any(compound_volatile)) {
+    behavior[compound_volatile] = "volatile_semivolatile"
+    behavior_source[compound_volatile] = "compound_name_rule"
+    behavior_pattern[compound_volatile] = .plant_first_pattern_vector(
+      compound_text[compound_volatile], volatile_patterns
+    )
+  }
+  evidence_volatile = behavior_source == "default" &
+    grepl(volatile_combined, evidence_text, perl = TRUE)
+  evidence_volatile[is.na(evidence_volatile)] = FALSE
+  if (any(evidence_volatile)) {
+    behavior[evidence_volatile] = "volatile_semivolatile"
+    behavior_source[evidence_volatile] = "occurrence_evidence_text_rule"
+    behavior_pattern[evidence_volatile] = .plant_first_pattern_vector(
+      evidence_text[evidence_volatile], volatile_patterns
+    )
+  }
+  behavior_basis = rep(
+    "No volatile or semivolatile evidence pattern matched.", n
+  )
+  behavior_matched = !is.na(behavior_pattern) & behavior_pattern != ""
+  behavior_field = ifelse(behavior_source == "compound_name_rule",
+                          "compound_name", "evidence_text/occurrence_context")
+  behavior_basis[behavior_matched] = paste0(
+    behavior_source[behavior_matched], " matched `",
+    behavior_pattern[behavior_matched], "` in ",
+    behavior_field[behavior_matched], "."
+  )
+
+  domain = rep("unknown", n)
+  domain[family %in% c("carbohydrate", "amino_acid", "organic_acid",
+                       "nucleoside_nucleotide")] = "primary_metabolism"
+  domain[family == "fatty_acid_lipid"] = "lipid_metabolism"
+  domain[family == "plant_hormone_signal"] = "plant_hormone_signaling"
+  specialized = c(
+    "terpenoid", "phenolic_phenylpropanoid", "flavonoid",
+    "alkaloid_nitrogenous", "organosulfur", "glucosinolate",
+    "benzoxazinoid", "cyanogenic_glycoside", "saponin",
+    "steroid_triterpenoid", "polyketide"
+  )
+  domain[family %in% specialized] = "specialized_metabolism"
+  domain[family == "broad_or_uncertain"] = "broad_or_uncertain"
+
+  scope = rep("unknown", n)
+  scope[domain == "broad_or_uncertain"] = "broad_or_uncertain"
+  scope[domain == "primary_metabolism"] = "primary_metabolites"
+  scope[domain == "lipid_metabolism"] = "lipids_fatty_acids"
+  scope[domain == "plant_hormone_signaling"] = "plant_hormone_signaling"
+  scope[domain == "specialized_metabolism"] = "specialized_metabolites"
+  scope[domain == "specialized_metabolism" &
+          behavior == "volatile_semivolatile"] =
+    "volatile_specialized_metabolites"
+  group = family
+  volatile_scope = scope == "volatile_specialized_metabolites" &
+    !family %in% c("unknown", "broad_or_uncertain")
+  group[volatile_scope] = paste0("volatile_", family[volatile_scope])
+  comparable = scope %in% c(
+    "specialized_metabolites", "volatile_specialized_metabolites",
+    "primary_metabolites", "lipids_fatty_acids",
+    "plant_hormone_signaling"
+  ) & !family %in% c("unknown", "broad_or_uncertain")
+
+  comparability_confidence = rep("unknown", n)
+  comparability_confidence[family_source == "compound_name_rule"] = "medium"
+  comparability_confidence[
+    family_source == "occurrence_evidence_text_rule"
+  ] = "low"
+  behavior_only = family_source == "none" &
+    behavior_source %in% c("compound_name_rule",
+                            "occurrence_evidence_text_rule")
+  comparability_confidence[behavior_only] = "low"
+  source_table = rep(NA_character_, n)
+  source_field = rep(NA_character_, n)
+  source_confidence = rep("unknown", n)
+  source_backed = family_source != "none"
+  source_table[source_backed] = "PlantCompoundOccurrences"
+  source_field[family_source == "compound_name_rule"] = "compound_name"
+  source_field[family_source == "occurrence_evidence_text_rule"] =
+    "evidence_text/occurrence_context"
+  source_confidence[family_source == "compound_name_rule"] = "medium"
+  source_confidence[family_source == "occurrence_evidence_text_rule"] = "low"
+
+  data.frame(
+    metabolism_domain = domain,
+    biosynthetic_family = family,
+    chemical_behavior = behavior,
+    comparison_scope = scope,
+    comparison_group = group,
+    comparison_subgroup = family,
+    comparability_confidence = comparability_confidence,
+    comparability_basis = .plant_row_collapse_values(
+      list(family_basis, behavior_basis)
+    ),
+    classification_source = family_source,
+    classification_source_table = source_table,
+    classification_source_field = source_field,
+    classification_source_value = family_source_value,
+    classification_source_confidence = source_confidence,
+    comparable_for_matrix = .uaf_yes_no(comparable),
+    comparison_caveat = .plant_vector_comparison_caveat(scope, behavior),
+    stringsAsFactors = FALSE
+  )
+}
+
+.plant_comparability_classification_cols = function() {
+  c("metabolism_domain", "biosynthetic_family", "chemical_behavior",
+    "comparison_scope", "comparison_group", "comparison_subgroup",
+    "comparability_confidence", "comparability_basis",
+    "classification_source", "classification_source_table",
+    "classification_source_field", "classification_source_value",
+    "classification_source_confidence", "comparable_for_matrix",
+    "comparison_caveat")
+}
+
+.plant_row_collapse_values = function(values) {
+  if (!is.list(values) || length(values) < 1L) return(character())
+  n = max(lengths(values))
+  values = lapply(values, function(value) {
+    rep(.uaf_squish_text(value), length.out = n)
+  })
+  out = rep(NA_character_, n)
+  previous = list()
+  for (value in values) {
+    available = !is.na(value) & value != ""
+    duplicate = rep(FALSE, n)
+    if (length(previous) > 0L) {
+      for (seen in previous) {
+        duplicate = duplicate |
+          (available & !is.na(seen) & seen != "" & value == seen)
+      }
+    }
+    add = available & !duplicate
+    first = add & (is.na(out) | out == "")
+    out[first] = value[first]
+    append = add & !first
+    out[append] = paste(out[append], value[append], sep = "; ")
+    previous[[length(previous) + 1L]] = value
+  }
+  out
+}
+
+.plant_first_pattern_vector = function(text, patterns) {
+  out = rep(NA_character_, length(text))
+  for (pattern in patterns) {
+    hit = is.na(out) & grepl(pattern, text, perl = TRUE)
+    hit[is.na(hit)] = FALSE
+    out[hit] = pattern
+  }
+  out
+}
+
+.plant_vector_comparison_caveat = function(scope, behavior) {
+  key = paste(scope, behavior, sep = "||")
+  unique_key = unique(key)
+  values = vapply(unique_key, function(item) {
+    parts = strsplit(item, "||", fixed = TRUE)[[1]]
+    .plant_comparison_caveat(parts[[1]], parts[[2]])
+  }, character(1), USE.NAMES = FALSE)
+  values[match(key, unique_key)]
+}
+
 .plant_comparability_classify = function(occurrence, traits, classes,
                                          class_sources) {
   compound_clean = occurrence$compound_name_clean[[1]]
@@ -10140,15 +10641,7 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 }
 
 .plant_comparability_behavior_hit = function(text_sources) {
-  volatile_patterns = c(
-    "\\bvolatile", "\\bsemi[- ]?volatile", "\\bessential oil",
-    "\\baroma", "\\bodou?r", "\\bolfactory", "\\bgc[- ]?ms",
-    "\\bmonoterp", "\\bsesquiterp", "\\bpinene", "\\blimonene",
-    "\\blinalool", "\\bterpin", "\\bcineol", "\\bcineole",
-    "\\beucalyptol",
-    "\\bcamphor", "\\bcarvone", "\\bmenthol", "\\bgeraniol",
-    "\\bcitral", "\\bthymol", "\\bcarvacrol"
-  )
+  volatile_patterns = .plant_comparability_volatile_patterns()
   hit = .plant_comparability_pattern_hit(text_sources, volatile_patterns)
   if (!is.null(hit)) {
     hit$value = "volatile_semivolatile"
@@ -10157,6 +10650,18 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   list(value = "nonvolatile_or_unspecified",
        basis = "No volatile or semivolatile evidence pattern matched.",
        source = "default")
+}
+
+.plant_comparability_volatile_patterns = function() {
+  c(
+    "\\bvolatile", "\\bsemi[- ]?volatile", "\\bessential oil",
+    "\\baroma", "\\bodou?r", "\\bolfactory", "\\bgc[- ]?ms",
+    "\\bmonoterp", "\\bsesquiterp", "\\bpinene", "\\blimonene",
+    "\\blinalool", "\\bterpin", "\\bcineol", "\\bcineole",
+    "\\beucalyptol",
+    "\\bcamphor", "\\bcarvone", "\\bmenthol", "\\bgeraniol",
+    "\\bcitral", "\\bthymol", "\\bcarvacrol"
+  )
 }
 
 .plant_comparability_pattern_hit = function(text_sources, patterns) {
@@ -10665,12 +11170,18 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   out$CompoundResolution = .plant_compound_resolution(occurrences,
                                                       x$CategorateResult)
   out$TraitEvidence = .plant_trait_evidence(occurrences, x$CategorateResult)
+  out$ChemistryComparability = plantChemistryComparability(
+    list(PlantCompoundOccurrences = occurrences,
+         CategorateResult = x$CategorateResult),
+    min_confidence = "low"
+  )
   out$SpeciesChemistrySummary = summarizePlantPhytochemistry(
     plant_compounds = occurrences,
     categorate_result = x$CategorateResult,
     compound_resolution = out$CompoundResolution,
     plant_queries = x$PlantQueries,
-    provider_diagnostics = x$ProviderDiagnostics
+    provider_diagnostics = x$ProviderDiagnostics,
+    comparability = out$ChemistryComparability
   )
   out$SpeciesChemistryMatrix = plantPhytochemistryMatrix(
     list(PlantCompoundOccurrences = occurrences,
@@ -10678,12 +11189,8 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     level = "species",
     profile = "core",
     mode = "binary",
-    min_confidence = "medium"
-  )
-  out$ChemistryComparability = plantChemistryComparability(
-    list(PlantCompoundOccurrences = occurrences,
-         CategorateResult = x$CategorateResult),
-    min_confidence = "low"
+    min_confidence = "medium",
+    max_traits = .plant_automatic_matrix_max_traits()
   )
   out$ComparableChemistryMatrix = plantComparableChemistryMatrix(
     list(ChemistryComparability = out$ChemistryComparability),
@@ -10865,9 +11372,11 @@ print.uaf_plant_phytochemistry = function(x, ...) {
                               paste(sum(!(x$CompoundResolution$resolved %in% TRUE)),
                                     "unresolved"),
                               nrow(x$CompoundResolution),
-                              .pubchem_collapse(x$CompoundResolution$compound_name[
-                                !(x$CompoundResolution$resolved %in% TRUE)
-                              ]))
+                              .pubchem_collapse(utils::head(
+                                x$CompoundResolution$compound_name[
+                                  !(x$CompoundResolution$resolved %in% TRUE)
+                                ], 8
+                              )))
   }
   if (is.data.frame(x$PlantCompoundOccurrences) &&
       "evidence_quality_score" %in% names(x$PlantCompoundOccurrences)) {
@@ -13048,9 +13557,7 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 
 .plant_context_raw_method_like = function(x) {
   x = .uaf_squish_text(x)
-  method_group = vapply(x, function(value) {
-    .plant_method_group(value)
-  }, character(1))
+  method_group = .plant_method_group(x)
   !is.na(x) & x != "" &
     !method_group %in% c("unknown", "other", "database_record",
                          "literature_curation")
@@ -13535,12 +14042,21 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     value
   })
   key = do.call(paste, c(key_data, sep = "||"))
-  groups = split(seq_len(nrow(x)), key)
+  duplicate = duplicated(key) | duplicated(key, fromLast = TRUE)
+  if (!any(duplicate)) {
+    out = x[order(key), , drop = FALSE]
+    row.names(out) = NULL
+    return(out)
+  }
+  groups = split(which(duplicate), key[duplicate])
   rows = lapply(groups, function(idx) {
-    if (length(idx) == 1) return(x[idx, , drop = FALSE])
     .plant_merge_context_evidence_group(x[idx, , drop = FALSE])
   })
-  out = do.call(rbind, rows)
+  unique_idx = which(!duplicate)
+  merged = do.call(rbind, rows)
+  out = rbind(x[unique_idx, , drop = FALSE], merged)
+  out_key = c(key[unique_idx], names(groups))
+  out = out[order(out_key), , drop = FALSE]
   row.names(out) = NULL
   out
 }
@@ -13589,6 +14105,283 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   scores = .plant_confidence_score(confidence)
   if (length(scores) < 1 || all(!is.finite(scores))) return("unknown")
   confidence[[which.max(scores)]]
+}
+
+.plant_context_evidence_table = function(occurrences, context_type,
+                                          raw_context_text,
+                                          normalized_context, source_field,
+                                          extraction_rule,
+                                          context_confidence,
+                                          evidence_basis) {
+  if (!is.data.frame(occurrences) || nrow(occurrences) < 1L) {
+    return(.uaf_empty_table(.plant_context_evidence_cols()))
+  }
+  n = nrow(occurrences)
+  recycle = function(x) rep(x, length.out = n)
+  column = function(name, default = NA_character_) {
+    .plant_col_or_default(occurrences, name, default)
+  }
+  species = column("species")
+  species_slug = column("species_slug")
+  missing_slug = is.na(species_slug) | species_slug == ""
+  species_slug[missing_slug] = .plant_slug(species[missing_slug])
+  normalized_context = recycle(normalized_context)
+  context_confidence = recycle(context_confidence)
+  data.frame(
+    species = species,
+    species_slug = species_slug,
+    genus = column("genus"),
+    family = column("family"),
+    compound_name = column("compound_name"),
+    compound_name_clean = column("compound_name_clean"),
+    source_database = column("source_database"),
+    source_record_id = column("source_record_id"),
+    pmid = column("pmid"),
+    evidence_url = column("evidence_url"),
+    context_type = recycle(context_type),
+    raw_context_text = recycle(raw_context_text),
+    normalized_context = normalized_context,
+    source_field = recycle(source_field),
+    extraction_rule = recycle(extraction_rule),
+    context_confidence = context_confidence,
+    evidence_basis = recycle(evidence_basis),
+    requires_review = .uaf_yes_no(
+      context_confidence == "low" |
+        normalized_context %in% c("other", "extract_unspecified")
+    ),
+    retrieved_at = rep(.plant_timestamp(), n),
+    stringsAsFactors = FALSE
+  )
+}
+
+.plant_direct_context_confidence_vector = function(occurrences) {
+  confidence = .plant_comparability_clean_confidence(
+    .plant_col_or_default(occurrences, "confidence", "unknown")
+  )
+  tier_confidence = .plant_evidence_tier_confidence(
+    .plant_col_or_default(occurrences, "evidence_tier", "unresolved")
+  )
+  out = tier_confidence
+  supplied = confidence %in% c("high", "medium")
+  out[supplied] = confidence[supplied]
+  out[!out %in% c("high", "medium")] = "low"
+  out
+}
+
+.plant_direct_context_table = function(occurrences) {
+  rows = list()
+  fields = c("plant_part", "tissue", "method")
+  direct_confidence = .plant_direct_context_confidence_vector(occurrences)
+  for (field in fields) {
+    value = .plant_col_or_default(occurrences, field, NA_character_)
+    idx = which(!is.na(value) & value != "")
+    if (length(idx) < 1L) next
+    if (field == "method") {
+      normalized = .plant_method_group(
+        value[idx],
+        .plant_col_or_default(occurrences, "method_group", "unknown")[idx],
+        .plant_col_or_default(occurrences, "source_database", NA_character_)[idx],
+        .plant_col_or_default(occurrences, "evidence_tier", "unresolved")[idx]
+      )
+      context_type = "method"
+    } else {
+      normalized = .plant_context_group(
+        value[idx],
+        .plant_col_or_default(
+          occurrences, paste0(field, "_group"), "unknown"
+        )[idx],
+        field
+      )
+      context_type = field
+    }
+    keep = !normalized %in%
+      c("unknown", "other", "database_record", "literature_curation")
+    if (!any(keep)) next
+    selected = idx[keep]
+    rows[[length(rows) + 1L]] = .plant_context_evidence_table(
+      occurrences[selected, , drop = FALSE],
+      context_type = context_type,
+      raw_context_text = value[selected],
+      normalized_context = normalized[keep],
+      source_field = field,
+      extraction_rule = paste0("direct_column:", field),
+      context_confidence = direct_confidence[selected],
+      evidence_basis = "reported_context_field"
+    )
+  }
+  .plant_bind_tables(rows, .plant_context_evidence_cols())
+}
+
+.plant_context_text_source_table = function(occurrences) {
+  n = nrow(occurrences)
+  if (n < 1L) {
+    return(.uaf_empty_table(c("occurrence_index", "source_field", "text",
+                              "rule_prefix", "evidence_basis")))
+  }
+  source = vapply(
+    .plant_col_or_default(occurrences, "source_database", NA_character_),
+    .plant_provider_key,
+                  character(1))
+  evidence_text = .plant_col_or_default(
+    occurrences, "evidence_text", NA_character_
+  )
+  literature = source %in% c("pubtator", "pubmed") &
+    !is.na(evidence_text) & evidence_text != ""
+  if (any(literature)) {
+    literature_idx = which(literature)
+    evidence_text[literature_idx] = vapply(literature_idx, function(i) {
+      .plant_literature_context_sentences(
+        occurrences[i, , drop = FALSE], evidence_text[[i]]
+      )
+    }, character(1))
+  }
+  rule_prefix = rep("evidence_text_regex", n)
+  evidence_basis = rep("source_text_regex", n)
+  rule_prefix[source == "knapsack"] = "knapsack_row_text_regex"
+  evidence_basis[source == "knapsack"] = "provider_row_text_regex"
+  rule_prefix[source == "lotus"] = "lotus_record_text_regex"
+  evidence_basis[source == "lotus"] = "provider_record_text_regex"
+  rule_prefix[source == "pubchem_taxonomy"] =
+    "pubchem_taxonomy_annotation_regex"
+  evidence_basis[source == "pubchem_taxonomy"] =
+    "provider_annotation_text_regex"
+  literature_source = source %in% c("pubtator", "pubmed")
+  rule_prefix[literature_source] = paste0(
+    source[literature_source], "_co_mention_sentence_regex"
+  )
+  evidence_basis[literature_source] = "provider_sentence_regex"
+  evidence_idx = which(!is.na(evidence_text) & evidence_text != "")
+  evidence = data.frame(
+    occurrence_index = evidence_idx,
+    source_field = rep("evidence_text", length(evidence_idx)),
+    text = evidence_text[evidence_idx],
+    rule_prefix = rule_prefix[evidence_idx],
+    evidence_basis = evidence_basis[evidence_idx],
+    stringsAsFactors = FALSE
+  )
+  occurrence_type = .plant_col_or_default(
+    occurrences, "occurrence_type", NA_character_
+  )
+  occurrence_idx = which(!is.na(occurrence_type) & occurrence_type != "")
+  occurrence = data.frame(
+    occurrence_index = occurrence_idx,
+    source_field = rep("occurrence_type", length(occurrence_idx)),
+    text = occurrence_type[occurrence_idx],
+    rule_prefix = rep("occurrence_type_regex", length(occurrence_idx)),
+    evidence_basis = rep("occurrence_type_regex", length(occurrence_idx)),
+    stringsAsFactors = FALSE
+  )
+  out = rbind(evidence, occurrence)
+  row.names(out) = NULL
+  out
+}
+
+.plant_text_context_confidence_vector = function(occurrences,
+                                                  source_field) {
+  base = .plant_direct_context_confidence_vector(occurrences)
+  tier = .plant_normalize_evidence_tier(
+    .plant_col_or_default(occurrences, "evidence_tier", "unresolved"),
+    .plant_col_or_default(occurrences, "source_database", NA_character_),
+    .plant_col_or_default(occurrences, "matched_rank", "unresolved")
+  )
+  out = rep("low", nrow(occurrences))
+  occurrence_type = source_field == "occurrence_type"
+  out[occurrence_type & base == "high"] = "medium"
+  evidence_text = !occurrence_type
+  out[evidence_text & tier %in%
+        c("manual_curated", "direct_species_database") & base == "high"] =
+    "medium"
+  out[evidence_text & tier %in%
+        c("direct_species_literature", "genus_database_fallback",
+          "genus_literature_fallback") & base != "unknown"] = "medium"
+  out
+}
+
+.plant_prune_context_table = function(x, group) {
+  if (!is.data.frame(x) || nrow(x) < 2L) return(x)
+  drop = rep(FALSE, nrow(x))
+  groups_with = function(type, values) {
+    unique(group[x$context_type == type &
+                   x$normalized_context %in% values])
+  }
+  exudate = groups_with("plant_part", "exudate_rhizosphere")
+  if (length(exudate) > 0L) {
+    drop = drop | (group %in% exudate & x$context_type == "plant_part" &
+                     x$normalized_context %in%
+                       c("root_belowground", "extract_unspecified"))
+  }
+  specific_parts = setdiff(
+    .plant_context_group_values(),
+    c("unknown", "other", "extract_unspecified", "whole_plant")
+  )
+  specific_part_groups = groups_with("plant_part", specific_parts)
+  if (length(specific_part_groups) > 0L) {
+    drop = drop | (group %in% specific_part_groups &
+                     x$context_type == "plant_part" &
+                     x$normalized_context == "extract_unspecified")
+  }
+  specific_methods = c("gc_ms", "lc_ms", "hplc", "nmr")
+  specific_method_groups = groups_with("method", specific_methods)
+  if (length(specific_method_groups) > 0L) {
+    drop = drop | (group %in% specific_method_groups &
+                     x$context_type == "method" &
+                     x$normalized_context %in%
+                       c("mass_spectrometry", "chromatography",
+                         "spectroscopy"))
+  }
+  mass_only_groups = setdiff(
+    groups_with("method", "mass_spectrometry"), specific_method_groups
+  )
+  if (length(mass_only_groups) > 0L) {
+    drop = drop | (group %in% mass_only_groups &
+                     x$context_type == "method" &
+                     x$normalized_context %in%
+                       c("chromatography", "spectroscopy"))
+  }
+  x[!drop, , drop = FALSE]
+}
+
+.plant_text_context_table = function(occurrences) {
+  text_sources = .plant_context_text_source_table(occurrences)
+  if (nrow(text_sources) < 1L) {
+    return(.uaf_empty_table(.plant_context_evidence_cols()))
+  }
+  patterns = .plant_context_patterns()
+  rows = list()
+  for (i in seq_len(nrow(patterns))) {
+    hit = regexpr(patterns$pattern[[i]], text_sources$text,
+                  ignore.case = TRUE, perl = TRUE)
+    idx = which(hit > 0L)
+    if (length(idx) < 1L) next
+    match_length = attr(hit, "match.length")[idx]
+    raw = substring(text_sources$text[idx], hit[idx],
+                    hit[idx] + match_length - 1L)
+    occurrence_idx = text_sources$occurrence_index[idx]
+    selected = occurrences[occurrence_idx, , drop = FALSE]
+    part = .plant_context_evidence_table(
+      selected,
+      context_type = patterns$context_type[[i]],
+      raw_context_text = .uaf_squish_text(raw),
+      normalized_context = patterns$normalized_context[[i]],
+      source_field = text_sources$source_field[idx],
+      extraction_rule = paste0(text_sources$rule_prefix[idx], ":",
+                               patterns$rule_name[[i]]),
+      context_confidence = .plant_text_context_confidence_vector(
+        selected, text_sources$source_field[idx]
+      ),
+      evidence_basis = text_sources$evidence_basis[idx]
+    )
+    part$.text_source_id = idx
+    rows[[length(rows) + 1L]] = part
+  }
+  if (length(rows) < 1L) {
+    return(.uaf_empty_table(.plant_context_evidence_cols()))
+  }
+  out = do.call(rbind, rows)
+  out = .plant_prune_context_table(out, out$.text_source_id)
+  out$.text_source_id = NULL
+  row.names(out) = NULL
+  out
 }
 
 .plant_direct_context_rows = function(occurrence) {
@@ -13936,36 +14729,64 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   evidence_relaxed_keys = .plant_context_occurrence_key(
     best, include_source_detail = FALSE
   )
-  occurrence_index = split(seq_along(occurrence_keys), occurrence_keys)
-  relaxed_index = split(seq_along(occurrence_relaxed_keys),
-                        occurrence_relaxed_keys)
-  for (i in seq_len(nrow(best))) {
-    idx = occurrence_index[[evidence_keys[[i]]]]
-    if (is.null(idx) || length(idx) < 1L) {
-      idx = relaxed_index[[evidence_relaxed_keys[[i]]]]
-    }
-    if (is.null(idx)) idx = integer()
-    if (length(idx) < 1) next
-    context_type = best$context_type[[i]]
-    normalized = best$normalized_context[[i]]
-    raw = .uaf_first_non_empty_text(best$raw_context_text, normalized)
+  for (context_type in c("plant_part", "tissue", "method")) {
+    evidence_idx = which(best$context_type == context_type)
+    if (length(evidence_idx) < 1L) next
+    selected = rep(NA_integer_, nrow(occurrences))
+    exact_match = match(occurrence_keys, evidence_keys[evidence_idx])
+    exact = !is.na(exact_match)
+    selected[exact] = evidence_idx[exact_match[exact]]
+
+    relaxed_score = .plant_confidence_score(
+      best$context_confidence[evidence_idx]
+    ) + .plant_context_specificity_score(
+      best$context_type[evidence_idx],
+      best$normalized_context[evidence_idx]
+    )
+    relaxed_order = order(
+      evidence_relaxed_keys[evidence_idx], -relaxed_score,
+      best$requires_review[evidence_idx],
+      best$normalized_context[evidence_idx], evidence_idx
+    )
+    relaxed_idx = evidence_idx[relaxed_order]
+    relaxed_idx = relaxed_idx[
+      !duplicated(evidence_relaxed_keys[relaxed_idx])
+    ]
+    unmatched = which(is.na(selected))
+    relaxed_match = match(
+      occurrence_relaxed_keys[unmatched],
+      evidence_relaxed_keys[relaxed_idx]
+    )
+    relaxed = !is.na(relaxed_match)
+    selected[unmatched[relaxed]] = relaxed_idx[relaxed_match[relaxed]]
+
+    has_evidence = !is.na(selected)
+    if (!any(has_evidence)) next
+    normalized = rep(NA_character_, nrow(occurrences))
+    raw = rep(NA_character_, nrow(occurrences))
+    normalized[has_evidence] = best$normalized_context[selected[has_evidence]]
+    raw[has_evidence] = .uaf_squish_text(
+      best$raw_context_text[selected[has_evidence]]
+    )
+    missing_raw = has_evidence & (is.na(raw) | raw == "")
+    raw[missing_raw] = normalized[missing_raw]
     if (context_type == "plant_part") {
-      missing = occurrences$plant_part_group[idx] %in%
+      missing = has_evidence & (occurrences$plant_part_group %in%
         c("unknown", "other", "extract_unspecified") |
-        .plant_context_raw_method_like(occurrences$plant_part[idx])
-      occurrences$plant_part[idx[missing]] = raw
-      occurrences$plant_part_group[idx[missing]] = normalized
+        .plant_context_raw_method_like(occurrences$plant_part))
+      occurrences$plant_part[missing] = raw[missing]
+      occurrences$plant_part_group[missing] = normalized[missing]
     } else if (context_type == "tissue") {
-      missing = occurrences$tissue_group[idx] %in%
+      missing = has_evidence & (occurrences$tissue_group %in%
         c("unknown", "other", "extract_unspecified") |
-        .plant_context_raw_method_like(occurrences$tissue[idx])
-      occurrences$tissue[idx[missing]] = raw
-      occurrences$tissue_group[idx[missing]] = normalized
+        .plant_context_raw_method_like(occurrences$tissue))
+      occurrences$tissue[missing] = raw[missing]
+      occurrences$tissue_group[missing] = normalized[missing]
     } else if (context_type == "method") {
-      missing = occurrences$method_group[idx] %in%
+      missing = has_evidence & occurrences$method_group %in%
         c("unknown", "other", "database_record", "literature_curation")
-      occurrences$method[idx[missing]] = raw
-      occurrences$method_group[idx[missing]] = normalized
+      occurrences$method[missing] = raw[missing]
+      occurrences$method_group[missing] = normalized[missing]
     }
   }
   .plant_normalize_occurrences(occurrences)
@@ -13976,15 +14797,17 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   if (nrow(context_evidence) < 1) return(context_evidence)
   key = paste(.plant_context_occurrence_key(context_evidence),
               context_evidence$context_type, sep = "||")
-  rows = lapply(split(seq_len(nrow(context_evidence)), key), function(idx) {
-    part = context_evidence[idx, , drop = FALSE]
-    score = .plant_confidence_score(part$context_confidence) +
-      .plant_context_specificity_score(part$context_type,
-                                       part$normalized_context)
-    part[order(-score, part$requires_review, part$normalized_context), ,
-         drop = FALSE][1, , drop = FALSE]
-  })
-  out = do.call(rbind, rows)
+  score = .plant_confidence_score(context_evidence$context_confidence) +
+    .plant_context_specificity_score(
+      context_evidence$context_type,
+      context_evidence$normalized_context
+    )
+  ordered = order(
+    key, -score, context_evidence$requires_review,
+    context_evidence$normalized_context, seq_len(nrow(context_evidence))
+  )
+  keep = ordered[!duplicated(key[ordered])]
+  out = context_evidence[keep, , drop = FALSE]
   row.names(out) = NULL
   out
 }
@@ -14030,83 +14853,94 @@ print.uaf_plant_phytochemistry = function(x, ...) {
 .plant_context_group = function(value, supplied = NA_character_,
                                 kind = c("plant_part", "tissue")) {
   kind = match.arg(kind)
-  supplied = .plant_matrix_key(supplied)
+  supplied = rep(.plant_matrix_key(supplied), length.out = length(value))
   valid = .plant_context_group_values()
   supplied[supplied == "unknown"] = NA_character_
   supplied[!supplied %in% valid] = NA_character_
-  computed = vapply(.plant_clean_context_value(value), function(item) {
-    text = tolower(.uaf_first_non_empty_text(item))
-    if (is.na(text) || text == "") return("unknown")
-    if (grepl("rhizosphere|exudate|exudation", text)) {
-      return("exudate_rhizosphere")
-    }
-    if (grepl("root|rhizome|tuber|bulb|belowground|hairy root", text)) {
-      return("root_belowground")
-    }
-    if (grepl("leaf|leaves|foliar|needle|foliage|leaf blade|lamina", text)) {
-      return("leaf")
-    }
-    if (grepl("stem|shoot|twig|branch|culm|stalk", text)) {
-      return("stem_shoot")
-    }
-    if (grepl("bark|wood|xylem|phloem", text)) return("bark_wood")
-    if (grepl("flower|floral|inflorescence|petal|pollen|stamen", text)) {
-      return("flower")
-    }
-    if (grepl("seedling|seedlings", text)) return("whole_plant")
-    if (grepl("fruit|\\bseed\\b|\\bseeds\\b|grain|kernel|berry|pod|achene|nut|cotyledon|endosperm|embryo|husk|hull|pericarp|peel|rind", text)) {
-      return("fruit_seed")
-    }
-    if (grepl("aerial|aboveground|above-ground", text)) return("aerial")
-    if (grepl("whole plant|whole-plant|whole organism|entire plant", text)) {
-      return("whole_plant")
-    }
-    if (grepl("vascular|vein|vasculature", text)) return("vascular")
-    if (grepl("gland|secretory|trichome|resin duct", text)) return("secretory")
-    if (grepl("epiderm|cuticle|surface", text)) return("epidermal")
-    if (grepl("microb|endophy|rhizob", text)) return("microbial")
-    if (grepl("callus|calli|cell suspension|cell culture|in vitro culture", text)) {
-      return("whole_plant")
-    }
-    if (grepl("extract|essential oil|oil", text)) return("extract_unspecified")
-    "other"
-  }, character(1))
+  computed = .plant_first_regex_class(
+    value,
+    patterns = c(
+      "rhizosphere|exudate|exudation",
+      "root|rhizome|tuber|bulb|belowground|hairy root",
+      "leaf|leaves|foliar|needle|foliage|leaf blade|lamina",
+      "stem|shoot|twig|branch|culm|stalk",
+      "bark|wood|xylem|phloem",
+      "flower|floral|inflorescence|petal|pollen|stamen",
+      "seedling|seedlings",
+      paste0(
+        "fruit|\\bseed\\b|\\bseeds\\b|grain|kernel|berry|pod|achene|",
+        "nut|cotyledon|endosperm|embryo|husk|hull|pericarp|peel|rind"
+      ),
+      "aerial|aboveground|above-ground",
+      "whole plant|whole-plant|whole organism|entire plant",
+      "vascular|vein|vasculature",
+      "gland|secretory|trichome|resin duct",
+      "epiderm|cuticle|surface",
+      "microb|endophy|rhizob",
+      "callus|calli|cell suspension|cell culture|in vitro culture",
+      "extract|essential oil|oil"
+    ),
+    classes = c(
+      "exudate_rhizosphere", "root_belowground", "leaf", "stem_shoot",
+      "bark_wood", "flower", "whole_plant", "fruit_seed", "aerial",
+      "whole_plant", "vascular", "secretory", "epidermal", "microbial",
+      "whole_plant", "extract_unspecified"
+    )
+  )
   out = ifelse(!is.na(supplied) & supplied != "", supplied, computed)
   out[!out %in% valid] = "unknown"
   out
 }
 
+.plant_first_regex_class = function(value, patterns, classes,
+                                    default = "other") {
+  if (length(patterns) != length(classes)) {
+    stop("`patterns` and `classes` must have the same length.",
+         call. = FALSE)
+  }
+  text = tolower(.plant_clean_context_value(value))
+  computed = rep(default, length(text))
+  available = !is.na(text) & text != ""
+  computed[!available] = "unknown"
+  unmatched = available
+  for (i in seq_along(patterns)) {
+    hit = unmatched & grepl(patterns[[i]], text)
+    hit[is.na(hit)] = FALSE
+    computed[hit] = classes[[i]]
+    unmatched[hit] = FALSE
+  }
+  computed
+}
+
 .plant_method_group = function(value, supplied = NA_character_,
                                source_database = NA_character_,
                                evidence_tier = NA_character_) {
-  supplied = .plant_matrix_key(supplied)
+  n = length(value)
+  supplied = rep(.plant_matrix_key(supplied), length.out = n)
+  source_database = rep(source_database, length.out = n)
+  evidence_tier = rep(evidence_tier, length.out = n)
   valid = .plant_method_group_values()
   supplied[supplied == "unknown"] = NA_character_
   supplied[!supplied %in% valid] = NA_character_
-  computed = vapply(.plant_clean_context_value(value), function(item) {
-    text = tolower(.uaf_first_non_empty_text(item))
-    if (is.na(text) || text == "") return("unknown")
-    if (grepl("gc[- ]?ms|gc[- ]?tof|gc[- ]?fid|gas chromat", text)) {
-      return("gc_ms")
-    }
-    if (grepl("lc[- ]?ms|uplc[- ]?ms|uhplc[- ]?ms|liquid chromat.*mass", text)) {
-      return("lc_ms")
-    }
-    if (grepl("hplc|uplc", text)) return("hplc")
-    if (grepl("\\bnmr\\b|nuclear magnetic resonance", text)) return("nmr")
-    if (grepl("mass spectrom|\\bms\\b", text)) return("mass_spectrometry")
-    if (grepl("chromat", text)) return("chromatography")
-    if (grepl("spectroscop|uv-vis|infrared|ftir", text)) {
-      return("spectroscopy")
-    }
-      if (grepl("literature|paper|publication|curat", text)) {
-        return("literature_curation")
-      }
-      if (grepl("database record|provider record|source table", text)) {
-        return("database_record")
-      }
-      "other"
-    }, character(1))
+  computed = .plant_first_regex_class(
+    value,
+    patterns = c(
+      "gc[- ]?ms|gc[- ]?tof|gc[- ]?fid|gas chromat",
+      "lc[- ]?ms|uplc[- ]?ms|uhplc[- ]?ms|liquid chromat.*mass",
+      "hplc|uplc",
+      "\\bnmr\\b|nuclear magnetic resonance",
+      "mass spectrom|\\bms\\b",
+      "chromat",
+      "spectroscop|uv-vis|infrared|ftir",
+      "literature|paper|publication|curat",
+      "database record|provider record|source table"
+    ),
+    classes = c(
+      "gc_ms", "lc_ms", "hplc", "nmr", "mass_spectrometry",
+      "chromatography", "spectroscopy", "literature_curation",
+      "database_record"
+    )
+  )
   missing_method = computed == "unknown"
   source = tolower(.uaf_squish_text(source_database))
   tier = .plant_normalize_evidence_tier(evidence_tier, source_database,

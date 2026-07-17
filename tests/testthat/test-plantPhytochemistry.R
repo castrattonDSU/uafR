@@ -689,6 +689,35 @@ test_that("resolver collapses duplicate occurrence evidence keys", {
                      "Duplicate evidence keys were found"))
 })
 
+test_that("query matching uses the first exact lookup and preserves metadata", {
+  queries = data.frame(
+    query_plant = c("Accepted first", "Accepted second", "Other plant"),
+    query_plant_clean = c("accepted first", "accepted second", "other plant"),
+    species = c("Salix nigra", "Salix nigra", "Zea mays"),
+    genus = c("Salix", "Wronggenus", "Zea"),
+    family = c("Salicaceae", "Wrongfamily", "Poaceae"),
+    stringsAsFactors = FALSE
+  )
+  occurrences = data.frame(
+    species = c("Salix nigra", "Zea mays", "No match"),
+    compound_name = c("salicin", "DIMBOA", "unknown compound"),
+    source_database = "manual",
+    source_record_id = paste0("MATCH-", 1:3),
+    genus = c("Salix", NA, "Existinggenus"),
+    family = c("Existingfamily", NA, "Existingfamily"),
+    evidence_tier = "manual_curated",
+    stringsAsFactors = FALSE
+  )
+
+  matched = .plant_match_occurrences_to_queries(occurrences, queries)
+
+  expect_equal(matched$query_plant,
+               c("Accepted first", "Other plant", "No match"))
+  expect_equal(matched$family,
+               c("Existingfamily", "Poaceae", "Existingfamily"))
+  expect_equal(matched$genus, c("Salix", "Zea", "Existinggenus"))
+})
+
 test_that("review table promotes candidate evidence only after review", {
   candidate = standardizePlantCompoundIntake(data.frame(
     species = "Salix nigra",
@@ -2040,6 +2069,46 @@ test_that("compound resolution preserves PubChem SMILES fallback fields", {
   expect_equal(resolved$SMILES, "CCCCCC(C=C)O")
 })
 
+test_that("compound resolution indexes counts and duplicate property rows", {
+  occurrence = standardizePlantCompoundIntake(data.frame(
+    species = c("Plant alpha", "Plant alpha", "Plant beta", "Plant beta"),
+    compound_name = c("beta-caryophyllene", "beta caryophyllene",
+                      "salicin", "unresolved class"),
+    source_database = "manual",
+    citation_or_url = "https://example.test/indexed-resolution",
+    evidence_tier = "manual_curated",
+    stringsAsFactors = FALSE
+  ))
+  categorate_result = list(
+    PubChemProperties = data.frame(
+      Query = c("beta caryophyllene", "beta caryophyllene", "salicin"),
+      CID = c("", "5281515", "439503"),
+      MolecularFormula = c("C15H24", "C15H24", "C13H18O7"),
+      InChIKey = c("", "NPQYSMXKQBLGPD-UHFFFAOYSA-N", ""),
+      CanonicalSMILES = c("C=C(C)C1CCC2(C)CCCC(C)=C12", "",
+                          "C1=CC=C(C=C1)CO"),
+      IsomericSMILES = c("", "CC1=CCC2C1(CCCC2(C)C)C(=C)C", ""),
+      SMILES = "",
+      ConnectivitySMILES = "",
+      stringsAsFactors = FALSE
+    ),
+    EnrichmentMode = "pubchem_identity"
+  )
+
+  resolved = .plant_compound_resolution(occurrence, categorate_result)
+  beta = resolved[resolved$compound_name_clean == "beta_caryophyllene", ]
+  unresolved = resolved[resolved$compound_name_clean == "unresolved_class", ]
+
+  expect_equal(nrow(resolved), 3)
+  expect_equal(beta$query_count, 2)
+  expect_equal(beta$compound_name, "beta caryophyllene")
+  expect_equal(beta$CID, "5281515")
+  expect_equal(beta$SMILES, "CC1=CCC2C1(CCCC2(C)C)C(=C)C")
+  expect_match(beta$notes, "Collapsed aliases")
+  expect_false(unresolved$resolved)
+  expect_equal(unresolved$resolution_source, "unresolved")
+})
+
 test_that("compound keys preserve stereochemistry and Greek-letter variants", {
   compounds = c(paste0(intToUtf8(0x03b1), "-carotene"),
                 paste0(intToUtf8(0x03b2), "-carotene"),
@@ -2246,6 +2315,116 @@ test_that("merge derives context for deferred and precomputed inputs", {
                   c("Salix nigra", "Zea mays"))
   expect_true(all(merged$PlantContextEvidence$normalized_context ==
                     "root_belowground"))
+})
+
+test_that("context extraction skips rows without context signals", {
+  occurrences = data.frame(
+    species = paste("Simulata", seq_len(500)),
+    compound_name = paste("compound", seq_len(500)),
+    source_database = "LOTUS",
+    source_record_id = paste0("LTS-SPARSE-", seq_len(500)),
+    evidence_text = "Source-backed occurrence record.",
+    evidence_tier = "direct_species_database",
+    confidence = "high",
+    stringsAsFactors = FALSE
+  )
+  occurrences$evidence_text[[317]] =
+    "Compound reported from a root extract analyzed by GC-MS."
+
+  context = plantContextEvidence(occurrences)
+
+  expect_true(nrow(context) >= 2L)
+  expect_equal(unique(context$species), "Simulata 317")
+  expect_true(all(c("root_belowground", "gc_ms") %in%
+                    context$normalized_context))
+})
+
+test_that("context classifiers preserve ordered vector rules", {
+  context_values = c(
+    NA, "root exudate", "root and leaf", "foliar tissue", "stem",
+    "bark", "flower", "seedling seed", "seed", "aerial tissue",
+    "whole plant", "vascular tissue", "secretory gland", "epidermis",
+    "endophytic microbial community", "callus culture", "essential oil",
+    "not a biological context"
+  )
+  context_expected = c(
+    "unknown", "exudate_rhizosphere", "root_belowground", "leaf",
+    "stem_shoot", "bark_wood", "flower", "whole_plant", "fruit_seed",
+    "aerial", "whole_plant", "vascular", "secretory", "epidermal",
+    "microbial", "whole_plant", "extract_unspecified", "other"
+  )
+  expect_equal(.plant_context_group(context_values), context_expected)
+  expect_equal(
+    .plant_context_group(context_values),
+    vapply(context_values, .plant_context_group, character(1),
+           USE.NAMES = FALSE)
+  )
+
+  method_values = c(
+    NA, "GC-MS", "LC-MS", "UPLC", "NMR", "mass spectrometry",
+    "chromatography", "infrared spectroscopy", "literature curation",
+    "provider record", "unclassified assay"
+  )
+  method_expected = c(
+    "unknown", "gc_ms", "lc_ms", "hplc", "nmr", "mass_spectrometry",
+    "chromatography", "spectroscopy", "literature_curation",
+    "database_record", "other"
+  )
+  expect_equal(.plant_method_group(method_values), method_expected)
+  expect_equal(
+    .plant_method_group(method_values),
+    vapply(method_values, .plant_method_group, character(1),
+           USE.NAMES = FALSE)
+  )
+  expect_equal(
+    .plant_context_group("root", supplied = "flower"),
+    "flower"
+  )
+  expect_equal(
+    .plant_method_group("GC-MS", supplied = "lc_ms"),
+    "lc_ms"
+  )
+})
+
+test_that("context application vectorizes exact and relaxed evidence", {
+  occurrences = .plant_normalize_occurrences(data.frame(
+    species = c("Plant exact", "Plant relaxed", "Plant retained"),
+    compound_name = c("alpha", "beta", "gamma"),
+    source_database = "LOTUS",
+    source_record_id = c("LTS-EXACT", "LTS-RELAX", "LTS-KEEP"),
+    evidence_url = paste0("https://example.test/context/", 1:3),
+    evidence_tier = "direct_species_database",
+    confidence = "high",
+    plant_part = c(NA, NA, "flower"),
+    plant_part_group = c("unknown", "unknown", "flower"),
+    stringsAsFactors = FALSE
+  ))
+  context = data.frame(
+    species = c("Plant exact", "Plant relaxed", "Plant relaxed",
+                "Plant retained"),
+    compound_name = c("alpha", "beta", "beta", "gamma"),
+    source_database = "LOTUS",
+    source_record_id = c("LTS-EXACT", "LTS-RELAX", "LTS-RELAX",
+                         "LTS-KEEP"),
+    evidence_url = c("https://example.test/context/1", NA, NA,
+                     "https://example.test/context/3"),
+    context_type = "plant_part",
+    raw_context_text = c("root", "whole plant", "leaf", "leaf"),
+    normalized_context = c("root_belowground", "whole_plant", "leaf",
+                           "leaf"),
+    source_field = "evidence_text",
+    extraction_rule = "offline_test_fixture",
+    context_confidence = c("high", "medium", "high", "high"),
+    evidence_basis = "provider_record_text_regex",
+    requires_review = "No",
+    stringsAsFactors = FALSE
+  )
+
+  applied = .plant_apply_context_evidence(occurrences, context)
+
+  expect_equal(applied$plant_part_group,
+               c("root_belowground", "leaf", "flower"))
+  expect_equal(applied$plant_part, c("root", "leaf", "flower"))
 })
 
 test_that("batch checkpoints defer derived tables until chunks are combined", {
