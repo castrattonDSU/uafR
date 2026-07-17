@@ -28,6 +28,24 @@
 #' @param include_annotations Logical. If `TRUE`, fetch PubChem PUG-View
 #' annotation sections selected by `profile`, `sections`, and `sources`. Set to
 #' `FALSE` when only identity and property fields are needed.
+#' @param include_synonyms Logical. If `TRUE`, fetch PubChem synonyms for
+#' resolved CIDs. Identity-only production runs can set this to `FALSE` to
+#' avoid an unnecessary request while retaining identity and property fields.
+#' @param annotation_request_mode One of `"filtered"` or `"record"`.
+#' `"filtered"` makes one PUG-View request per requested heading and source.
+#' `"record"` retrieves one complete PUG-View record per CID and filters the
+#' parsed record locally. The latter is intended for large resumable runs and
+#' can substantially reduce request counts, at the cost of larger responses.
+#' @param service_busy_limit Number of consecutive HTTP 429/503 responses
+#' allowed before a `uaf_pubchem_service_busy` condition stops the request.
+#' Use `Inf` to preserve the general interactive default.
+#' @param request_event_fun Optional callback receiving one list per PubChem
+#' request/cache event. Intended for operational monitoring.
+#' @param max_attempts Optional maximum attempts per uncached request.
+#' @param fail_on_retry_exhausted Logical. If `TRUE`, exhausted retryable or
+#' transport failures raise a `uaf_pubchem_request_failed` condition instead
+#' of being treated as an ordinary no-hit. Production batch workflows should
+#' enable this so temporary service failures remain retryable.
 #' @param query_overrides Optional named character vector or two-column data
 #' frame mapping each displayed compound name to a source-backed PubChem query,
 #' such as `"cid:2519"` or a full InChIKey. The displayed `Query` remains the
@@ -72,14 +90,25 @@ pubchemProfile = function(compounds,
                           throttle = 0.2,
                           assay_detail_limit = 50,
                           include_annotations = TRUE,
+                          include_synonyms = TRUE,
+                          annotation_request_mode = c("filtered", "record"),
+                          service_busy_limit = Inf,
+                          request_event_fun = NULL,
+                          max_attempts = NULL,
+                          fail_on_retry_exhausted = FALSE,
                           query_overrides = NULL,
                           request_fun = NULL) {
   profile = match.arg(profile)
+  annotation_request_mode = match.arg(annotation_request_mode)
   compounds = .uaf_clean_compounds(compounds)
   fetch = .pubchem_fetcher(cache = cache,
                            cache_dir = cache_dir,
                            throttle = throttle,
-                           request_fun = request_fun)
+                           request_fun = request_fun,
+                           service_busy_limit = service_busy_limit,
+                           event_fun = request_event_fun,
+                           max_attempts = max_attempts,
+                           fail_on_retry_exhausted = fail_on_retry_exhausted)
 
   query_overrides = .pubchem_query_override_map(query_overrides, compounds)
   identity = .pubchem_resolve_cids(compounds, fetch, query_overrides)
@@ -94,23 +123,37 @@ pubchemProfile = function(compounds,
     cid_query = cid_query
   )
 
-  synonyms = .pubchem_fetch_synonyms(cids = cids,
-                                     fetch = fetch,
-                                     cid_query = cid_query)
+  synonyms = if (isTRUE(include_synonyms)) {
+    .pubchem_fetch_synonyms(cids = cids,
+                           fetch = fetch,
+                           cid_query = cid_query)
+  } else {
+    .pubchem_empty_table(c("Query", "CID", "Synonym", "SourceURL"))
+  }
 
   if (isTRUE(include_annotations)) {
     headings = unique(c(.pubchem_profile_headings(profile), sections))
-    heading_annotations = .pubchem_fetch_annotations(cids = cids,
-                                                     headings = headings,
-                                                     fetch = fetch,
-                                                     cid_query = cid_query)
     source_names = unique(c(.pubchem_profile_sources(profile), sources))
-    source_annotations = .pubchem_fetch_source_annotations(
-      cids = cids,
-      sources = source_names,
-      fetch = fetch,
-      cid_query = cid_query
-    )
+    if (identical(annotation_request_mode, "record")) {
+      record_annotations = .pubchem_fetch_annotation_records(
+        cids = cids, fetch = fetch, cid_query = cid_query
+      )
+      heading_annotations = .pubchem_select_annotation_headings(
+        record_annotations, headings
+      )
+      source_annotations = .pubchem_select_annotation_sources(
+        record_annotations, source_names
+      )
+    } else {
+      heading_annotations = .pubchem_fetch_annotations(
+        cids = cids, headings = headings, fetch = fetch,
+        cid_query = cid_query
+      )
+      source_annotations = .pubchem_fetch_source_annotations(
+        cids = cids, sources = source_names, fetch = fetch,
+        cid_query = cid_query
+      )
+    }
   } else {
     heading_annotations = .pubchem_empty_table(.pubchem_annotation_cols())
     source_annotations = .pubchem_empty_table(.pubchem_annotation_cols())
@@ -158,6 +201,7 @@ pubchemProfile = function(compounds,
                                              bioactivity = bioactivity,
                                              bioassay_details = bioassay_details),
     profile = profile,
+    annotation_request_mode = annotation_request_mode,
     retrieved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")
   )
   class(out) = c("uaf_pubchem_profile", class(out))
@@ -209,7 +253,8 @@ print.uaf_pubchem_profile = function(x, ...) {
 .pubchem_fetcher = function(cache, cache_dir, throttle, request_fun,
                             service_busy_limit = Inf,
                             event_fun = NULL,
-                            max_attempts = NULL) {
+                            max_attempts = NULL,
+                            fail_on_retry_exhausted = FALSE) {
   if (is.null(cache_dir)) {
     cache_dir = .pubchem_default_cache_dir()
   }
@@ -220,6 +265,7 @@ print.uaf_pubchem_profile = function(x, ...) {
   force(service_busy_limit)
   force(event_fun)
   force(max_attempts)
+  force(fail_on_retry_exhausted)
 
   service_busy_limit = suppressWarnings(as.numeric(service_busy_limit))
   if (length(service_busy_limit) != 1L || is.na(service_busy_limit) ||
@@ -430,6 +476,29 @@ print.uaf_pubchem_profile = function(x, ...) {
     }
     notify("request_exhausted", url, status_code = last_status,
            attempt = attempts, attempts = attempts, detail = last_error)
+    strict_failure = isTRUE(fail_on_retry_exhausted) &&
+      (is.na(last_status) || .pubchem_should_retry(last_status) ||
+         identical(as.integer(last_status), 200L))
+    if (strict_failure) {
+      status_text = if (is.na(last_status)) "without an HTTP status" else
+        paste("with HTTP status", as.integer(last_status))
+      condition = structure(
+        list(
+          message = paste0(
+            "PubChem request failed after ", attempts, " attempt(s) ",
+            status_text, ". Cached successes are preserved; resume the same ",
+            "batch later rather than recording this as a chemical no-hit."
+          ),
+          call = NULL,
+          status_code = as.integer(last_status),
+          url = url,
+          attempts = attempts,
+          detail = last_error
+        ),
+        class = c("uaf_pubchem_request_failed", "error", "condition")
+      )
+      stop(condition)
+    }
     if (!is.na(last_status) && .pubchem_should_retry(last_status)) {
       warning("PubChem request failed after ", attempts, " attempt(s)",
               " with HTTP status ", last_status, ". This usually means ",
@@ -935,6 +1004,101 @@ print.uaf_pubchem_profile = function(x, ...) {
   out = do.call(rbind, rows)
   row.names(out) = NULL
   .pubchem_dedupe_annotations(out)
+}
+
+.pubchem_fetch_annotation_records = function(cids, fetch, cid_query) {
+  cols = .pubchem_annotation_cols()
+  if (length(cids) < 1) return(.pubchem_empty_table(cols))
+
+  rows = list()
+  for (cid in cids) {
+    url = paste0(.pubchem_base_url(), "/pug_view/data/compound/",
+                 cid, "/JSON")
+    json = fetch(url)
+    parsed = .pubchem_parse_pugview(
+      json = json,
+      cid = cid,
+      query = unname(cid_query[paste0(cid)]),
+      heading = "Full PubChem record",
+      pubchem_url = url
+    )
+    if (nrow(parsed) > 0) rows[[length(rows) + 1L]] = parsed
+  }
+  if (length(rows) < 1) return(.pubchem_empty_table(cols))
+  out = do.call(rbind, rows)
+  row.names(out) = NULL
+  .pubchem_dedupe_annotations(out)
+}
+
+.pubchem_select_annotation_headings = function(annotations, headings) {
+  cols = .pubchem_annotation_cols()
+  if (!is.data.frame(annotations) || nrow(annotations) < 1 ||
+      length(.uaf_non_empty(headings)) < 1) {
+    return(.pubchem_empty_table(cols))
+  }
+  context = .pubchem_annotation_match_text(
+    annotations, c("HeadingPath", "Name")
+  )
+  requested = unique(.pubchem_match_normalize(headings))
+  requested = requested[!is.na(requested) & requested != ""]
+  keep = vapply(context, function(value) {
+    any(vapply(requested, function(term) grepl(term, value, fixed = TRUE),
+               logical(1)))
+  }, logical(1))
+  annotations[keep, , drop = FALSE]
+}
+
+.pubchem_select_annotation_sources = function(annotations, sources) {
+  cols = .pubchem_annotation_cols()
+  if (!is.data.frame(annotations) || nrow(annotations) < 1 ||
+      length(.uaf_non_empty(sources)) < 1) {
+    return(.pubchem_empty_table(cols))
+  }
+  context = .pubchem_annotation_match_text(
+    annotations, c("Source", "SourceURL", "HeadingPath")
+  )
+  aliases = unique(unlist(lapply(sources, .pubchem_source_match_aliases),
+                          use.names = FALSE))
+  aliases = aliases[!is.na(aliases) & aliases != ""]
+  keep = vapply(context, function(value) {
+    any(vapply(aliases, function(term) grepl(term, value, fixed = TRUE),
+               logical(1)))
+  }, logical(1))
+  annotations[keep, , drop = FALSE]
+}
+
+.pubchem_annotation_match_text = function(annotations, columns) {
+  columns = intersect(columns, names(annotations))
+  if (length(columns) < 1) return(rep("", nrow(annotations)))
+  values = lapply(annotations[columns], function(column) {
+    column = .pubchem_match_normalize(column)
+    column[is.na(column)] = ""
+    column
+  })
+  do.call(paste, c(values, sep = " "))
+}
+
+.pubchem_match_normalize = function(x) {
+  x = tolower(.uaf_squish_text(x))
+  x = gsub("[^a-z0-9]+", " ", x, perl = TRUE)
+  trimws(gsub("\\s+", " ", x, perl = TRUE))
+}
+
+.pubchem_source_match_aliases = function(source) {
+  normalized = .pubchem_match_normalize(source)
+  aliases = normalized
+  if (grepl("lotus", normalized, fixed = TRUE)) aliases = c(aliases, "lotus")
+  if (grepl("fema|flavor and extract manufacturers", normalized,
+            perl = TRUE)) {
+    aliases = c(aliases, "fema", "flavor and extract manufacturers")
+  }
+  if (grepl("fda|spl", normalized, perl = TRUE)) {
+    aliases = c(aliases, "fda spl")
+  }
+  if (grepl("mesh|medical subject headings", normalized, perl = TRUE)) {
+    aliases = c(aliases, "mesh", "medical subject headings")
+  }
+  unique(.uaf_non_empty(aliases))
 }
 
 .pubchem_fetch_source_annotations = function(cids, sources, fetch, cid_query) {

@@ -14,6 +14,12 @@ pubchemProfile(
   throttle = 0.2,
   assay_detail_limit = 50,
   include_annotations = TRUE,
+  include_synonyms = TRUE,
+  annotation_request_mode = c("filtered", "record"),
+  service_busy_limit = Inf,
+  request_event_fun = NULL,
+  max_attempts = NULL,
+  fail_on_retry_exhausted = FALSE,
   query_overrides = NULL,
   request_fun = NULL
 )
@@ -49,6 +55,30 @@ prioritized. Set to `0` to skip assay-description requests.}
 \item{include_annotations}{Logical. If `TRUE`, fetch PubChem PUG-View
 annotation sections selected by `profile`, `sections`, and `sources`. Set to
 `FALSE` when only identity and property fields are needed.}
+
+\item{include_synonyms}{Logical. If `TRUE`, fetch PubChem synonyms for
+resolved CIDs. Identity-only production runs can set this to `FALSE` to
+avoid an unnecessary request while retaining identity and property fields.}
+
+\item{annotation_request_mode}{One of `"filtered"` or `"record"`.
+`"filtered"` makes one PUG-View request per requested heading and source.
+`"record"` retrieves one complete PUG-View record per CID and filters the
+parsed record locally. The latter is intended for large resumable runs and
+can substantially reduce request counts, at the cost of larger responses.}
+
+\item{service_busy_limit}{Number of consecutive HTTP 429/503 responses
+allowed before a `uaf_pubchem_service_busy` condition stops the request.
+Use `Inf` to preserve the general interactive default.}
+
+\item{request_event_fun}{Optional callback receiving one list per PubChem
+request/cache event. Intended for operational monitoring.}
+
+\item{max_attempts}{Optional maximum attempts per uncached request.}
+
+\item{fail_on_retry_exhausted}{Logical. If `TRUE`, exhausted retryable or
+transport failures raise a `uaf_pubchem_request_failed` condition instead
+of being treated as an ordinary no-hit. Production batch workflows should
+enable this so temporary service failures remain retryable.}
 
 \item{query_overrides}{Optional named character vector or two-column data
 frame mapping each displayed compound name to a source-backed PubChem query,

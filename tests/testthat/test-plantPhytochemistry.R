@@ -1832,6 +1832,75 @@ test_that("identity-only plant compound resolution is fast and schema-compatible
                    "pubchem_identity_batched")
 })
 
+test_that("identity-only batches preserve service failures as retryable state", {
+  intake = data.frame(
+    species = "Salix nigra",
+    compound_name = c("compound one", "compound two"),
+    source_database = "manual",
+    citation_or_url = "https://example.test",
+    evidence_tier = "manual_curated",
+    stringsAsFactors = FALSE
+  )
+  cache_dir = tempfile("plant_identity_retry_")
+  busy_profile = function(...) {
+    stop(structure(
+      list(message = "PubChem service-busy circuit breaker opened",
+           call = NULL, status_code = 503L),
+      class = c("uaf_pubchem_service_busy", "error", "condition")
+    ))
+  }
+
+  condition = tryCatch(
+    resolvePlantCompoundIdentities(
+      standardizePlantCompoundIntake(intake),
+      pubchem_fun = busy_profile, batch_size = 1, cache = TRUE,
+      cache_dir = cache_dir, progress = FALSE
+    ),
+    uaf_pubchem_service_busy = identity
+  )
+
+  expect_s3_class(condition, "uaf_pubchem_service_busy")
+  expect_true(file.exists(condition$identity_manifest))
+  expect_true(file.exists(condition$identity_retry_queue))
+  manifest = utils::read.csv(condition$identity_manifest,
+                             stringsAsFactors = FALSE)
+  expect_equal(manifest$status, c("paused_service_busy", "pending"))
+  expect_equal(nrow(utils::read.csv(condition$identity_retry_queue,
+                                    stringsAsFactors = FALSE)), 2L)
+
+  condition = tryCatch(
+    resolvePlantCompoundIdentities(
+      standardizePlantCompoundIntake(intake),
+      pubchem_fun = busy_profile, batch_size = 1, cache = TRUE,
+      cache_dir = cache_dir, progress = FALSE
+    ),
+    uaf_pubchem_service_busy = identity
+  )
+  manifest = utils::read.csv(condition$identity_manifest,
+                             stringsAsFactors = FALSE)
+  expect_equal(manifest$attempt_count, c(2L, 0L))
+})
+
+test_that("identity checkpoints require properties for resolved CIDs", {
+  complete = list(
+    PubChemIdentity = data.frame(
+      Query = c("resolved", "no hit"), CID = c(1L, NA_integer_),
+      MatchStatus = c("resolved", "not_found"), stringsAsFactors = FALSE
+    ),
+    PubChemProperties = data.frame(
+      Query = "resolved", CID = 1L, MolecularFormula = "C1H2",
+      stringsAsFactors = FALSE
+    )
+  )
+  expect_true(.plant_categorate_checkpoint_cacheable(
+    complete, c("resolved", "no hit")
+  ))
+  complete$PubChemProperties = complete$PubChemProperties[0, , drop = FALSE]
+  expect_false(.plant_categorate_checkpoint_cacheable(
+    complete, c("resolved", "no hit")
+  ))
+})
+
 test_that("LOTUS source structures resolve before PubChem and flag bad labels", {
   intake = data.frame(
     species = c("Salix nigra", "Salix nigra"),

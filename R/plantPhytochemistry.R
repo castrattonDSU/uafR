@@ -7757,6 +7757,7 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   pubchem_fun = pubchem_fun %||% pubchemProfile
   pubchem_cache_dir = if (is.null(cache_dir)) NULL else
     file.path(cache_dir, "pubchem")
+  pubchem_condition = NULL
   pubchem = tryCatch(
     suppressWarnings(pubchem_fun(compounds = compounds,
                                  profile = "minimal",
@@ -7764,13 +7765,26 @@ print.uaf_plant_phytochemistry = function(x, ...) {
                                  cache_dir = pubchem_cache_dir,
                                  throttle = throttle,
                                  include_annotations = FALSE,
+                                 include_synonyms = FALSE,
+                                 service_busy_limit = 2,
+                                 max_attempts = 4L,
+                                 fail_on_retry_exhausted = TRUE,
                                  request_fun = request_fun)),
     error = function(error) {
-      warning("PubChem identity resolution failed: ",
-              conditionMessage(error), call. = FALSE)
-      .categorate_empty_pubchem_profile(compounds, "minimal")
+      pubchem_condition <<- error
+      NULL
     }
   )
+  if (!is.null(pubchem_condition)) {
+    if (inherits(pubchem_condition,
+                 c("uaf_pubchem_service_busy",
+                   "uaf_pubchem_request_failed"))) {
+      stop(pubchem_condition)
+    }
+    warning("PubChem identity resolution failed: ",
+            conditionMessage(pubchem_condition), call. = FALSE)
+    pubchem = .categorate_empty_pubchem_profile(compounds, "minimal")
+  }
   .plant_identity_categorate_from_pubchem(pubchem, "pubchem_identity")
 }
 
@@ -7786,15 +7800,39 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   } else {
     file.path(cache_dir, "pubchem_identity_batches")
   }
-  if (isTRUE(cache)) dir.create(batch_dir, recursive = TRUE, showWarnings = FALSE)
+  dir.create(batch_dir, recursive = TRUE, showWarnings = FALSE)
+  manifest_path = file.path(batch_dir, "identity_batch_manifest.csv")
+  retry_path = file.path(batch_dir, "identity_retry_queue.csv")
   results = vector("list", length(groups))
-  for (i in seq_along(groups)) {
+  batch_files = vapply(seq_along(groups), function(i) {
     batch = groups[[i]]
-    cache_file = file.path(
+    file.path(
       batch_dir,
       paste0("identity_batch_", sprintf("%04d", i), "_",
              .pubchem_url_hash(paste(batch, collapse = "\r")), ".rds")
     )
+  }, character(1))
+  manifest = data.frame(
+    batch_index = seq_along(groups),
+    query_start = cumsum(c(1L, utils::head(vapply(groups, length, integer(1)),
+                                          -1L))),
+    query_end = cumsum(vapply(groups, length, integer(1))),
+    query_count = vapply(groups, length, integer(1)),
+    queries = vapply(groups, paste, collapse = "; ", FUN.VALUE = character(1)),
+    status = "pending",
+    attempt_count = 0L,
+    started_at = NA_character_,
+    finished_at = NA_character_,
+    checkpoint_status = "not_checked",
+    batch_file = normalizePath(batch_files, winslash = "/", mustWork = FALSE),
+    error_message = NA_character_,
+    stringsAsFactors = FALSE
+  )
+  manifest = .plant_identity_merge_prior_manifest(manifest, manifest_path)
+  .plant_atomic_write_csv(manifest, manifest_path)
+  for (i in seq_along(groups)) {
+    batch = groups[[i]]
+    cache_file = batch_files[[i]]
     if (isTRUE(cache) && isTRUE(resume) && file.exists(cache_file)) {
       cached_result = .plant_read_categorate_checkpoint(cache_file, batch)
       if (!is.null(cached_result)) {
@@ -7803,6 +7841,11 @@ print.uaf_plant_phytochemistry = function(x, ...) {
                   ": using cached result")
         }
         results[[i]] = cached_result
+        manifest$status[[i]] = "completed"
+        manifest$checkpoint_status[[i]] = "reused_valid"
+        manifest$finished_at[[i]] = .plant_timestamp()
+        .plant_identity_write_operational_files(manifest, manifest_path,
+                                                retry_path)
         next
       }
       if (isTRUE(progress)) {
@@ -7814,29 +7857,113 @@ print.uaf_plant_phytochemistry = function(x, ...) {
       message("uafR plant identity batch ", i, "/", length(groups),
               ": resolving ", length(batch), " compound(s)")
     }
-    result = .plant_pubchem_identity_categorate(
-      compounds = batch,
-      cache = cache,
-      cache_dir = cache_dir,
-      throttle = throttle,
-      batch_size = Inf,
-      resume = FALSE,
-      progress = FALSE,
-      pubchem_fun = pubchem_fun,
-      request_fun = request_fun
+    manifest$status[[i]] = "running"
+    manifest$attempt_count[[i]] = manifest$attempt_count[[i]] + 1L
+    manifest$started_at[[i]] = .plant_timestamp()
+    .plant_identity_write_operational_files(manifest, manifest_path,
+                                            retry_path)
+    condition = NULL
+    result = tryCatch(
+      .plant_pubchem_identity_categorate(
+        compounds = batch,
+        cache = cache,
+        cache_dir = cache_dir,
+        throttle = throttle,
+        batch_size = Inf,
+        resume = FALSE,
+        progress = FALSE,
+        pubchem_fun = pubchem_fun,
+        request_fun = request_fun
+      ),
+      uaf_pubchem_service_busy = function(error) {
+        condition <<- error
+        NULL
+      },
+      uaf_pubchem_request_failed = function(error) {
+        condition <<- error
+        NULL
+      }
     )
+    if (!is.null(condition)) {
+      manifest$status[[i]] = "paused_service_busy"
+      manifest$finished_at[[i]] = .plant_timestamp()
+      manifest$checkpoint_status[[i]] = "not_published"
+      manifest$error_message[[i]] = .plant_redact_secrets(
+        conditionMessage(condition)
+      )
+      .plant_identity_write_operational_files(manifest, manifest_path,
+                                              retry_path)
+      condition$identity_manifest = manifest_path
+      condition$identity_retry_queue = retry_path
+      stop(condition)
+    }
     if (isTRUE(cache) &&
         .plant_categorate_checkpoint_cacheable(result, batch)) {
       .plant_atomic_save_rds(result, cache_file)
-    } else if (isTRUE(cache) && isTRUE(progress)) {
-      message("uafR plant identity batch ", i, "/", length(groups),
-              ": result was not checkpointed because PubChem did not",
-              " complete the identity pass")
+    } else if (!.plant_categorate_checkpoint_cacheable(result, batch)) {
+      manifest$status[[i]] = "failed"
+      manifest$finished_at[[i]] = .plant_timestamp()
+      manifest$checkpoint_status[[i]] = "not_published"
+      manifest$error_message[[i]] = paste(
+        "PubChem did not return a complete identity/property result for",
+        "this batch. The batch remains retryable."
+      )
+      .plant_identity_write_operational_files(manifest, manifest_path,
+                                              retry_path)
+      condition = structure(
+        list(
+          message = manifest$error_message[[i]], call = NULL,
+          identity_manifest = manifest_path,
+          identity_retry_queue = retry_path
+        ),
+        class = c("uaf_pubchem_identity_incomplete", "error", "condition")
+      )
+      stop(condition)
     }
+    manifest$status[[i]] = "completed"
+    manifest$finished_at[[i]] = .plant_timestamp()
+    manifest$checkpoint_status[[i]] = ifelse(isTRUE(cache), "published",
+                                              "validated_not_cached")
+    manifest$error_message[[i]] = NA_character_
+    .plant_identity_write_operational_files(manifest, manifest_path,
+                                            retry_path)
     results[[i]] = result
   }
   .plant_merge_identity_categorate_results(results, compounds,
                                            "pubchem_identity_batched")
+}
+
+.plant_identity_write_operational_files = function(manifest, manifest_path,
+                                                    retry_path) {
+  .plant_atomic_write_csv(manifest, manifest_path)
+  retry = manifest[manifest$status != "completed", , drop = FALSE]
+  .plant_atomic_write_csv(retry, retry_path)
+  invisible(list(Manifest = manifest, RetryQueue = retry))
+}
+
+.plant_identity_merge_prior_manifest = function(manifest, path) {
+  if (!file.exists(path)) return(manifest)
+  prior = tryCatch(
+    utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE),
+    error = function(condition) NULL
+  )
+  if (!is.data.frame(prior) || nrow(prior) < 1L ||
+      !all(c("batch_file", "queries") %in% names(prior))) {
+    return(manifest)
+  }
+  key = paste(manifest$batch_file, manifest$queries, sep = "\r")
+  prior_key = paste(prior$batch_file, prior$queries, sep = "\r")
+  index = match(key, prior_key)
+  hit = !is.na(index)
+  columns = intersect(
+    c("attempt_count", "started_at", "finished_at", "checkpoint_status",
+      "error_message"),
+    names(prior)
+  )
+  for (column in columns) {
+    manifest[[column]][hit] = prior[[column]][index[hit]]
+  }
+  manifest
 }
 
 .plant_identity_categorate_from_pubchem = function(pubchem,
@@ -8615,7 +8742,18 @@ print.uaf_plant_phytochemistry = function(x, ...) {
   } else {
     nrow(identity)
   }
-  observed >= expected
+  if (observed < expected) return(FALSE)
+
+  resolved = identity[!is.na(identity$CID), , drop = FALSE]
+  if (nrow(resolved) < 1) return(TRUE)
+  properties = result$PubChemProperties
+  if (!is.data.frame(properties) || nrow(properties) < 1 ||
+      !"CID" %in% names(properties)) {
+    return(FALSE)
+  }
+  resolved_cids = unique(as.character(resolved$CID))
+  property_cids = unique(as.character(properties$CID[!is.na(properties$CID)]))
+  length(setdiff(resolved_cids, property_cids)) == 0L
 }
 
 .plant_read_categorate_checkpoint = function(path, expected_compounds) {

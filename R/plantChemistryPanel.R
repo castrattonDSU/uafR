@@ -1176,15 +1176,44 @@ runPlantChemistryPanel = function(
   identity_selection = .plant_panel_identity_occurrences(result)
   identity_input = result
   identity_input$PlantCompoundOccurrences = identity_selection$included
-  resolved_identity = resolvePlantCompoundIdentities(
-    identity_input, cache = TRUE,
-    cache_dir = file.path(config$cache_dir, "compound_identity"),
-    throttle = config$pubchem_throttle,
-    batch_size = config$compound_batch_size, resume = config$resume,
-    progress = config$progress,
-    compound_request_fun = config$compound_request_fun,
-    lotus_index = .plant_panel_provider_indexes(context)$lotus
+  identity_condition = NULL
+  resolved_identity = tryCatch(
+    resolvePlantCompoundIdentities(
+      identity_input, cache = TRUE,
+      cache_dir = file.path(config$cache_dir, "compound_identity"),
+      throttle = config$pubchem_throttle,
+      batch_size = config$compound_batch_size, resume = config$resume,
+      progress = config$progress,
+      compound_request_fun = config$compound_request_fun,
+      lotus_index = .plant_panel_provider_indexes(context)$lotus
+    ),
+    uaf_pubchem_service_busy = function(condition) {
+      identity_condition <<- condition
+      NULL
+    },
+    uaf_pubchem_request_failed = function(condition) {
+      identity_condition <<- condition
+      NULL
+    },
+    uaf_pubchem_identity_incomplete = function(condition) {
+      identity_condition <<- condition
+      NULL
+    }
   )
+  if (!is.null(identity_condition)) {
+    manifest = .uaf_first_non_empty_text(identity_condition$identity_manifest)
+    retry = .uaf_first_non_empty_text(identity_condition$identity_retry_queue)
+    artifacts = .uaf_non_empty(c(manifest, retry))
+    operational_pause = inherits(identity_condition,
+                                 c("uaf_pubchem_service_busy",
+                                   "uaf_pubchem_request_failed"))
+    return(list(
+      status = ifelse(operational_pause, "paused_service_busy", "incomplete"),
+      exit_status = ifelse(operational_pause, 75L, 1L),
+      message = .plant_redact_secrets(conditionMessage(identity_condition)),
+      artifacts = artifacts
+    ))
+  }
   identity_categorate = attr(resolved_identity, "CategorateResult",
                              exact = TRUE)
   source_identity = attr(resolved_identity, "SourceCompoundIdentity",

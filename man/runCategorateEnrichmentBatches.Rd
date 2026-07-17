@@ -13,6 +13,7 @@ runCategorateEnrichmentBatches(
   pubchem_throttle = 1.1,
   kegg_throttle = 0.5,
   assay_detail_limit = ifelse(detail[[1]] == "full", 10, 0),
+  pubchem_annotation_mode = c("record", "filtered"),
   cache = TRUE,
   resume = TRUE,
   overwrite = FALSE,
@@ -51,6 +52,11 @@ compound name.}
 
 \item{assay_detail_limit}{Maximum full-detail PubChem assay descriptions per
 compound. Research runs should normally use zero.}
+
+\item{pubchem_annotation_mode}{PubChem PUG-View request strategy. `"record"`
+retrieves one full record per CID and filters locally, which is the
+production default for large batches. `"filtered"` retains the legacy
+per-heading and per-source request strategy.}
 
 \item{cache}{Logical. Provider response caching should remain enabled for
 production runs.}

@@ -22,6 +22,10 @@
 #' @param kegg_throttle Minimum delay between uncached KEGG requests.
 #' @param assay_detail_limit Maximum full-detail PubChem assay descriptions per
 #' compound. Research runs should normally use zero.
+#' @param pubchem_annotation_mode PubChem PUG-View request strategy. `"record"`
+#' retrieves one full record per CID and filters locally, which is the
+#' production default for large batches. `"filtered"` retains the legacy
+#' per-heading and per-source request strategy.
 #' @param cache Logical. Provider response caching should remain enabled for
 #' production runs.
 #' @param resume Logical. Reuse validated successful batch files.
@@ -54,6 +58,7 @@ runCategorateEnrichmentBatches = function(
     pubchem_throttle = 1.1,
     kegg_throttle = 0.5,
     assay_detail_limit = ifelse(detail[[1]] == "full", 10, 0),
+    pubchem_annotation_mode = c("record", "filtered"),
     cache = TRUE,
     resume = TRUE,
     overwrite = FALSE,
@@ -70,6 +75,7 @@ runCategorateEnrichmentBatches = function(
     stop_on_error = FALSE,
     progress = interactive()) {
   detail = match.arg(detail)
+  pubchem_annotation_mode = match.arg(pubchem_annotation_mode)
   out_dir = .categorate_enrichment_output_dir(out_dir)
   cache_dir = .uaf_first_non_empty_text(cache_dir,
                                         file.path(out_dir, "cache"))
@@ -109,7 +115,8 @@ runCategorateEnrichmentBatches = function(
 
   run_signature = .categorate_enrichment_run_signature(
     query_map, detail, batch_size, pubchem_throttle, kegg_throttle,
-    assay_detail_limit, trait_matrix_profile, trait_matrix_mode,
+    assay_detail_limit, pubchem_annotation_mode,
+    trait_matrix_profile, trait_matrix_mode,
     trait_matrix_min_confidence, trait_matrix_max_traits
   )
   manifest_path = file.path(out_dir, paste0(detail, "_batch_manifest.csv"))
@@ -176,7 +183,8 @@ runCategorateEnrichmentBatches = function(
           cache_dir = cache_dir,
           pubchem_throttle = pubchem_throttle,
           kegg_throttle = kegg_throttle,
-          assay_detail_limit = assay_detail_limit
+          assay_detail_limit = assay_detail_limit,
+          pubchem_annotation_mode = pubchem_annotation_mode
         )
       } else {
         .categorate_research_enrichment(
@@ -194,6 +202,7 @@ runCategorateEnrichmentBatches = function(
           request_fun = request_fun,
           kegg_request_fun = kegg_request_fun,
           pubchem_query_overrides = override_map,
+          pubchem_annotation_mode = pubchem_annotation_mode,
           kegg_throttle = kegg_throttle,
           strict_sources = TRUE
         )
@@ -212,7 +221,8 @@ runCategorateEnrichmentBatches = function(
         health$message, "Enrichment batch failed validation."
       )
       service_busy = .plant_service_busy_message(error_message) ||
-        inherits(condition, "uaf_pubchem_service_busy")
+        inherits(condition, "uaf_pubchem_service_busy") ||
+        inherits(condition, "uaf_pubchem_request_failed")
       manifest$status[[i]] = ifelse(service_busy, "paused_service_busy",
                                     "failed")
       manifest$error_message[[i]] = error_message
@@ -426,13 +436,15 @@ runCategorateEnrichmentBatches = function(
                                                 pubchem_throttle,
                                                 kegg_throttle,
                                                 assay_detail_limit,
+                                                pubchem_annotation_mode,
                                                 trait_profile, trait_mode,
                                                 trait_confidence, max_traits) {
   version = tryCatch(as.character(utils::packageVersion("uafR")),
                      error = function(error) "development")
   payload = c(
     "uafR_categorate_enrichment_v2", version, detail, batch_size,
-    pubchem_throttle, kegg_throttle, assay_detail_limit, trait_profile,
+    pubchem_throttle, kegg_throttle, assay_detail_limit,
+    pubchem_annotation_mode, trait_profile,
     trait_mode, trait_confidence, max_traits,
     apply(query_map[, c("compound_id", "Query", "PubChemQuery",
                         "EnrichmentEligible"), drop = FALSE], 1, paste,

@@ -397,6 +397,102 @@ test_that("pubchemProfile can skip PUG-View annotations for property-only workfl
   expect_equal(nrow(profile$source_annotations), 0)
 })
 
+test_that("pubchemProfile can fetch and locally filter one full PUG-View record", {
+  requested = character()
+  record_request = function(url) {
+    requested <<- c(requested, url)
+    if (grepl("/pug/compound/name/aspirin/cids/JSON$", url)) {
+      return(list(IdentifierList = list(CID = list(2244))))
+    }
+    if (grepl("/property/", url)) {
+      return(list(PropertyTable = list(Properties = list(list(
+        CID = 2244, Title = "Aspirin", MolecularFormula = "C9H8O4",
+        InChIKey = "BSYNRYMUTXBXSQ-UHFFFAOYSA-N",
+        CanonicalSMILES = "CC(=O)OC1=CC=CC=C1C(=O)O"
+      )))))
+    }
+    if (grepl("/synonyms/JSON$", url)) {
+      return(list(InformationList = list(Information = list(list(
+        CID = 2244, Synonym = list("aspirin")
+      )))))
+    }
+    if (grepl("/pug_view/data/compound/2244/JSON$", url)) {
+      return(list(Record = list(
+        Reference = list(
+          list(ReferenceNumber = 1, SourceName = "Fixture Safety",
+               URL = "https://example.test/safety"),
+          list(ReferenceNumber = 2,
+               SourceName = "LOTUS - the natural products occurrence database",
+               URL = "https://example.test/lotus")
+        ),
+        Section = list(
+          list(
+            TOCHeading = "Safety and Hazards",
+            Information = list(list(
+              Name = "Signal", ReferenceNumber = 1,
+              Value = list(StringWithMarkup = list(list(String = "Warning")))
+            ))
+          ),
+          list(
+            TOCHeading = "Natural Products",
+            Information = list(list(
+              Name = "Occurrence", ReferenceNumber = 2,
+              Value = list(StringWithMarkup = list(list(
+                String = "Reported natural-product record"
+              )))
+            ))
+          )
+        )
+      )))
+    }
+    stop("Unexpected request: ", url)
+  }
+
+  profile = pubchemProfile(
+    "aspirin", profile = "minimal", sections = "Safety and Hazards",
+    sources = "LOTUS - the natural products occurrence database",
+    annotation_request_mode = "record", cache = FALSE, throttle = 0,
+    request_fun = record_request
+  )
+
+  pug_view = grepl("/pug_view/data/compound/2244/JSON", requested,
+                   fixed = TRUE)
+  expect_equal(sum(pug_view), 1L)
+  expect_false(any(grepl("?heading=", requested, fixed = TRUE)))
+  expect_false(any(grepl("?source=", requested, fixed = TRUE)))
+  expect_true(any(profile$annotations$HeadingPath == "Safety and Hazards"))
+  expect_true(any(grepl("LOTUS", profile$source_annotations$Source,
+                        fixed = TRUE)))
+  expect_identical(profile$annotation_request_mode, "record")
+})
+
+test_that("pubchemProfile strict requests preserve retryable failures", {
+  expect_error(
+    pubchemProfile(
+      "aspirin", profile = "minimal", cache = FALSE, throttle = 0,
+      service_busy_limit = 2, max_attempts = 3,
+      fail_on_retry_exhausted = TRUE,
+      request_fun = function(url) stop("HTTP status 503")
+    ),
+    class = "uaf_pubchem_service_busy"
+  )
+})
+
+test_that("pubchemProfile can omit synonyms from identity-only requests", {
+  no_synonym_request = function(url) {
+    if (grepl("/synonyms/JSON$", url)) stop("Synonyms should be skipped")
+    fixture_pubchem_request(url)
+  }
+  profile = pubchemProfile(
+    "aspirin", profile = "minimal", include_annotations = FALSE,
+    include_synonyms = FALSE, cache = FALSE, throttle = 0,
+    request_fun = no_synonym_request
+  )
+  expect_equal(profile$identity$CID, 2244L)
+  expect_equal(profile$properties$MolecularFormula, "C9H8O4")
+  expect_equal(nrow(profile$synonyms), 0L)
+})
+
 test_that("pubchemProfile retries conservative name aliases for PubChem identity", {
   requested = character()
   alias_request = function(url) {

@@ -12,6 +12,7 @@
                                            request_fun,
                                            kegg_request_fun,
                                            pubchem_query_overrides = NULL,
+                                           pubchem_annotation_mode = "filtered",
                                            kegg_throttle = NULL,
                                            strict_sources = FALSE) {
   compounds = .uaf_clean_compounds(compounds)
@@ -40,6 +41,10 @@
                    cache_dir = pubchem_cache_dir,
                    throttle = throttle,
                    assay_detail_limit = assay_detail_limit,
+                   annotation_request_mode = pubchem_annotation_mode,
+                   service_busy_limit = ifelse(isTRUE(strict_sources), 2, Inf),
+                   max_attempts = if (isTRUE(strict_sources)) 4L else NULL,
+                   fail_on_retry_exhausted = isTRUE(strict_sources),
                    query_overrides = pubchem_query_overrides,
                    request_fun = request_fun),
     error = function(error) {

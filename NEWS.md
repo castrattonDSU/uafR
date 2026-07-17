@@ -2,6 +2,13 @@
 
 ## Major improvements
 
+- Hardened large PubChem identity and categorate enrichment runs. Identity
+  batches now omit unused synonym requests, require complete properties for
+  resolved CIDs, write manifest/retry files, and pause on retry-exhausted or
+  service-busy responses instead of caching temporary failures as no-hits.
+  Resumable categorate batches now default to one complete PUG-View record per
+  CID with local heading/source filtering, avoiding the prior per-heading and
+  per-source request multiplication while preserving the legacy filtered mode.
 - Plant-panel discovery now defers fallback context and analysis assembly to
   the final merge. Mixed deferred and precomputed provider results derive
   context from the complete occurrence table before reconciling existing
