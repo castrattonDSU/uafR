@@ -8580,8 +8580,14 @@ print.uaf_plant_phytochemistry = function(x, ...) {
     lapply(results, `[[`, "PlantContextEvidence"),
     .plant_context_evidence_cols()
   )
-  if (!isTRUE(defer_derived) && nrow(context_evidence) < 1) {
-    context_evidence = plantContextEvidence(occurrences)
+  if (!isTRUE(defer_derived)) {
+    derived_context = plantContextEvidence(occurrences)
+    context_evidence = .plant_normalize_context_evidence(
+      .plant_bind_tables(
+        list(context_evidence, derived_context),
+        .plant_context_evidence_cols()
+      )
+    )
   }
   if (!isTRUE(defer_derived) && isTRUE(link_source_context) &&
       nrow(literature) > 0) {

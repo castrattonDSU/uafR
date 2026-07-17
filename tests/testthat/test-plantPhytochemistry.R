@@ -2208,6 +2208,46 @@ test_that("batch runner can defer provider-stage analysis until merge", {
   expect_true(nrow(merged$Validation$Summary) > 0)
 })
 
+test_that("merge derives context for deferred and precomputed inputs", {
+  make_result = function(species, compound, record, defer) {
+    runPlantPhytochemistryBatch(
+      plants = species,
+      sources = "lotus",
+      provider_results = list(lotus = data.frame(
+        species = species,
+        compound_name = compound,
+        source_database = "LOTUS",
+        source_record_id = record,
+        evidence_text = paste(compound, "reported from root extract"),
+        evidence_url = paste0("https://example.test/", record),
+        evidence_tier = "direct_species_database",
+        confidence = "high",
+        stringsAsFactors = FALSE
+      )),
+      out_dir = tempfile("plant_batch_mixed_context_"),
+      species_chunk_size = 1,
+      compound_resolution_profile = "none",
+      defer_derived = defer,
+      cache = TRUE,
+      throttle = 0,
+      progress = FALSE,
+      overwrite = TRUE
+    )
+  }
+
+  deferred = make_result("Salix nigra", "salicin", "LTS-MIX-1", TRUE)
+  precomputed = make_result("Zea mays", "DIMBOA", "LTS-MIX-2", FALSE)
+  expect_equal(nrow(deferred$PlantContextEvidence), 0)
+  expect_true(nrow(precomputed$PlantContextEvidence) > 0)
+
+  merged = mergePlantPhytochemistryResults(deferred, precomputed)
+
+  expect_setequal(unique(merged$PlantContextEvidence$species),
+                  c("Salix nigra", "Zea mays"))
+  expect_true(all(merged$PlantContextEvidence$normalized_context ==
+                    "root_belowground"))
+})
+
 test_that("batch checkpoints defer derived tables until chunks are combined", {
   occurrence = data.frame(
     species = "Salix nigra",

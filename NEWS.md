@@ -2,6 +2,10 @@
 
 ## Major improvements
 
+- Plant-panel discovery now defers fallback context and analysis assembly to
+  the final merge. Mixed deferred and precomputed provider results derive
+  context from the complete occurrence table before reconciling existing
+  evidence, preventing direct-species context omissions and repeated work.
 - Added a phase-one species-first plant phytochemistry resolver with
   `resolvePlantPhytochemistry()`, curated intake normalization, provider
   diagnostics, conservative PubMed/PubTator candidate handling, species

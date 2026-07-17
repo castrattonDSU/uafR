@@ -1851,10 +1851,6 @@ runPlantChemistryPanel = function(
     keep = fallback$PlantCompoundOccurrences$matched_rank %in% ranks
     fallback$PlantCompoundOccurrences =
       fallback$PlantCompoundOccurrences[keep, , drop = FALSE]
-    fallback$PlantContextEvidence = plantContextEvidence(
-      fallback$PlantCompoundOccurrences
-    )
-    fallback = .plant_panel_refresh_derived(fallback)
     name = paste0(provider, "_fallback")
     file = file.path(context$paths$stages, "discovery", provider,
                      paste0(name, "_result.rds"))
