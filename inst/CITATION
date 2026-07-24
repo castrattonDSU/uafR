@@ -1,0 +1,16 @@
+citHeader("To cite uafR in publications, use:")
+
+bibentry(
+  bibtype = "Manual",
+  title = "uafR: Reproducible Chemical Enrichment and Plant Chemistry Workflows",
+  author = personList(
+    person("Chase", "Stratton"),
+    person("Yvonne", "Thompson"),
+    person("Konilo", "Zio"),
+    person("William", "Morrison"),
+    person("Ebony", "Murrell")
+  ),
+  year = "2026",
+  note = paste("R package version", meta$Version),
+  url = "https://github.com/castrattonDSU/uafR"
+)

@@ -5,6 +5,14 @@ test_that("workflow guide and API stability expose production classifications", 
   expect_true(all(c("user_has", "recommended_workflow", "primary_functions",
                     "stability") %in% names(guide)))
   expect_true("runPlantChemistryProject" %in% stability$function_name)
+  expect_true(all(c("runPlantChemistryPanel", "buildLotusIndex",
+                    "queryLotusIndex", "buildNpassIndex",
+                    "queryNpassIndex") %in% stability$function_name))
+  expect_match(
+    guide$primary_functions[guide$user_has == "large plant panel"],
+    "runPlantChemistryPanel",
+    fixed = TRUE
+  )
   expect_true(all(stability$stability %in%
                     c("stable", "experimental", "internal",
                       "project_specific")))
