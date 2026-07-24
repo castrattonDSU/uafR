@@ -1,399 +1,374 @@
+# uafR
 
-# uafR - A new standard for mass spectrometry data processing
+[![R-CMD-check](https://github.com/castrattonDSU/uafR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/castrattonDSU/uafR/actions/workflows/R-CMD-check.yaml)
+[![PLOS ONE](https://img.shields.io/badge/PLOS%20ONE-10.1371%2Fjournal.pone.0306202-0A7BBB)](https://doi.org/10.1371/journal.pone.0306202)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-<!-- badges: start -->
-<!-- badges: end -->
+**uafR** is an R package for processing tentative compound identifications from
+GC–MS workflows. It prepares vendor-exported peak tables, aggregates detections
+across samples, extracts user-selected compounds, standardizes abundance, and
+adds structured chemical context from PubChem and KEGG.
 
-## Objective
+## What uafR does
 
-An R package that automates GC-MS processing.
+The package supports three connected workflows:
+
+1. **GC–MS data processing**
+   Prepare raw peak tables with `spreadOut()`, extract target compounds with
+   `mzExacto()`, and standardize abundance with `standardifyIt()`.
+
+2. **Chemical interpretation**
+   Group and annotate compound names with `categorate()`, then select compounds
+   for downstream extraction with `exactoThese()`.
+
+3. **Research-grade enrichment**
+   Retrieve reusable PubChem and KEGG tables with `pubchemProfile()`,
+   `keggProfile()`, and the enriched `categorate()` workflow; validate and export
+   results with `validateCategorateResult()` and
+   `exportCategorateWorkbook()`.
 
 ## Installation
 
-### Student install from a private bundle
+uafR requires R 4.2 or newer.
 
-Student machines should install uafR from a private student bundle distributed
-by the DSU dsDNA Core program. This keeps the repository private and gives
-students a direct RStudio workflow.
-
-The bundle contains a local uafR source archive, preflight checks, installer
-and update scripts, verification scripts, an offline acceptance test, and the
-training manual. The installer still uses CRAN and Bioconductor for
-dependencies.
-
-From the unzipped bundle folder, students should open `START_HERE.md`, then run
-these scripts in RStudio:
-
-``` r
-source("preflight_check.R")
-source("install_uafR_from_bundle.R")
-source("run_student_acceptance_test.R")
-```
-
-After installation, confirm the package loads:
-
-``` r
-library(uafR)
-data("library_data", package = "uafR")
-```
-
-### Build a student bundle
-
-From the repository root:
-
-``` sh
-Rscript tools/build_student_bundle.R
-```
-
-The script creates:
-
-``` text
-student_bundle/uafR_student_bundle_<version>/
-student_bundle/uafR_student_bundle_<version>.zip
-```
-
-The bundle folder includes:
-
-``` text
-START_HERE.md
-README_STUDENT_INSTALL.md
-preflight_check.R
-install_uafR_from_bundle.R
-update_uafR_from_bundle.R
-verify_uafR_install.R
-run_student_acceptance_test.R
-packages/uafR_<version>.tar.gz
-training/uafR_training_manual.pdf
-training/scripts/
-training/data/
-examples/test_install.R
-```
-
-### Developer install from a local checkout
-
-Developers working from the private repository can install from the local source
-checkout:
-
-``` r
+```r
 install.packages(c("remotes", "BiocManager"))
-BiocManager::install(c("ChemmineR", "fmcsR"), ask = FALSE, update = FALSE)
-remotes::install_local(
-  ".",
+
+BiocManager::install(
+  c("ChemmineR", "fmcsR"),
+  ask = FALSE,
+  update = FALSE
+)
+
+remotes::install_github(
+  "castrattonDSU/uafR",
   dependencies = c("Depends", "Imports"),
   upgrade = "never",
   build_vignettes = FALSE
 )
 ```
 
-### Optional live smoke test
+Load the package:
 
-After installation, a small live database smoke test can be run when internet
-access is available:
-
-``` r
+```r
 library(uafR)
+```
+
+Windows users may need
+[Rtools](https://cran.r-project.org/bin/windows/Rtools/) when a dependency must
+be compiled from source. macOS users may need the Xcode Command Line Tools.
+
+## GC–MS input
+
+`spreadOut()` expects a data frame containing these columns:
+
+| Column | Meaning |
+|---|---|
+| `Component.RT` | Component retention time |
+| `Component.Area` | Integrated component area |
+| `Base.Peak.MZ` | Base-peak mass-to-charge ratio |
+| `File.Name` | Sample or source file |
+| `Compound.Name` | Tentative compound identity |
+| `Match.Factor` | Library match score |
+
+Read vendor output without changing its column names:
+
+```r
+raw_gcms <- read.csv(
+  "path/to/gcms-export.csv",
+  check.names = FALSE
+)
+
+required_columns <- c(
+  "Component.RT",
+  "Component.Area",
+  "Base.Peak.MZ",
+  "File.Name",
+  "Compound.Name",
+  "Match.Factor"
+)
+
+stopifnot(all(required_columns %in% names(raw_gcms)))
+```
+
+## Core workflow: prepare and extract GC–MS data
+
+Prepare the peak table:
+
+```r
+spread <- spreadOut(raw_gcms)
+```
+
+Choose compounds directly or use a match-factor threshold:
+
+```r
+targets <- unique(
+  raw_gcms$Compound.Name[
+    !is.na(raw_gcms$Match.Factor) &
+    raw_gcms$Match.Factor >= 80
+  ]
+)
+```
+
+Extract target compounds across samples:
+
+```r
+extracted <- mzExacto(
+  data_in = spread,
+  chemicals = targets,
+  decontaminate = TRUE
+)
+
+head(extracted)
+```
+
+`mzExacto()` returns compound identities, optimal retention time, exact mass,
+best match factor, and aggregated component area across samples.
+
+## Core workflow: annotate and select compounds
+
+uafR includes an example chemical library:
+
+```r
 data("library_data", package = "uafR")
 
-quick_result = categorate(
-  compounds = c("aspirin", "caffeine"),
+query_compounds <- c(
+  "Linalool",
+  "Methyl salicylate",
+  "Limonene",
+  "alpha-Pinene"
+)
+```
+
+Run the standard annotation workflow:
+
+```r
+annotations <- categorate(
+  compounds = query_compounds,
+  chemical_library = library_data,
+  input_format = "wide"
+)
+
+names(annotations)
+```
+
+Standard mode returns eight tables:
+
+```text
+reactives
+LOTUS
+KEGG
+FEMA
+FDA_SPL
+FMCS
+FunctionalGroups
+BestChemMatch
+```
+
+Select compounds using database, structure, or library-group evidence:
+
+```r
+selected <- exactoThese(
+  annotations,
+  subsetBy = "Database",
+  subsetArgs = c("LOTUS", "KEGG")
+)
+```
+
+Use the selected names in the GC–MS extraction workflow:
+
+```r
+selected_data <- mzExacto(
+  data_in = spread,
+  chemicals = selected
+)
+```
+
+## Research-grade enrichment
+
+Use `detail = "research"` to append normalized PubChem and KEGG tables while
+preserving the original eight standard tables:
+
+```r
+research_result <- categorate(
+  compounds = query_compounds,
   chemical_library = library_data,
   input_format = "wide",
   detail = "research",
-  cache = FALSE,
-  throttle = 0.1,
+  cache = TRUE,
+  throttle = 0.2,
   assay_detail_limit = 0
 )
-
-validateCategorateResult(quick_result)$Summary
-quick_result$ChemicalTraitReport
-quick_result$ChemicalMeasurementSummary
 ```
 
-## Example Mass Spectrometry Workflows
+Frequently used outputs include:
 
-These are basic examples of how to use core functions. The input .CSV file has strict column name/input data requirements. The column names MUST include: 'Component.RT', 'Component.Area', 'Base.Peak.MZ', 'File.Name', 'Compound.Name', and 'Match.Factor' in no particular order.
-
-``` r
-library(uafR)
-
-input_dat = read.csv("your/gcms/dataset.csv")
-```
- Component.RT  |  Base.Peak.MZ    |  Component.Area  |       Compound.Name        |  Match.Factor  |  File.Name  
-:-------------:|:----------------:|:----------------:|:---------------------------|:--------------:|:------------:
-8.229034       |84.00             |906.4701          |Pipradrol                   |62.62271        |Std_soln_07    
-8.286703       |120.00            |209705.1878       |Methyl salicylate           |98.16152        |Std_soln_00a    
-8.296408       |119.99            |30332.9022        |Methyl salicylate           |95.79911        |Std_soln_00    
-8.303958       |120.00            |6476.4785         |Methyl salicylate           |86.29569        |Std_soln_07    
-8.348031       |105.00            |420.8119          |3-Hexen-1-ol, benzoate, (Z)-|68.78156        |Std_soln_00    
-**...**        |**...**           |**...**           |**...**                     |**...**         |**...**         
-
-### In this example, the user knows what chemicals they are interested in:
-``` r
-input_spread = spreadOut(input_dat)
-query_chemicals = c("Linalool", "Methyl Salicylate", "Limonene", "alpha-Thujene")
-
-### extract the query_chemicals from the "spread out" input:
-input_exacto = mzExacto(input_spread, query_chemicals)
-```
-### In this example, the user just wants to keep the top hits:
-``` r
-query_chemicals = input_dat$Compound.Name[input_dat$Match.Factor > 80]
-
-input_exacto = mzExacto(input_spread, query_chemicals)
+```r
+research_result$PubChemProperties
+research_result$ChemicalTraits
+research_result$ChemicalTraitOntology
+research_result$ChemicalTraitMatrix
+research_result$ChemicalTraitReport
+research_result$ChemicalMeasurements
+research_result$ChemicalMeasurementSummary
+research_result$ChemicalHazards
+research_result$ChemicalOccurrences
+research_result$KEGGPathways
+research_result$SourceCoverage
 ```
 
-## Example Cheminformatics Workflow
-``` r
-## example usage for chemical informatics:
-query_chemicals = c("Linalool", "Methyl Salicylate", "Limonene", "alpha-Thujene")
-GroupA = c("Guaiacol",	"Tridecane",	"Ethyl heptanoate", "Caffeine")
-GroupB = c("2-Aminothiazole", "Aspirin", "Octanoic acid", "alpha-Pinene", "Toluene")
-chem_library = data.frame(cbind(GroupA, GroupB))
+Validate the result before downstream analysis:
 
-query_categorated = categorate(query_chemicals, chem_library, input_format = "wide")
-```
+```r
+audit <- validateCategorateResult(research_result)
 
-## Detailed PubChem Enrichment
-
-`pubchemProfile()` pulls richer PubChem data into reusable tables before downstream filtering or mass spectrometry extraction. This keeps web enrichment separate from `spreadOut()` and `mzExacto()`, so results can be cached, inspected, and tested independently.
-
-``` r
-query_chemicals = c("Methyl salicylate", "Octanal", "Undecane")
-
-chem_profile = pubchemProfile(query_chemicals, profile = "ms")
-
-chem_profile$identity
-chem_profile$properties
-chem_profile$synonyms
-chem_profile$spectra
-```
-
-Available profiles are:
-
-- `"minimal"`: PubChem CID, names, formula, identifiers, exact mass, and molecular weight.
-- `"ms"`: minimal data plus chemical descriptors and mass spectrometry annotations.
-- `"safety"`: minimal/descriptive data plus safety, hazard, and experimental property annotations.
-- `"bioactivity"`: minimal/descriptive data plus PubChem assay summary data.
-- `"full"`: all supported profile sections.
-
-## Research-Grade Database Enrichment
-
-`categorate()` keeps the original eight-table output by default. Use
-`detail = "research"` or `detail = "full"` when you want tidy PubChem and KEGG
-tables appended to the categorated result. These tables are designed for
-filtering, grouping, and downstream analyses rather than one-off text lookup.
-
-``` r
-query_categorated = categorate(
-  query_chemicals,
-  chem_library,
-  input_format = "wide",
-  detail = "research"
-)
-
-query_categorated$PubChemProperties
-query_categorated$SafetyProfile
-query_categorated$FEMAProfile
-query_categorated$FDA_SPL_Profile
-query_categorated$LOTUSProfile
-query_categorated$PubChemClassifications
-query_categorated$MeSHProfile
-query_categorated$LiteratureProfile
-query_categorated$ChemicalTerms
-query_categorated$ChemicalTraits
-query_categorated$ChemicalTraitOntology
-query_categorated$ChemicalTraitMatrix
-query_categorated$ChemicalTraitOntologyMatrix
-query_categorated$ChemicalTraitEvidence
-query_categorated$ChemicalTraitReport
-query_categorated$ChemicalTraitSummary
-query_categorated$ChemicalTraitSimilarity
-query_categorated$ChemicalClasses
-query_categorated$ChemicalMeasurements
-query_categorated$ChemicalMeasurementSummary
-query_categorated$ChemicalHazards
-query_categorated$ChemicalUses
-query_categorated$ChemicalBioassays
-query_categorated$ChemicalBioactivities
-query_categorated$ChemicalTargets
-query_categorated$ChemicalPotencies
-query_categorated$PubChemBioAssayDetails
-query_categorated$ChemicalTaxonomy
-query_categorated$ChemicalOccurrences
-query_categorated$ChemicalPathwayRoles
-query_categorated$KEGGReactionParticipants
-query_categorated$KEGGPathways
-query_categorated$KEGGClassifications
-query_categorated$DerivedGroups
-query_categorated$SourceCoverage
-query_categorated$DataDictionary
-query_categorated$TableQuality
-query_categorated$SourceDiagnostics
-query_categorated$ValidationIssues
-query_categorated$ValidationSummary
-```
-
-The source-specific PubChem profile tables preserve the raw annotation text
-while adding cleaned fields such as GHS hazard codes, FEMA/JECFA identifiers,
-flavor or odor terms, FDA/SPL route and dosage-form terms, LOTUS occurrence
-signals, PubChem classification-tree paths, MeSH pharmacologic actions, PubMed
-IDs, DOI values, PubChem BioAssay activity summaries, and bounded BioAssay
-description metadata when `detail = "full"` is used. The `assay_detail_limit`
-argument controls how many BioAssay descriptions are fetched per query so broad
-screens stay inspectable and polite to PubChem. `DerivedGroups` summarizes these
-into analysis columns for metabolic, biomedical, ecological, sensory, safety,
-bioactivity, and analytical context.
-
-The normalized `Chemical*` tables go one step further and split evidence text
-into discrete values for analysis. `ChemicalTerms` is a long-form vocabulary
-table for grouping chemicals by sensory, biomedical, ecological, safety,
-classification, and metabolic terms. `ChemicalTraits` unifies those cleaned
-signals into one cross-source long table with `TraitType`, `TraitGroup`,
-`TraitValue`, `SourceDatabase`, evidence, confidence, and a stable matrix key.
-`ChemicalTraitOntology` maps whitelisted discrete traits into controlled domains
-such as safety, physicochemical behavior, metabolism, ecology, sensory,
-bioactivity, biomedical use, regulatory status, and reactivity. Every ontology
-row keeps the source trait key, evidence text/URL, source database, extraction
-rule, confidence, and source-backed identifiers where available: GHS hazard
-codes, KEGG pathway/reaction/compound/EC IDs, MeSH tree numbers, NCBI Taxonomy
-IDs, NCBI Gene IDs, PubChem BioAssay AIDs, and target accessions. `ChemicalTraitMatrix`
-and `ChemicalTraitOntologyMatrix` convert curated high-value traits into binary
-columns for filtering, clustering, ordination, heatmaps, and model inputs. Use
-the helper functions to rebuild specialized matrices without rerunning web
-requests:
-
-``` r
-core_matrix = query_categorated$ChemicalTraitMatrix
-ontology = query_categorated$ChemicalTraitOntology
-ontology_matrix = query_categorated$ChemicalTraitOntologyMatrix
-ontology_evidence = query_categorated$ChemicalTraitEvidence
-trait_report = query_categorated$ChemicalTraitReport
-bioactivity_matrix = chemicalTraitMatrix(query_categorated, profile = "bioactivity")
-kegg_matrix = chemicalTraitMatrix(query_categorated$ChemicalTraits, profile = "kegg")
-confidence_matrix = chemicalTraitMatrix(
-  query_categorated,
-  profile = "full",
-  mode = "confidence",
-  min_confidence = "high",
-  max_traits = 250
-)
-ontology_confidence_matrix = chemicalTraitOntologyMatrix(
-  query_categorated,
-  mode = "confidence",
-  min_confidence = "medium",
-  max_terms = 250
-)
-
-trait_summary = chemicalTraitSummary(query_categorated)
-source_summary = chemicalTraitSummary(query_categorated, by = "source")
-trait_similarity = chemicalTraitSimilarity(query_categorated, profile = "core")
-report = chemicalTraitReport(query_categorated, min_confidence = "medium")
-dictionary = chemicalDataDictionary("ChemicalTraitReport")
-audit = validateCategorateResult(query_categorated)
 audit$Summary
 audit$TableQuality
 audit$SourceDiagnostics
 audit$Issues
-export_manifest = exportCategorateWorkbook(
-  query_categorated,
-  "categorate_export",
+```
+
+Export a curated CSV bundle:
+
+```r
+manifest <- exportCategorateWorkbook(
+  research_result,
+  path = "categorate-export",
   format = "csv",
   overwrite = TRUE
 )
-export_manifest
-h319_evidence = chemicalTraitEvidence(
-  query_categorated,
-  keys = "safety__ghs_hazard_code__h319"
-)
-trait_evidence = chemicalTraitEvidence(
-  query_categorated,
-  keys = "hazard__hazard_code__h319",
-  type = "trait"
-)
+
+manifest
 ```
 
-`ChemicalMeasurements` stores numeric
-properties and extracted experimental/toxicity values with raw units plus
-standardized values, canonical units, measurement classes, relations, and
-behavior bins. `ChemicalMeasurementSummary` condenses those values into one row
-per compound-property combination for plotting and filtering. `ChemicalHazards`
-separates GHS codes, hazard groups, routes, target organs, precaution codes, and
-toxicity metrics. `ChemicalBioassays`, `ChemicalBioactivities`, `ChemicalTargets`,
-and `ChemicalPotencies` split PubChem assay summaries into assay outcomes,
-activity domains, target identifiers/names, target organism/taxonomy fields,
-assay endpoint names, activity directions, and numeric potency values.
-`PubChemBioAssayDetails` preserves the raw selected assay-description metadata
-behind those normalized bioactivity rows. `ChemicalTaxonomy` extracts organism,
-genus, species, family,
-order, class, phylum, kingdom, cleaned taxonomy terms, and natural-product
-class. `ChemicalClasses` includes discrete natural-product superclass, class,
-and subclass rows from LOTUS chemical classification trees. `ChemicalOccurrences`
-gives one row per chemical-organism occurrence with taxonomic ranks, source
-evidence, occurrence type, and confidence, while `DerivedGroups` summarizes
-natural-product classes, bioactivity breadth, occurrence breadth, dominant
-kingdom/family, and plant/fungal/bacterial occurrence flags. `ChemicalPathwayRoles` and
-`KEGGReactionParticipants` split KEGG pathways, enzymes, reactions, substrates,
-and products into analysis-ready rows.
+To write an Excel workbook, install `openxlsx` or `writexl` and provide an
+`.xlsx` path.
 
-Every detailed `categorate()` result also carries a data-quality layer.
-`DataDictionary` describes expected tables, columns, types, required fields,
-roles, and allowed controlled values. `TableQuality` reports row counts,
-required-column completeness, duplicate analysis-key counts, confidence counts,
-and table status. `SourceDiagnostics` shows which source/query combinations
-returned usable rows. `ValidationSummary` and `ValidationIssues` provide the
-same audit generated by `validateCategorateResult()`, so downstream scripts can
-stop early when a schema or extraction problem appears.
+## Source-specific profiles
 
-Use `exportCategorateWorkbook()` to share results outside R. It writes a
-manifest plus clean CSV files by default, and can write an `.xlsx` workbook when
-`openxlsx` or `writexl` is installed.
+### PubChem
 
-`keggProfile()` can also be used directly when the goal is KEGG-specific
-annotation. It resolves names or supplied KEGG IDs, parses KEGG flat-file
-records, follows KEGG links, and returns pathways, reactions, enzymes, modules,
-identifiers, and reproducible pathway/enzyme classifications.
+```r
+pubchem <- pubchemProfile(
+  query_compounds,
+  profile = "ms",
+  cache = TRUE
+)
 
-``` r
-kegg_profile = keggProfile(
-  c("aspirin", "glucose"),
-  max_matches_per_query = 3,
+pubchem$identity
+pubchem$properties
+pubchem$spectra
+pubchem$provenance
+```
+
+Available profiles are:
+
+- `"minimal"` — identifiers, formula, exact mass, and molecular weight
+- `"ms"` — mass-spectrometry-oriented descriptors and annotations
+- `"safety"` — safety, hazard, and experimental-property annotations
+- `"bioactivity"` — PubChem BioAssay summaries
+- `"full"` — all supported sections
+
+### KEGG
+
+```r
+kegg <- keggProfile(
+  compounds = query_compounds,
+  pubchem_profile = pubchem,
   link_targets = c("pathway", "reaction", "enzyme")
 )
 
-kegg_profile$pathways
-kegg_profile$reactions
-kegg_profile$enzymes
-kegg_profile$classifications
+kegg$matches
+kegg$pathways
+kegg$reactions
+kegg$enzymes
+kegg$classifications
+kegg$provenance
 ```
 
-Linked KEGG IDs are resolved into names and definitions by default, so tables
-such as `kegg_profile$reactions` include reaction names, definitions, and
-equations when KEGG exposes them.
+## Standardization
 
-For package checks, live PubChem/NCI integration tests are opt-in. Set `UAFR_RUN_LIVE_TESTS=true` before running tests when you want to exercise live web calls.
+Standardize `mzExacto()` output with an internal standard:
 
-## Combined Mass Spectrometry + Cheminformatics Workflow
-
-``` r
-query_chemicals = input_dat$Compound.Name[input_dat$Match.Factor > 70]
-query_categorated = categorate(query_chemicals, chem_library, input_format = "wide")
-
-## example of using the info from categorate() to get a user-defined set of chemicals with exactoThese():
-these_chems = exactoThese(query_categorated, subsetBy = "Database", subsetArgs = "All")
-these_chems = exactoThese(query_categorated, subsetBy = "Database", subsetArgs = "reactives")
-these_chems = exactoThese(query_categorated, subsetBy = "Database", subsetArgs = "LOTUS")
-these_chems = exactoThese(query_categorated, subsetBy = "Database", subsetArgs = "KEGG")
-these_chems = exactoThese(query_categorated, subsetBy = "Database", subsetArgs = "FEMA")
-these_chems = exactoThese(query_categorated, subsetBy = "Database", subsetArgs = "FDA_SPL")
-these_chems = exactoThese(query_categorated, subsetBy = "Database", subsetArgs = c("reactives", "FEMA"))
-these_chems = exactoThese(query_categorated, subsetBy = "FMCS", subsetArgs = "MW", subsetArgs2 = "Greater Than", subset_input = 125)
-these_chems = exactoThese(query_categorated, subsetBy = "FMCS", subsetArgs = "MW", subsetArgs2 = "Less Than", subset_input = 205)
-these_chems = exactoThese(query_categorated, subsetBy = "FMCS", subsetArgs = "MW", subsetArgs2 = "Between", subset_input = c(125, 200))
-these_chems = exactoThese(query_categorated, subsetBy = "FMCS", subsetArgs = "Rings", subsetArgs2 = "Greater Than", subset_input = 1)
-these_chems = exactoThese(query_categorated, subsetBy = "FMCS", subsetArgs = "Groups", subsetArgs2 = "Greater Than", subset_input = 2)
-these_chems = exactoThese(query_categorated, subsetBy = "FMCS", subsetArgs = "Atoms", subsetArgs2 = "Greater Than", subset_input = 6)
-these_chems = exactoThese(query_categorated, subsetBy = "FMCS", subsetArgs = "NCharges", subsetArgs2 = "Greater Than", subset_input = 2)
-these_chems = exactoThese(query_categorated, subsetBy = "Library", subsetArgs = "GroupB")
-
-input_exacto = mzExacto(input_spread, these_chems)
+```r
+standardized <- standardifyIt(
+  data_in = extracted,
+  standard_type = "Internal",
+  standard_used = "Tetradecane",
+  IS_ng = 190.5,
+  IS_uL = 1,
+  collect_time = 1,
+  sample_amt = 1
+)
 ```
+
+For external standardization, provide a calibration matrix:
+
+```r
+data("ExternalStandard_data", package = "uafR")
+
+standardized <- standardifyIt(
+  data_in = extracted,
+  standard_type = "External",
+  ES_calibration = ExternalStandard_data
+)
+```
+
+## Main user-facing functions
+
+| Function | Purpose |
+|---|---|
+| `spreadOut()` | Prepare raw GC–MS peak tables for downstream processing |
+| `mzExacto()` | Extract and aggregate user-selected compounds across samples |
+| `standardifyIt()` | Standardize abundance using internal or external standards |
+| `categorate()` | Annotate compounds and compare them with chemical-library groups |
+| `exactoThese()` | Select compounds from `categorate()` results |
+| `pubchemProfile()` | Retrieve structured PubChem profiles |
+| `keggProfile()` | Retrieve structured KEGG profiles |
+| `chemicalTraitMatrix()` | Build analysis-ready trait matrices |
+| `chemicalTraitOntologyMatrix()` | Build controlled ontology matrices |
+| `chemicalTraitEvidence()` | Trace matrix or ontology terms back to evidence |
+| `chemicalTraitReport()` | Build compact per-compound research summaries |
+| `chemicalTraitSummary()` | Summarize trait breadth by compound or source |
+| `chemicalTraitSimilarity()` | Compare compounds by shared and distinct traits |
+| `chemicalMeasurementSummary()` | Summarize normalized numeric measurements |
+| `validateCategorateResult()` | Audit schemas, completeness, duplicates, and source coverage |
+| `exportCategorateWorkbook()` | Export curated CSV or Excel result bundles |
+
+## Reproducibility and network access
+
+Several workflows query public web services. Results can change as external
+databases evolve.
+
+- Keep `cache = TRUE` for reusable PubChem and KEGG responses.
+- Store result objects and validation tables with each analysis.
+- Record the uafR version and session information.
+- Use bounded request limits and the default throttling settings.
+- Inspect `SourceCoverage`, `SourceDiagnostics`, and validation output before
+  interpreting missing values.
+
+Record the environment used for an analysis:
+
+```r
+packageVersion("uafR")
+sessionInfo()
+```
+
+## Documentation and support
+
+- Function reference: <https://castrattonDSU.github.io/uafR/>
+- Issues and bug reports: <https://github.com/castrattonDSU/uafR/issues>
+- Source code: <https://github.com/castrattonDSU/uafR>
+
+## Citation
+
+When using uafR, cite:
+
+> Stratton CA, Thompson Y, Zio K, Morrison WR III, Murrell EG (2024).
+> uafR: An R package that automates mass spectrometry data processing.
+> *PLOS ONE* 19(7): e0306202.
+> <https://doi.org/10.1371/journal.pone.0306202>
+
+## License
+
+uafR is released under the MIT License.
