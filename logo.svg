@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="278" viewBox="0 0 240 278" role="img" aria-labelledby="logo-title logo-desc" shape-rendering="geometricPrecision">
+  <title id="logo-title">uafR primary logo</title>
+  <desc id="logo-desc">Three source cards—analytical signals, public records, and plant evidence—converge in a faceted chemical prism and emerge as separated evidence and analysis outputs above the outlined uafR wordmark.</desc>
+  <metadata>uafR production logo kit v1.2.0; flat vector geometry; wordmark converted to outlines.</metadata>
+  <defs>
+    <clipPath id="badge-clip"><polygon points="120,4 236,71 236,207 120,274 4,207 4,71"/></clipPath>
+  </defs>
+  <polygon points="120,4 236,71 236,207 120,274 4,207 4,71" fill="#F9F9FA"/>
+  <g clip-path="url(#badge-clip)">
+    <rect x="0" y="184" width="240" height="94" fill="#005A7A"/>
+    <polygon points="157,86 230,74 230,90 157,98" fill="#005A7A" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+    <polygon points="157,98 230,96 230,112 157,110" fill="#0099CC" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+    <polygon points="157,110 230,119 230,135 157,122" fill="#4E8F68" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M155 127L222 151" fill="none" stroke="#FFFFFF" stroke-width="18" stroke-linecap="butt"/>
+    <path d="M155 127L222 151" fill="none" stroke="#E7A73C" stroke-width="11.5" stroke-dasharray="9 5" stroke-linecap="butt"/>
+  </g>
+  <polygon points="120,109 120,64 159,87" fill="#78C7DF" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="120,109 159,87 159,132" fill="#0099CC" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="120,109 159,132 120,155" fill="#0078A8" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="120,109 120,155 81,132" fill="#003F57" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="120,109 81,132 81,87" fill="#9DD9EA" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="120,109 81,87 120,64" fill="#BFE8F3" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="120,64 159,87 159,132 120,155 81,132 81,87" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+  <g clip-path="url(#badge-clip)">
+    <path d="M21 81L56 102L68 105L105 109L65 113L55 118L15 95Q12 92 17 87Z" fill="#4E8F68"/>
+    <path d="M29 64L69 87L77 93L105 109L70 98L63 102L23 78Q20 76 24 71Z" fill="#0099CC"/>
+    <path d="M44 51L82 73L86 81L105 109L80 86L72 88L39 67Q36 65 40 61Z" fill="#005A7A"/>
+    <path d="M105 109L65 113L55 118L15 95Q12 92 17 87L21 81L56 102L68 105L105 109" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="butt" stroke-linejoin="round"/>
+    <path d="M105 109L70 98L63 102L23 78Q20 76 24 71L29 64L69 87L77 93L105 109" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="butt" stroke-linejoin="round"/>
+    <path d="M105 109L80 86L72 88L39 67Q36 65 40 61L44 51L82 73L86 81L105 109" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="butt" stroke-linejoin="round"/>
+  </g>
+  <circle cx="63" cy="72" r="8" fill="#FFFFFF"/><rect x="58.2" y="71.8" width="2.5" height="4.6" rx="1" fill="#005A7A"/><rect x="61.75" y="67.4" width="2.5" height="9" rx="1" fill="#005A7A"/><rect x="65.3" y="69.5" width="2.5" height="6.9" rx="1" fill="#005A7A"/>
+  <circle cx="49" cy="84.5" r="8" fill="#FFFFFF"/><rect x="44" y="80.9" width="10" height="3" rx="1.5" fill="#0099CC"/><rect x="44" y="85.1" width="10" height="3" rx="1.5" fill="#0099CC"/>
+  <circle cx="38" cy="99.5" r="8" fill="#FFFFFF"/><path d="M33.3 99.6L36.7 103L43 95.5" fill="none" stroke="#4E8F68" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="222" cy="82" r="6.6" fill="#FFFFFF" stroke="#005A7A" stroke-width="2.8"/><circle cx="222" cy="82" r="2.2" fill="#005A7A"/>
+  <circle cx="222" cy="104" r="6.6" fill="#FFFFFF" stroke="#0099CC" stroke-width="2.8"/><circle cx="222" cy="104" r="2.2" fill="#0099CC"/>
+  <circle cx="222" cy="127" r="6.6" fill="#FFFFFF" stroke="#4E8F68" stroke-width="2.8"/><circle cx="222" cy="127" r="2.2" fill="#4E8F68"/>
+  <circle cx="222" cy="151" r="6.6" fill="#FFFFFF" stroke="#E7A73C" stroke-width="2.8"/><circle cx="222" cy="151" r="2.2" fill="#E7A73C"/>
+  <g class="wordmark" transform="translate(54.5 237) scale(0.06 -0.06)" aria-label="uafR">
+    <path d="M576 546V0H460L441 70H432Q406 28 361.0 9.0Q316 -10 264 -10Q177 -10 123.5 37.5Q70 85 70 190V546H222V228Q222 170 242.5 140.5Q263 111 308 111Q376 111 400.5 157.0Q425 203 425 290V546Z" fill="#FFFFFF" transform="translate(0 0)"/>
+    <path d="M317 556Q419 556 473.5 507.5Q528 459 528 364V0H423L394 74H390Q354 30 315.5 10.0Q277 -10 208 -10Q136 -10 88.0 32.0Q40 74 40 161Q40 246 102.0 289.5Q164 333 287 338L378 341V358Q378 407 355.5 426.5Q333 446 294 446Q257 446 218.0 434.0Q179 422 141 405L97 508Q140 530 195.5 543.0Q251 556 317 556ZM321 250Q249 248 221.5 227.0Q194 206 194 168Q194 133 213.5 116.5Q233 100 266 100Q313 100 345.5 128.0Q378 156 378 208V253Z" fill="#FFFFFF" transform="translate(620 0)"/>
+    <path d="M380 434H251V0H102V434H20V506L102 546V586Q102 656 125.5 694.5Q149 733 192.5 749.0Q236 765 295 765Q339 765 374.5 758.0Q410 751 432 742L394 633Q377 638 357.0 642.5Q337 647 311 647Q280 647 265.5 628.0Q251 609 251 580V546H380Z" fill="#FFFFFF" transform="translate(1180 0)"/>
+    <path d="M304 714Q583 714 583 506Q583 433 546.0 387.0Q509 341 454 315L657 0H482L323 274H238V0H85V714ZM301 595H238V392H301Q362 392 395.0 417.0Q428 442 428 499Q428 547 397.5 571.0Q367 595 301 595Z" fill="#EE3124" transform="translate(1515 0)"/>
+  </g>
+  <polygon points="120,4 236,71 236,207 120,274 4,207 4,71" fill="none" stroke="#005A7A" stroke-width="6" stroke-linejoin="round"/>
+</svg>

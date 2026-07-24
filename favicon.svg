@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="logo-title logo-desc" shape-rendering="geometricPrecision">
+  <title id="logo-title">uafR favicon</title>
+  <desc id="logo-desc">Square-safe evidence prism favicon.</desc>
+  <metadata>uafR production logo kit v1.2.0; flat vector geometry; wordmark converted to outlines.</metadata>
+  <polygon points="128,8 238,71 238,185 128,248 18,185 18,71" fill="#005A7A" stroke="#005A7A" stroke-width="8" stroke-linejoin="round"/>
+  <polygon points="18,72 18,90 87,108 87,95" fill="#FFFFFF"/>
+  <polygon points="18,103 18,121 87,124 87,111" fill="#BFE8F3"/>
+  <polygon points="18,134 18,152 87,140 87,127" fill="#4E8F68"/>
+  <polygon points="169,98 238,79 238,97 169,111" fill="#0099CC"/>
+  <polygon points="169,114 238,117 238,135 169,127" fill="#4E8F68"/>
+  <polygon points="169,130 238,157 238,175 169,143" fill="#E7A73C"/>
+  <polygon points="128,128 128,78 171,103" fill="#BFE8F3" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round"/>
+  <polygon points="128,128 171,103 171,153" fill="#0099CC" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round"/>
+  <polygon points="128,128 171,153 128,178" fill="#0078A8" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round"/>
+  <polygon points="128,128 128,178 85,153" fill="#003F57" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round"/>
+  <polygon points="128,128 85,153 85,103" fill="#005A7A" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round"/>
+  <polygon points="128,128 85,103 128,78" fill="#78C7DF" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round"/>
+  <polygon points="128,78 171,103 171,153 128,178 85,153 85,103" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round"/>
+</svg>
