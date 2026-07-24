@@ -44,6 +44,23 @@ jobs:
 
       - uses: r-lib/actions/setup-tinytex@v2
 
+      - name: Install training manual TeX packages
+        run: >-
+          tlmgr install
+          geometry
+          xcolor
+          graphics
+          microtype
+          booktabs
+          tools
+          enumitem
+          fancyhdr
+          titlesec
+          tcolorbox
+          listings
+          hyperref
+          url
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: |

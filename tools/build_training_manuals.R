@@ -68,6 +68,19 @@ build_manual <- function(latexmk, training_dir, source, output) {
     cat(paste(build$output, collapse = "\n"), "\n")
   }
   if (!identical(build$status, 0L)) {
+    if (file.exists(log_path)) {
+      log_lines <- readLines(log_path, warn = FALSE)
+      cat(
+        "\n--- ",
+        basename(log_path),
+        " (last ",
+        min(length(log_lines), 120L),
+        " lines) ---\n",
+        paste(utils::tail(log_lines, 120L), collapse = "\n"),
+        "\n--- end log excerpt ---\n",
+        sep = ""
+      )
+    }
     stop("LaTeX build failed for ", source, ".", call. = FALSE)
   }
   if (!file.exists(source_pdf) || file.info(source_pdf)$size < 50000) {
