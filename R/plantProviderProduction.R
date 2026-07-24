@@ -551,6 +551,23 @@ mergePlantPhytochemistryResults = function(..., strict = FALSE) {
 }
 
 .plant_sha256_file = function(path) {
+  if (!is.character(path) || length(path) != 1L || is.na(path) ||
+      !file.exists(path)) return(NA_character_)
+  tools_sha256 = get0(
+    "sha256sum",
+    envir = asNamespace("tools"),
+    mode = "function",
+    inherits = FALSE
+  )
+  if (is.function(tools_sha256)) {
+    value = tryCatch(
+      unname(tools_sha256(path)[[1L]]),
+      error = function(error) NA_character_
+    )
+    if (!is.na(value) && grepl("^[a-fA-F0-9]{64}$", value)) {
+      return(tolower(value))
+    }
+  }
   executable = Sys.which(c("sha256sum", "shasum"))
   if (nzchar(executable[["sha256sum"]])) {
     out = suppressWarnings(system2(executable[["sha256sum"]], path,

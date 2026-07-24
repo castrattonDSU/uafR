@@ -145,6 +145,20 @@ test_that("NPASS resolver reports accounting, resources, and source identity", {
   expect_equal(result$Validation$Summary$WarningCount, 1)
 })
 
+test_that("provider resource SHA-256 hashing is platform independent", {
+  path = tempfile("uafr_sha256_")
+  on.exit(unlink(path, force = TRUE), add = TRUE)
+  writeBin(charToRaw("abc"), path)
+
+  expect_identical(
+    .plant_sha256_file(path),
+    paste0(
+      "ba7816bf8f01cfea414140de5dae2223",
+      "b00361a396177a9cb410ff61f20015ad"
+    )
+  )
+})
+
 test_that("provider merge keeps one accounting row per plant and provider", {
   plant = "Salix nigra"
   lotus = resolvePlantPhytochemistry(
