@@ -59,6 +59,8 @@ jobs:
           titlesec
           tcolorbox
           tikzfill
+          pdfcol
+          amsmath
           listings
           listingsutf8
           hyperref
