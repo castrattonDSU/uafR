@@ -49,6 +49,7 @@ jobs:
           tlmgr install
           geometry
           xcolor
+          colortbl
           graphics
           microtype
           booktabs
