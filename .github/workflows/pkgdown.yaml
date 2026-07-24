@@ -33,8 +33,17 @@ jobs:
         with:
           extra-packages: |
             any::pkgdown
+            any::knitr
+            any::rmarkdown
+            any::spelling
+            any::testthat
+            any::openxlsx
+            any::writexl
+            bioc::ChemmineR
+            bioc::fmcsR
             local::.
           needs: website
+          dependencies: '"hard"'
 
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
