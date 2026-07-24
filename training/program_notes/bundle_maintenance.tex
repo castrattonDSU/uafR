@@ -1,0 +1,99 @@
+\chapter{Bundle Maintenance and Curriculum Release}
+
+\section{Purpose}
+The offline student bundle is a reproducible distribution option, not a
+different edition of uafR. It packages one source archive, the current student
+manual, training scripts, integrity metadata, installation helpers, and an
+acceptance test. Rebuilding the bundle for each approved package version keeps
+student machines aligned and makes classroom support auditable.
+
+\section{Release Inputs}
+\begin{checklistbox}{Before Building}
+\begin{itemize}
+  \item Start from a reviewed repository commit with a clean working tree.
+  \item Confirm that package tests and the release check pass without live web
+        services.
+  \item Build both public manuals and review their title pages, page counts,
+        references, and institutional-mark placement.
+  \item Run the training publication audit and offline training smoke tests.
+  \item Confirm that no restricted data, credentials, unpublished project
+        paths, or local usernames are present.
+  \item Record the package version and source commit intended for the class.
+\end{itemize}
+\end{checklistbox}
+
+\section{Build the Public Manuals}
+From the repository root:
+
+\begin{verbatim}
+Rscript tools/build_training_manuals.R
+Rscript tools/check_training_publication.R
+\end{verbatim}
+
+The build must produce:
+
+\begin{itemize}
+  \item \path{training/uafR_training_manual.pdf}
+  \item \path{training/uafR_instructor_guide.pdf}
+\end{itemize}
+
+The student bundle includes only the student manual. The instructor guide is a
+separate public companion and should not be placed in the student bundle as a
+hidden answer key.
+
+\section{Build the Student Bundle}
+From the repository root:
+
+\begin{verbatim}
+Rscript tools/build_student_bundle.R
+\end{verbatim}
+
+An optional first argument chooses a different output directory:
+
+\begin{verbatim}
+Rscript tools/build_student_bundle.R /path/to/output
+\end{verbatim}
+
+The builder regenerates the student manual, builds the package source archive,
+copies student-facing files, writes \path{MANIFEST.txt} and
+\path{CHECKSUMS.csv}, and creates a versioned zip archive.
+
+\section{Validate the Generated Bundle}
+Unzip a fresh copy rather than testing only the source folder. Then run:
+
+\begin{verbatim}
+Rscript verify_bundle_integrity.R
+Rscript preflight_check.R
+Rscript install_uafR_from_bundle.R
+Rscript run_student_acceptance_test.R
+\end{verbatim}
+
+For a strict release check, installation should occur in a clean temporary R
+library on at least one supported operating system. The acceptance test remains
+offline by default. A live database smoke test is optional and should never
+determine whether a student bundle is structurally valid.
+
+\section{Distribution Record}
+Record the following before distribution:
+
+\begin{itemize}
+  \item Package version and source commit.
+  \item Bundle zip filename, byte size, and checksum.
+  \item Student-manual version, revision date, page count, and checksum.
+  \item Date and platform used for the clean installation test.
+  \item Known warnings or temporary service limitations.
+  \item Approved distribution location and support contact.
+\end{itemize}
+
+\section{Updating an Existing Cohort}
+Issue a new versioned bundle instead of replacing files inside a distributed
+folder. Students should unzip the new bundle into a new directory and run
+\path{update_uafR_from_bundle.R}. Keep the old bundle until active projects
+have been rerun and the change is documented in each research log.
+
+\begin{goldbox}{Release Boundary}
+Public curriculum files may describe generic workflows and simulated examples.
+Project-specific raw data, unpublished collaborator records, credentials,
+internal schedules, and restricted storage locations must remain outside the
+repository and outside the student bundle.
+\end{goldbox}

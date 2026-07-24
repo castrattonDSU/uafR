@@ -3,11 +3,25 @@
 
 This program trains undergraduate interns to move from raw chemical observations to reproducible, interpretable research products. It is built around uafR because the package connects GC-MS processing, public chemical databases, and analysis-ready chemical traits. The training is intentionally broader than one software tool: students also learn project organization, literature interpretation, figure design, peer review, and manuscript-style scientific communication.
 
-This second-pass version is written as a full-day, 10-week research internship. It assumes students are present most weekdays and are expected to read, code, analyze, write, meet with the dsDNA Core team, revise, and produce tangible research artifacts. If the program is run part-time, the deliverables stay intact and the number of exercises is reduced rather than compressing every activity.
+This student manual is written as a full-day, 10-week research internship. It assumes students are present most weekdays and are expected to read, code, analyze, write, meet with the dsDNA Core team, revise, and produce tangible research artifacts. If the program is run part-time, the deliverables stay intact and the calendar is extended or the number of exercises is reduced rather than compressing every activity.
 
 \begin{programbox}{Who This Is For}
 The curriculum is designed for undergraduate interns from chemistry, biology, agriculture, environmental science, public health, data science, and related fields. No student needs to arrive with a finished project. The program helps them bring their own interests into a shared research workflow.
 \end{programbox}
+
+\section*{Audience and Prerequisites}
+The program is written for students who are ready to work carefully even if they are new to R, mass spectrometry, or chemical databases. Useful preparation includes basic spreadsheet literacy, willingness to keep a detailed research log, and enough chemistry background to learn terms such as compound, synonym, functional group, concentration, and tentative identification. Students with stronger R or chemistry preparation use the advanced paths; students with less preparation use the same quality standards with smaller chemical sets and more guided examples.
+
+\begin{checklistbox}{Required Student Commitments}
+\begin{itemize}
+  \item Work from a reproducible project folder rather than loose files.
+  \item Keep a dated research log every calendar day of the program.
+  \item Use cautious language for tentative chemical annotations and database evidence.
+  \item Save intermediate outputs, validation summaries, and source coverage notes.
+  \item Revise claims when evidence is weak, missing, or outside the project scope.
+  \item Follow the program's approved policy for AI-assisted work, disclose material assistance, verify every generated claim and citation, and never upload unpublished or restricted data to an unapproved service.
+\end{itemize}
+\end{checklistbox}
 
 \section*{Program Outcomes}
 By the end of 10 weeks, each student should be able to:
@@ -20,6 +34,12 @@ By the end of 10 weeks, each student should be able to:
   \item Explain uncertainty, database provenance, and limits of tentative chemical annotation.
   \item Deliver a final research package that can support a poster, internal report, manuscript section, or future grant work.
 \end{itemize}
+
+\section*{What Students Produce}
+The program is product-driven. Students do not simply attend sessions; they build a research package piece by piece. Required products include a project brief, chemical intake table, reproducible R project, GC-MS input audit, saved uafR output objects, validation summaries, source coverage report, trait grouping dictionary, trait matrix, figure set, literature synthesis, manuscript-style report, presentation or poster, research log, final handoff audit, and continuation note.
+
+\section*{What Mentors Review}
+Review focuses on artifacts rather than impressions. Weekly review checks the current product, the research log, evidence traceability, code reproducibility, claim strength, and readiness for the next gate. A strong review asks whether the work can be rerun, whether the evidence supports the wording, and whether a future student could continue the project.
 
 \section*{How To Use This Manual}
 Each week has the same structure so students always know what is expected:
@@ -35,6 +55,21 @@ Each week has the same structure so students always know what is expected:
 
 \section*{How the Program Runs}
 Student work is reviewed weekly with the dsDNA Core team. The goal is not to demand perfect answers at the first pass. The goal is to train students to produce traceable work: every claim connects to data, code, a database field, or a cited source. When a result looks interesting, the review returns to one question: ``What evidence supports that, and what could be wrong?''
+
+\begin{programbox}{Calendar-Day Participation}
+Weekdays are full internship days with concept work, guided technical labs, independent project work, evidence writing, and review. Saturdays and Sundays are lighter but still required asynchronous days. Weekend work usually includes reading annotation, reruns, research log updates, figure or text revision, peer review, or project maintenance. The calendar rhythm matters because research quality improves through repeated inspection and revision, not only through long coding sessions.
+\end{programbox}
+
+\begin{goldbox}{Schedule, Access, and Accommodations}
+The 70-day sequence is an instructional design, not an employment or
+compensation policy. Before Week 1, each program must provide a written schedule
+that states the expected weekly hours, how weekend work counts toward those
+hours, holidays and days off, compensation or academic-credit terms,
+supervision, accessibility and accommodation procedures, and safety
+requirements. No activity should be assigned outside the agreed schedule, and
+equivalent accessible formats or adjusted timing should be provided through
+the applicable institutional process.
+\end{goldbox}
 
 \begin{goldbox}{Core Principle}
 The student should never treat database text as a conclusion. Database records are evidence. The research conclusion comes from cleaned variables, source coverage checks, comparison across evidence types, and biological or chemical reasoning.
@@ -52,6 +87,29 @@ Friday review & Inspect deliverables, update the research log, complete peer rev
 \bottomrule
 \end{tabularx}
 
+\section*{One-Page 10-Week Arc}
+\begin{longtable}{p{0.09\textwidth}p{0.24\textwidth}p{0.27\textwidth}p{0.30\textwidth}}
+\toprule
+\textbf{Week} & \textbf{Focus} & \textbf{Primary product} & \textbf{Decision gate}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Week} & \textbf{Focus} & \textbf{Primary product} & \textbf{Decision gate}\\
+\midrule
+\endhead
+1 & Question design and research integrity & Project brief and risk note & Question is feasible and scientifically cautious.\\
+2 & R, RStudio, Git, and project structure & Reproducible folder and README & Project can be understood from its root.\\
+3 & Chemical identities and database sources & Database evidence map & Sources are interpreted within limits.\\
+4 & Core GC-MS workflow & Offline workflow output and methods draft & Tentative annotation limits are documented.\\
+5 & Research-grade enrichment & Saved \texttt{categorate()} result and validation notes & Validation and source coverage are inspected before analysis.\\
+6 & Trait matrices and grouping variables & Grouping dictionary and final matrix & Variables are source-backed and analysis-ready.\\
+7 & Visualization & Publication-style figures and captions & Figures answer questions without hiding missingness.\\
+8 & Literature and interpretation & Claim-evidence-limitation memo & Claims survive evidence review.\\
+9 & Manuscript-style writing & Full draft report & Methods, results, and limitations align.\\
+10 & Presentation and handoff & Final package and continuation note & Work can be archived and continued.\\
+\bottomrule
+\end{longtable}
+
 \section*{Expected Final Package}
 Every student should finish with:
 \begin{itemize}
@@ -65,3 +123,13 @@ Every student should finish with:
   \item A research log that documents decisions, errors, and interpretation changes.
   \item A continuation note that allows the next student to extend the project without starting over.
 \end{itemize}
+
+\section*{Version, Support, and Citation}
+This is Student Manual version \TrainingVersion, revised
+\TrainingRevisionDate. Current package documentation, issue reporting, and
+public source are available at \url{\TrainingRepository}. The package
+maintainer is \TrainingMaintainer. Package-based research should use
+\texttt{citation("uafR")} and should separately cite the databases and
+literature sources that support the reported evidence. The curriculum and
+institutional-mark notice is provided in
+\path{training/PUBLICATION_NOTICE.md}.

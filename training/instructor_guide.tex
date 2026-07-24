@@ -1,0 +1,58 @@
+\documentclass[11pt,oneside]{book}
+\newcommand{\DocumentTitle}{DSU dsDNA Core uafR Undergraduate Research Training Program: Instructor and Mentor Guide}
+\newcommand{\DocumentShortTitle}{uafR Instructor Guide}
+\input{preamble}
+
+\begin{document}
+\pagenumbering{Alph}
+
+\begin{titlepage}
+\pagecolor{DSULightBlue}
+\begin{center}
+\vspace*{0.08in}
+\CoreLogoBand
+
+\vspace{0.32in}
+{\Huge\bfseries\color{DSURed} DSU dsDNA Core uafR Undergraduate Research Training Program\par}
+\vspace{0.18in}
+{\LARGE\bfseries Instructor and Mentor Guide\par}
+\vspace{0.24in}
+{\Large Facilitating a 10-week reproducible chemical research internship\par}
+
+\vfill
+\begin{programbox}[width=0.86\textwidth]{Guide Purpose}
+This companion guide provides program setup, pacing, review questions,
+coaching guidance, assessment evidence, and release procedures. Student tasks,
+worksheets, rubrics, and the complete 70-day schedule remain in the student
+manual.
+\end{programbox}
+
+\vfill
+{\large DSU dsDNA Core\par}
+{\large Version \TrainingVersion\space | Revised \TrainingRevisionDate\par}
+{\large\href{\TrainingRepository}{github.com/castrattonDSU/uafR}\par}
+\vspace{0.12in}
+{\small Curriculum and institutional-mark notice: see \path{training/PUBLICATION_NOTICE.md}.\par}
+\end{center}
+\end{titlepage}
+\nopagecolor
+
+\frontmatter
+\tableofcontents
+\include{program_notes/instructor_preface}
+
+\mainmatter
+\include{program_notes/program_implementation_notes}
+\include{program_notes/dsdna_core_review_notes}
+\include{program_notes/bundle_maintenance}
+
+\backmatter
+\chapter*{Companion Materials}
+\addcontentsline{toc}{chapter}{Companion Materials}
+The student manual, teaching scripts, worksheets, rubrics, and public package
+documentation are maintained in the uafR repository at
+\url{\TrainingRepository}. Local schedules, restricted-data procedures, and
+project-specific access details should be supplied in a separate local
+supplement rather than added to the public student manual.
+
+\end{document}

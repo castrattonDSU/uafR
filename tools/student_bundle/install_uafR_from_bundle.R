@@ -1,4 +1,4 @@
-# uafR private student bundle installer.
+# uafR offline student bundle installer.
 # Unzip the bundle first, then open this file in RStudio and click Source.
 
 script_dir <- (function() {

@@ -1,4 +1,4 @@
-# Shared helper functions for the uafR private student bundle.
+# Shared helper functions for the uafR offline student bundle.
 
 uafr_bundle_script_dir <- function() {
   file_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)

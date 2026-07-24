@@ -30,6 +30,10 @@
 \bottomrule
 \end{longtable}
 
+\begin{programbox}{Validation Naming Note}
+Inside a saved \texttt{categorate()} result, the compact validation table is named \texttt{ValidationSummary}. A direct call to \texttt{validateCategorateResult(result)} returns a list whose corresponding validation table is named \texttt{Summary}, along with \texttt{TableQuality}, \texttt{SourceDiagnostics}, \texttt{Issues}, and \texttt{DataDictionary}. Both names are intentional; students should record which object they inspected.
+\end{programbox}
+
 \section{Training Scripts}
 \begin{tabularx}{\textwidth}{p{0.34\textwidth}Y}
 \toprule
@@ -42,17 +46,20 @@
 \path{06_trait_matrix_analysis.R} & Builds selected trait matrices and evidence tables.\\
 \path{07_visualization.R} & Creates example coverage and trait figures.\\
 \path{09_reproducibility_check.R} & Audits a student project folder before final submission.\\
+\path{10_species_phytochemistry.R} & Runs a simulated, offline species-first phytochemistry extension and optional live PubMed discovery.\\
 \path{run_training_smoke_tests.R} & Runs lightweight checks across the training scripts.\\
 \bottomrule
 \end{tabularx}
 
-\section{Student Bundle Scripts}
+\section{Student Bundle Files}
 \begin{tabularx}{\textwidth}{p{0.38\textwidth}Y}
 \toprule
 \textbf{Script} & \textbf{Purpose}\\
 \midrule
-\path{tools/build_student_bundle.R} & Builds the private student bundle folder and zip archive from the repository root.\\
 \path{START_HERE.md} & Gives the first student checklist for setup, installation, acceptance testing, and opening the manual.\\
+\path{uafR_QUICK_REFERENCE.md} & Gives students a compact command reference for setup, offline workflow, live smoke test, updates, and common problems.\\
+\path{CHECKSUMS.csv} & Records generated bundle file sizes and MD5 checksums for copying and distribution checks.\\
+\path{verify_bundle_integrity.R} & Confirms copied or unzipped bundle files still match \path{CHECKSUMS.csv}.\\
 \path{preflight_check.R} & Checks R, RStudio, internet access, bundle contents, library write access, and required dependencies before installation.\\
 \path{install_uafR_from_bundle.R} & Installs dependencies and the local uafR source archive from the unzipped student bundle.\\
 \path{update_uafR_from_bundle.R} & Reinstalls uafR from a newer bundle and verifies the result.\\
@@ -69,9 +76,10 @@
   \item Use \texttt{detail = "full"} only when the project needs broad assay details or deeper PubChem annotations.
 \end{itemize}
 
+\clearpage
 \section{Recommended Smoke Test Settings}
 \begin{rcode}
-categorate(
+smoke <- categorate(
   compounds = c("aspirin", "caffeine"),
   chemical_library = library_data,
   input_format = "wide",
@@ -83,4 +91,27 @@ categorate(
   trait_matrix_min_confidence = "medium",
   trait_matrix_max_traits = 100
 )
+
+validation <- validateCategorateResult(smoke)
+validation$Summary
+smoke$SourceCoverage
+smoke$ChemicalTraitReport
 \end{rcode}
+
+Run this optional live test only after the offline acceptance workflow passes.
+The expected product is a research-grade result object with an explicit
+validation summary, source-coverage rows for both query chemicals, and a
+compact trait report. A service warning or no-hit result should be recorded in
+the query log; it should not be replaced with an inferred value.
+
+\begin{checklistbox}{Before Scaling Beyond the Smoke Test}
+\begin{itemize}
+  \item Confirm that the two query names are the intended chemical identities.
+  \item Inspect validation and source diagnostics before interpreting traits.
+  \item Save the result object, query settings, package version, and session
+        information.
+  \item Keep caching enabled and increase query size gradually.
+  \item Pause after repeated service-busy responses and resume from the same
+        cache rather than restarting immediately.
+\end{itemize}
+\end{checklistbox}

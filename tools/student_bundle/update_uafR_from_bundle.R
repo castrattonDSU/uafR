@@ -1,4 +1,4 @@
-# uafR private student bundle update script.
+# uafR offline student bundle update script.
 # Use this when a newer bundle is distributed.
 
 script_dir <- (function() {

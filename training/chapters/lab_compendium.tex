@@ -1,175 +1,565 @@
 \chapter{Guided Lab and Exercise Compendium}
 
-The weekly chapters explain what students are learning. This compendium gives the dsDNA Core program a deeper set of labs and real-world exercises to fill full-day work blocks. Each lab ends with a saved artifact, a research log entry, and a short review check.
+The daily schedule names the work students complete each day. This compendium gives the reusable lab bank behind that schedule. Each lab has a concrete product, an inspection step, a research log requirement, and a review standard. Labs may be run with real student data, a dsDNA Core case dataset, or bundled uafR teaching data. Live database access is optional unless a program lead deliberately schedules it; offline examples and saved result objects are preferred for core instruction.
+
+\begin{programbox}{Lab Use Standard}
+Every lab produces a file, table, figure, memo, worksheet, or code object that remains in the project folder. A lab is not complete because a command ran. It is complete when the student can name the input, inspect the output, describe what the output supports, and document what it does not support.
+\end{programbox}
 
 \section{Lab 1: Chemical Question Triage}
-\textbf{Objective:} Teach students to reject questions that cannot be answered with available chemical evidence.
+\textbf{Objective:} Convert broad interests into feasible chemical research questions that can be answered with available evidence.
 
-\textbf{Inputs:} Three candidate research interests, the project brief worksheet, and a program-provided example chemical list.
+\textbf{Required inputs:} Three candidate interests, the Project Brief worksheet, a starter chemical list or example dataset, and one relevant background source.
+
+\textbf{Setup:} Open a new research log entry. Create a project folder or use the Week 1 planning folder. Keep all draft questions in \path{planning/question_triage.md}.
 
 \textbf{Procedure:}
 \begin{enumerate}
-  \item For each candidate question, identify the system, comparison, chemical evidence type, expected source tables, and likely limitation.
-  \item Mark each question as feasible, feasible with narrower scope, or not feasible in 10 weeks.
-  \item Rewrite weak questions so they specify a chemical set, comparison, evidence type, and output.
-  \item Choose one question for the internship and one backup question.
+  \item Write each candidate interest as a question with a system, chemical set, comparison, evidence type, and expected output.
+  \item Mark the evidence needed for each question: tentative GC-MS hits, public database annotation, trait matrix, literature support, or confirmed standard.
+  \item Classify each question as feasible in 10 weeks, feasible after narrowing, or not feasible with available data.
+  \item Rewrite weak questions so they avoid proof language and name the decision the analysis can support.
+  \item Select one primary question and one backup question. Record the main scientific risk for both.
 \end{enumerate}
 
-\textbf{Quality gate:} The review should make clear what data will be analyzed and what decision the analysis could support.
+\textbf{Expected outputs:} Completed Project Brief worksheet, ranked candidate questions, and a one-paragraph scope note.
 
-\textbf{Real-world exercise:} A collaborator asks whether these GC-MS hits can prove that a plant treatment increases medicinal compounds. Students must rewrite the request into a defensible question that separates tentative identity, trait enrichment, and follow-up validation.
+\textbf{Interpretation prompts:} What would count as evidence for the question? What result would be inconclusive? Which claim would require standards, new experiments, or literature beyond the current project?
+
+\textbf{Quality gate:} The selected question must identify the chemical set, comparison, source of evidence, and final product. It must not depend on proving biological activity, therapeutic value, or sample occurrence from database presence alone.
+
+\textbf{Troubleshooting:} If every question is too broad, reduce the chemical set, source domain, or comparison. If no comparison exists, use a descriptive evidence atlas question. If the question requires data that are not available, convert it to a pilot or methods question.
+
+\textbf{Research log entry:} Record the original broad interest, the narrowed question, why alternatives were rejected, and the strongest remaining limitation.
+
+\textbf{Review guidance:} Strong answers separate what uafR can organize and enrich from what the student's experiment has actually measured. Weak answers use verbs such as ``prove,'' ``cause,'' or ``confirm'' without confirmatory evidence.
+
+\textbf{Minimum viable version:} One feasible question, 8 to 15 chemicals, one comparison or evidence theme, and one expected figure.
+
+\textbf{Advanced version:} Two linked questions: one chemical evidence question and one methods or source-coverage question.
+
+\textbf{Rubric checklist:} Feasible scope; named data source; clear limitation; no overclaiming; usable Week 2 project brief.
 
 \section{Lab 2: Reproducible Project Build}
-\textbf{Objective:} Build a project that can be reopened and rerun by another person.
+\textbf{Objective:} Build a project folder that another student can open, understand, and rerun.
 
-\textbf{Inputs:} RStudio, Git, uafR source or installed package, and \path{training/scripts/01_project_setup.R}.
+\textbf{Required inputs:} RStudio, Git if available, uafR installation or local package source, \path{training/scripts/01_project_setup.R}, and the Reproducible Project checklist.
+
+\textbf{Setup:} Start from a clean R session. Work from a project root, not from the Downloads folder or a desktop scratch folder.
 
 \textbf{Procedure:}
 \begin{enumerate}
-  \item Run \texttt{create\_training\_project()}.
-  \item Add a project title, research question, data description, and script order to \path{README.md}.
-  \item Create \path{logs/session_info.txt} using \texttt{capture.output(sessionInfo())}.
-  \item Commit only appropriate files. Confirm that tokens, private data, and local machine paths are absent.
+  \item Source \path{training/scripts/01_project_setup.R}.
+  \item Run \texttt{create\_training\_project()} if available, or create the same folders manually: \path{data_raw/}, \path{data_processed/}, \path{scripts/}, \path{outputs/}, \path{figures/}, \path{logs/}, and \path{docs/}.
+  \item Edit \path{README.md} to include the research question, folder map, script order, and contact/ownership notes.
+  \item Add \path{scripts/00_check_setup.R}. It should load packages, print \texttt{sessionInfo()}, and check that expected folders exist.
+  \item Save \path{logs/session_info.txt} from a clean R session.
+  \item If Git is used, make an initial commit after confirming that private data, tokens, and local machine paths are not present.
 \end{enumerate}
 
-\textbf{Quality gate:} The project runs from its root directory and contains a log explaining what has been done so far.
+\textbf{Expected outputs:} Project skeleton, README, setup script, session information file, and first research log entry.
 
-\textbf{Real-world exercise:} Students exchange project folders and try to identify the correct script order without asking the author. Any confusion becomes a README revision.
+\textbf{Interpretation prompts:} Could a reviewer find the raw data, processed data, scripts, figures, and report without explanation? Which files are human-authored and which are generated?
+
+\textbf{Quality gate:} The setup script runs from the project root and the README names the first script to run. No absolute local paths or secrets are stored.
+
+\textbf{Troubleshooting:} If a script only works from one computer, replace absolute paths with project-relative paths. If package loading fails, record the version and installation error before editing analysis scripts.
+
+\textbf{Research log entry:} Record the project root, script order, package versions, and any setup problem that had to be solved.
+
+\textbf{Review guidance:} Accept projects that are plain and orderly. Do not reward elaborate folder structures that hide the script order or make reruns harder.
+
+\textbf{Minimum viable version:} README, \path{scripts/00_check_setup.R}, raw/processed data folders, outputs folder, and session information.
+
+\textbf{Advanced version:} Add a reproducibility badge table in the README showing which scripts run cleanly and which outputs they generate.
+
+\textbf{Rubric checklist:} Runnable setup; clear script order; no secrets; no edited raw data; documented package state.
 
 \section{Lab 3: Database Source Audit}
-\textbf{Objective:} Teach students to interpret database sources as evidence with scope and limitations.
+\textbf{Objective:} Teach students to treat public databases as evidence sources with scope, strengths, and limits.
 
-\textbf{Inputs:} Three chemicals from the student's project, PubChem pages or uafR PubChem outputs, KEGG records when available, and the source comparison worksheet.
+\textbf{Required inputs:} Three project chemicals, PubChem pages or uafR outputs, KEGG records when available, LOTUS/FEMA/FDA/SPL/MeSH evidence when available, and the Database Evidence Map worksheet.
 
-\textbf{Procedure:}
-\begin{enumerate}
-  \item For each chemical, identify a stable name, CID if available, and likely ambiguity.
-  \item Record which sources provide identity, properties, hazard, occurrence, sensory, biomedical, pathway, reaction, and literature evidence.
-  \item Mark every source-backed field as analysis-ready, narrative-only, or not relevant.
-  \item Write one sentence that states what each source can support and one sentence that states what it cannot support.
-\end{enumerate}
-
-\textbf{Quality gate:} Students must avoid treating database presence as proof of biological presence in their sample.
-
-\textbf{Real-world exercise:} Students compare caffeine and methyl salicylate. They should notice that one chemical may have strong biomedical and food-context evidence, while another may connect strongly to plant and sensory contexts. The result is a source suitability comparison, not a claim that one chemical is more important.
-
-\section{Lab 4: Offline Core Workflow}
-\textbf{Objective:} Teach the GC-MS workflow without depending on live web services.
-
-\textbf{Inputs:} \path{training/scripts/04_core_workflow.R}, bundled \texttt{standard\_spread}, and bundled \texttt{standard\_exacto}.
+\textbf{Setup:} Use a small chemical set. The goal is careful interpretation, not broad querying.
 
 \textbf{Procedure:}
 \begin{enumerate}
-  \item Source the script and run \texttt{run\_core\_workflow(live\_lookup = FALSE)}.
-  \item Inspect the structure of \texttt{spread} and \texttt{exact}.
-  \item Identify which columns would be needed to write a methods paragraph.
-  \item If services are available and live requests are appropriate, rerun with \texttt{live\_lookup = TRUE} and compare outputs.
+  \item Record each chemical name, synonym, CID if available, and known ambiguity such as salt form, mixture, stereochemistry, or generic name.
+  \item For each source, mark evidence as identity, property, hazard, occurrence, sensory, biomedical, regulatory, pathway, reaction, or literature.
+  \item Classify fields as analysis-ready, evidence-only narrative, or not relevant to the question.
+  \item Write one safe sentence for each source: what it can support and what it cannot support.
+  \item Identify the highest-value source and weakest source for the project.
 \end{enumerate}
 
-\textbf{Quality gate:} Students can explain which objects are bundled teaching outputs and which require live lookup.
+\textbf{Expected outputs:} Database Evidence Map worksheet and a source suitability paragraph.
 
-\textbf{Real-world exercise:} A student receives a CSV with the wrong column names. They must create an input audit that lists missing columns, suspicious duplicate keys, and a decision on whether the file can be processed.
+\textbf{Interpretation prompts:} Does the source support a chemical property, a database annotation, a biological occurrence, or an experimental measurement? Does it apply to the student's sample?
+
+\textbf{Quality gate:} The audit must distinguish database presence from sample presence and source annotation from analyzed variable.
+
+\textbf{Troubleshooting:} If a chemical has multiple identities, prefer stable identifiers and record ambiguity. If KEGG or LOTUS has no record, keep the missingness instead of replacing it with a weak synonym.
+
+\textbf{Research log entry:} Record which sources were inspected, which were useful, and which source gaps may affect the project.
+
+\textbf{Review guidance:} Strong audits explain absence of evidence. Weak audits silently remove sources that did not return results.
+
+\textbf{Minimum viable version:} Three chemicals and at least three evidence-source columns.
+
+\textbf{Advanced version:} Add source URLs, date accessed, and one reviewer-style challenge question per evidence type.
+
+\textbf{Rubric checklist:} Stable identifiers; source roles; missingness retained; limitations stated; no unsupported biological claims.
+
+\section{Lab 4: Offline Core GC-MS Workflow}
+\textbf{Objective:} Run the core uafR GC-MS workflow without relying on live web services.
+
+\textbf{Required inputs:} \path{training/scripts/04_core_workflow.R}, bundled example data such as \texttt{standard\_data}, \texttt{standard\_spread}, and \texttt{standard\_exacto}, and the GC-MS Input Column Audit worksheet.
+
+\textbf{Setup:} Start from a clean R session. Load uafR from the installed package. When working from the package source, use \texttt{devtools::load\_all(".")}.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item Source \path{training/scripts/04_core_workflow.R}.
+  \item Run \texttt{run\_core\_workflow(live\_lookup = FALSE)}.
+  \item Inspect the resulting list object. Confirm that spread and exact-match outputs exist.
+  \item Compare required input columns to the GC-MS Input Column Audit worksheet.
+  \item Write a methods paragraph naming the offline teaching data and noting that no live lookup was required.
+  \item Optional: when live services are appropriate, rerun a small live lookup and compare output structure only.
+\end{enumerate}
+
+\textbf{Expected outputs:} Saved offline workflow object, input column audit, and draft methods paragraph.
+
+\textbf{Interpretation prompts:} Which outputs summarize peak organization? Which outputs depend on chemical identity matching? Which object should be preserved for later reruns?
+
+\textbf{Quality gate:} Students can explain what \texttt{spreadOut()}, \texttt{mzExacto()}, and \texttt{exactoThese()} contribute and where tentative annotation limits begin.
+
+\textbf{Troubleshooting:} Missing required columns usually means the input table is not ready for uafR. Duplicate peak keys should be documented and resolved by rule, not ignored.
+
+\textbf{Research log entry:} Record command used, object names created, row counts, column names, and any mismatch between example data and project data.
+
+\textbf{Review guidance:} Strong work inspects object structure before interpretation. Weak work jumps from a successful script run to a biological conclusion.
+
+\textbf{Minimum viable version:} Offline workflow runs and methods paragraph names inputs and outputs.
+
+\textbf{Advanced version:} Compare offline bundled output with one guarded live lookup and document any differences.
+
+\textbf{Rubric checklist:} Required columns checked; object structure inspected; tentative status preserved; saved outputs present.
 
 \section{Lab 5: Research Enrichment Smoke Test}
-\textbf{Objective:} Run a small \texttt{categorate()} workflow and inspect validation before interpretation.
+\textbf{Objective:} Run a small \texttt{categorate(detail = "research")} test and inspect validation before interpreting enriched data.
 
-\textbf{Inputs:} \path{training/scripts/05_categorate_research.R}, two or three common compounds, and \texttt{library\_data}.
+\textbf{Required inputs:} \path{training/scripts/05_categorate_research.R}, two or three common compounds, \texttt{library\_data} when a chemical library is required, and the Query Settings Log worksheet.
+
+\textbf{Setup:} Use caching and throttling. Set \texttt{assay\_detail\_limit = 0} for smoke tests unless assay-level bioactivity is the explicit lesson.
 
 \textbf{Procedure:}
 \begin{enumerate}
-  \item Run a two-compound test with \texttt{assay\_detail\_limit = 0}.
-  \item Inspect \texttt{ValidationSummary}, \texttt{TableQuality}, and \texttt{SourceCoverage}.
-  \item Save the result as an RDS file and write the query settings in the research log.
-  \item Identify three useful tables and three tables that are empty or weak for the chosen compounds.
+  \item Source \path{training/scripts/05_categorate_research.R}.
+  \item Run \texttt{run\_categorate\_smoke()} if available, or run \texttt{categorate()} on two compounds with \texttt{detail = "research"}, caching, and a small throttle.
+  \item Immediately inspect \texttt{ValidationSummary}, \texttt{TableQuality}, \texttt{SourceCoverage}, \texttt{SourceDiagnostics}, and \texttt{DataDictionary}.
+  \item Save the full result as an RDS file.
+  \item Identify three tables that are useful for the project and three tables that are absent, sparse, or not relevant.
 \end{enumerate}
 
-\textbf{Quality gate:} Students do not inspect \texttt{ChemicalTraitMatrix} until they have inspected validation and source coverage.
+\textbf{Expected outputs:} Saved enrichment RDS, query settings log, validation notes, and source coverage summary.
 
-\textbf{Real-world exercise:} The student must decide whether to run 50 compounds immediately or batch-test 5 first. They should justify the decision using database etiquette, caching, and source coverage.
+\textbf{Interpretation prompts:} Which sources returned data? Which tables are empty? Which columns are discrete enough for grouping? Which are evidence text only?
+
+\textbf{Quality gate:} No trait matrix or figure is interpreted before validation and source coverage are inspected.
+
+\textbf{Troubleshooting:} If uafR reports that no library was detected, load \texttt{library\_data} and pass it as \texttt{chemical\_library}. If multiple compounds appear to hang, reduce the query size, use cached results, and test one compound before scaling.
+
+\textbf{Research log entry:} Record compounds queried, cache setting, throttle, detail level, assay limit, date, and any failed source.
+
+\textbf{Review guidance:} Strong smoke tests are small, documented, and saved. Weak smoke tests repeatedly query live services without preserving settings.
+
+\textbf{Minimum viable version:} Two compounds, saved result, validation inspected.
+
+\textbf{Advanced version:} Compare \texttt{detail = "standard"} and \texttt{detail = "research"} for table families and research value.
+
+\textbf{Rubric checklist:} Small query; validation first; cache/throttle recorded; result saved; source gaps documented.
 
 \section{Lab 6: Evidence Court}
-\textbf{Objective:} Train students to defend or withdraw claims based on evidence rows.
+\textbf{Objective:} Decide whether a draft claim deserves to remain in the project by tracing it back to source evidence.
 
-\textbf{Inputs:} \texttt{ChemicalTraitMatrix}, \texttt{ChemicalTraitEvidence}, \texttt{ChemicalTraitReport}, and one draft result claim.
+\textbf{Required inputs:} \texttt{ChemicalTraitMatrix}, \texttt{ChemicalTraitEvidence}, \texttt{ChemicalTraitReport}, one draft claim, and the Evidence Court worksheet.
+
+\textbf{Setup:} Choose a claim that is tempting but not yet fully defended. Claims about pathway activity, safety, bioactivity, and natural occurrence are especially useful.
 
 \textbf{Procedure:}
 \begin{enumerate}
-  \item Choose one matrix column that appears important.
-  \item Pull all evidence rows for that matrix key.
-  \item Identify source database, source field, evidence text, source URL, confidence, and extraction rule.
-  \item Decide whether the trait can support a result, a hypothesis, or only a note.
-  \item Rewrite the claim using the correct strength of evidence.
+  \item Identify the figure, table, matrix column, or result sentence behind the claim.
+  \item Pull evidence rows for the relevant trait key with \texttt{chemicalTraitEvidence()} where possible.
+  \item Record source database, source field, evidence text, source URL or identifier, confidence, and extraction rule.
+  \item Decide whether the evidence supports a result, a discussion hypothesis, a limitation note, or removal.
+  \item Rewrite the claim using cautious wording.
 \end{enumerate}
 
-\textbf{Quality gate:} Every accepted claim must trace to evidence and every rejected claim must be documented.
+\textbf{Expected outputs:} Completed Evidence Court worksheet and a revised claim-evidence-limitation paragraph.
 
-\textbf{Real-world exercise:} Students hold a mock review panel. One student argues for a claim, one argues against it, and one acts as editor. The editor decides whether the claim belongs in Results, Discussion, or Future Work.
+\textbf{Interpretation prompts:} Does evidence come from the student's data, a public database, a literature source, or an inference across sources? Which link is weakest?
+
+\textbf{Quality gate:} Accepted claims trace to evidence. Rejected claims are documented so they do not reappear later.
+
+\textbf{Troubleshooting:} If evidence rows are missing, inspect source tables directly or withdraw the claim. If evidence text is narrative, extract only defensible discrete variables.
+
+\textbf{Research log entry:} Record the original claim, evidence reviewed, decision, and revised wording.
+
+\textbf{Review guidance:} Strong claims survive reviewer-style challenge questions. Weak claims rely on one broad database sentence.
+
+\textbf{Minimum viable version:} One claim fully traced and rewritten.
+
+\textbf{Advanced version:} Run Evidence Court for the three strongest final report claims and include one removed claim.
+
+\textbf{Rubric checklist:} Source table named; evidence row recorded; confidence considered; claim strength corrected; limitation explicit.
 
 \section{Lab 7: Trait Matrix Design}
-\textbf{Objective:} Build matrices that answer a research question rather than maximize column count.
+\textbf{Objective:} Build analysis-ready matrices that answer the research question rather than maximize column count.
 
-\textbf{Inputs:} \texttt{ChemicalTraits}, \texttt{ChemicalTraitOntology}, \texttt{chemicalTraitMatrix()}, and the grouping dictionary worksheet.
+\textbf{Required inputs:}
+\begin{itemize}
+  \item Saved enrichment result and \texttt{ChemicalTraits}.
+  \item \texttt{chemicalTraitMatrix()}, \texttt{chemicalTraitOntologyMatrix()}, and \texttt{chemicalTraitEvidence()}.
+  \item Trait Grouping Dictionary worksheet.
+\end{itemize}
+
+\textbf{Setup:} Freeze the chemical set before comparing matrix settings. Do not change compounds and matrix settings at the same time.
 
 \textbf{Procedure:}
 \begin{enumerate}
-  \item Build a core binary matrix with medium confidence or higher.
-  \item Build a wider confidence-weighted matrix.
-  \item Compare matrix dimensions, sparsity, and interpretability.
-  \item Select a final matrix profile and document why weaker columns were removed.
+  \item Build a core binary matrix.
+  \item Build a confidence-weighted matrix.
+  \item Build or inspect ontology-derived variables when appropriate.
+  \item Compare matrix dimensions, missingness, sparsity, and interpretability.
+  \item Create a grouping dictionary with source table, source field, extraction rule, allowed values, confidence rule, and caveat.
+  \item Select the final matrix and document excluded variables.
 \end{enumerate}
 
-\textbf{Quality gate:} The final matrix should be smaller, clearer, and more defensible than the widest possible matrix.
+\textbf{Expected outputs:} Matrix files, grouping dictionary, sensitivity note, and exclusion list.
 
-\textbf{Real-world exercise:} A project review requests clustering. Students must decide whether the matrix has enough meaningful columns and coverage to make clustering interpretable.
+\textbf{Interpretation prompts:} Are variables biologically or chemically meaningful? Are columns too sparse to interpret? Would changing the confidence threshold change the conclusion?
+
+\textbf{Quality gate:} Every final variable has a source and an extraction rule. Narrative text is not treated as a categorical variable until it has been cleaned into discrete values.
+
+\textbf{Troubleshooting:} If the matrix has too many columns, use \texttt{max\_traits}, a narrower profile, or a higher confidence threshold. If the matrix is mostly zeros, rethink the question or trait profile.
+
+\textbf{Research log entry:} Record function calls, profile, mode, thresholds, dimensions, removed columns, and justification.
+
+\textbf{Review guidance:} Strong matrices are smaller and better defended than the widest possible output.
+
+\textbf{Minimum viable version:} One final matrix and one grouping dictionary.
+
+\textbf{Advanced version:} Compare binary, count, and confidence modes and show which conclusions are stable.
+
+\textbf{Rubric checklist:} Reproducible function calls; documented thresholds; source-backed variables; sparsity evaluated; exclusions justified.
 
 \section{Lab 8: Figure Clinic}
-\textbf{Objective:} Convert validated matrices and summaries into figures that support interpretation.
+\textbf{Objective:} Convert validated outputs into figures that answer explicit research questions.
 
-\textbf{Inputs:} \path{training/scripts/07_visualization.R}, a saved enrichment result, and the figure planning worksheet.
+\textbf{Required inputs:} \path{training/scripts/07_visualization.R}, saved enrichment result, final or draft matrix, source coverage table, and Figure Planning worksheet.
+
+\textbf{Setup:} Sketch the figure purpose before plotting. Identify the result sentence the figure is supposed to support.
 
 \textbf{Procedure:}
 \begin{enumerate}
-  \item Generate a source coverage heatmap and a trait matrix heatmap.
-  \item Build one additional figure that matches the project question.
-  \item Write a caption that names the source table, evidence type, and limitation.
-  \item Peer review the figure using the presentation rubric.
+  \item Generate or inspect a source coverage heatmap.
+  \item Generate or inspect a trait matrix heatmap.
+  \item Build one project-specific figure such as a property summary, trait count bar chart, or focused evidence table.
+  \item Check axis labels, legends, color choices, missing-value treatment, caption, and export size.
+  \item Revise the caption so it states source, scope, and limitation.
 \end{enumerate}
 
-\textbf{Quality gate:} A figure must answer a question, not merely display available columns.
+\textbf{Expected outputs:} At least two scripted figures, one figure plan, and one peer review note.
 
-\textbf{Real-world exercise:} Students receive two versions of a figure: one visually attractive but overclaiming, one plain but honest. They revise the attractive figure so it remains readable while becoming scientifically defensible.
+\textbf{Interpretation prompts:} What question does the figure answer? What is missing? Would a table be clearer? Does the caption overclaim?
+
+\textbf{Quality gate:} A figure must be regenerated from code and must have a caption that names the source table or matrix.
+
+\textbf{Troubleshooting:} If labels overlap, simplify variables or export at a larger size. If a figure is visually striking but scientifically vague, rewrite the result question or remove the figure.
+
+\textbf{Research log entry:} Record figure file names, source objects, script name, and what changed after critique.
+
+\textbf{Review guidance:} Strong figures reduce cognitive load and clarify evidence. Weak figures show everything available.
+
+\textbf{Minimum viable version:} Source coverage figure, one trait figure, and captions.
+
+\textbf{Advanced version:} Add a sensitivity panel showing how a threshold choice changes or does not change interpretation.
+
+\textbf{Rubric checklist:} Scripted export; readable labels; source named; limitation stated; figure tied to a result sentence.
 
 \section{Lab 9: Literature-to-Evidence Bridge}
-\textbf{Objective:} Connect database-derived patterns to peer-reviewed context.
+\textbf{Objective:} Link database-derived patterns to peer-reviewed literature without inflating claims.
 
-\textbf{Inputs:} A figure, an evidence row, and three papers related to the system or chemical class.
+\textbf{Required inputs:} One figure or table, one source evidence row, three papers, and the Literature and Evidence Synthesis worksheet.
+
+\textbf{Setup:} Search by chemical name, stable identifier, trait, organism or system, method, and project context. Avoid relying only on broad review articles.
 
 \textbf{Procedure:}
 \begin{enumerate}
-  \item For each paper, extract organism or system, method, chemical evidence, main claim, and limitation.
-  \item Map each paper to a specific project result.
-  \item Mark whether the paper supports background, interpretation, mechanism, or follow-up.
-  \item Write a claim-evidence-limitation paragraph.
+  \item For each paper, record system, method, chemical evidence, main claim, and limitation.
+  \item Link each paper to a specific project result or background need.
+  \item Mark the paper's role: background, interpretation, method comparison, conflict, or follow-up.
+  \item Write a claim-evidence-limitation paragraph that includes the uafR evidence and literature role.
+  \item Identify one claim that should be weakened or removed after reading.
 \end{enumerate}
 
-\textbf{Quality gate:} Literature should sharpen interpretation, not inflate it.
+\textbf{Expected outputs:} Annotated literature table and one revised interpretation paragraph.
 
-\textbf{Real-world exercise:} A student finds a paper about the same compound but a different organism and analytical method. They must decide whether it belongs in Introduction, Discussion, or not at all.
+\textbf{Interpretation prompts:} Does the paper measure the same chemical, system, organism, analytical method, or outcome? Is it direct support or contextual support?
+
+\textbf{Quality gate:} Literature must sharpen uncertainty and next steps. It must not be used to imply confirmed identity, pathway activity, mechanism, or clinical relevance without direct evidence.
+
+\textbf{Troubleshooting:} If papers are too general, add method and organism terms. If no direct literature exists, document the gap and treat it as a future-work point.
+
+\textbf{Research log entry:} Record search terms, databases searched, papers retained, papers rejected, and why.
+
+\textbf{Review guidance:} Strong synthesis connects specific evidence to a modest interpretation. Weak synthesis adds impressive citations without changing the claim.
+
+\textbf{Minimum viable version:} Three annotated papers and one paragraph.
+
+\textbf{Advanced version:} Add a conflict table showing where literature and database evidence disagree.
+
+\textbf{Rubric checklist:} Search terms recorded; paper roles assigned; limitations included; claim revised; citation quality adequate.
 
 \section{Lab 10: Final Handoff Audit}
-\textbf{Objective:} Ensure the project can survive after the student leaves.
+\textbf{Objective:} Ensure the project can be understood, rerun, and extended after the student leaves.
 
-\textbf{Inputs:} Final project folder, \path{training/scripts/09_reproducibility_check.R}, final report, figures, and saved result objects.
+\textbf{Required inputs:} Final project folder, \path{training/scripts/09_reproducibility_check.R}, README, saved results, final report, figures, and Final Handoff worksheet.
+
+\textbf{Setup:} Run from a clean R session. If possible, have a different student or mentor perform the audit.
 
 \textbf{Procedure:}
 \begin{enumerate}
-  \item Run \texttt{check\_training\_project()}.
-  \item Confirm every figure can be regenerated from scripts.
-  \item Confirm every major result has a source table, evidence row, or citation.
-  \item Move abandoned scratch files into an archive folder or remove them after program review.
-  \item Write a continuation note for the next student.
+  \item Run \texttt{check\_training\_project()} when available.
+  \item Confirm that scripts run from the project root in the documented order.
+  \item Confirm that each final figure can be regenerated.
+  \item Confirm that the final report points to scripts, tables, source evidence, and citations.
+  \item Move obsolete scratch files to an archive folder or delete them only after review.
+  \item Write a continuation note naming the next best step, unresolved issues, and claims not to make.
 \end{enumerate}
 
-\textbf{Quality gate:} A reviewer should be able to rerun or inspect the work without asking the student to explain where files are.
+\textbf{Expected outputs:} Final package audit, continuation note, clean README, and reproducibility status.
 
-\textbf{Real-world exercise:} Students trade final project folders and perform a handoff audit. The reviewer writes a one-page note naming what they could reproduce, what was unclear, and what should be fixed first.
+\textbf{Interpretation prompts:} What would a future student need first? Which result is ready to extend? Which result needs confirmation before publication?
+
+\textbf{Quality gate:} A reviewer who did not work on the project can identify the question, rerun path, main outputs, limitations, and next steps.
+
+\textbf{Troubleshooting:} If the project cannot rerun, preserve the failure message and fix the earliest failing script first. If a figure is missing its source object, rebuild the output chain rather than manually recreating the figure.
+
+\textbf{Research log entry:} Record audit date, reviewer, failures, fixes, and final archive location.
+
+\textbf{Review guidance:} Strong handoffs are boring in the best way: files are named, scripts are ordered, and decisions are documented.
+
+\textbf{Minimum viable version:} README, saved result, scripts, figures, report, session info, and continuation note.
+
+\textbf{Advanced version:} A second reviewer reruns the full package and signs the audit worksheet.
+
+\textbf{Rubric checklist:} Clean session rerun; source evidence present; final products linked; unresolved issues named; continuation note actionable.
+
+\section{Lab 11: Identifier Ambiguity Drill}
+\textbf{Objective:} Practice resolving chemical-name ambiguity before database enrichment.
+
+\textbf{Required inputs:} A list containing synonyms, salts, mixtures, stereochemical variants, and common names; PubChem or saved identity outputs; Chemical Intake Table worksheet.
+
+\textbf{Setup:} Use chemicals where ambiguity is visible. Include at least one common name, one salt form, and one stereochemistry example.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item Record the submitted name exactly as received.
+  \item Identify synonyms and candidate stable identifiers.
+  \item Flag ambiguity type: synonym, salt, mixture, stereochemistry, isomer, generic class, or misspelling.
+  \item Choose an inclusion rule for the project.
+  \item Document excluded names and why they were excluded.
+\end{enumerate}
+
+\textbf{Expected outputs:} Cleaned chemical intake table and identifier ambiguity note.
+
+\textbf{Interpretation prompts:} Would two students choose the same identifier from the rule? Is the rule appropriate for GC-MS tentative annotation?
+
+\textbf{Quality gate:} No ambiguous identifier enters enrichment without a documented inclusion decision.
+
+\textbf{Troubleshooting:} If the source name is a mixture or class rather than a compound, remove it or split it only with defensible source support.
+
+\textbf{Research log entry:} Record identifier rule, ambiguous entries, and final query name.
+
+\textbf{Review guidance:} Strong entries preserve the original name and the cleaned query name.
+
+\textbf{Minimum viable version:} Five chemicals with ambiguity flags.
+
+\textbf{Advanced version:} Add InChIKey or CID checks where available and compare results across synonyms.
+
+\textbf{Rubric checklist:} Original names preserved; ambiguity type assigned; inclusion rule documented; exclusions justified.
+
+\section{Lab 12: Wrong-Column GC-MS Input Repair}
+\textbf{Objective:} Diagnose and repair malformed GC-MS hit tables before running uafR workflows.
+
+\textbf{Required inputs:} A malformed CSV, required column list, \texttt{spreadOut()} documentation, and GC-MS Input Column Audit worksheet.
+
+\textbf{Setup:} Work on a copy of the input file. Preserve the original raw export unchanged.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item Read the CSV and print column names.
+  \item Compare names to expected fields such as \texttt{Component.RT}, \texttt{Component.Area}, \texttt{Base.Peak.MZ}, \texttt{File.Name}, \texttt{Compound.Name}, and \texttt{Match.Factor}.
+  \item Identify missing, renamed, duplicated, or nonnumeric columns.
+  \item Write a cleaning script that renames columns and coerces types with warnings.
+  \item Save a processed copy and rerun the input audit.
+\end{enumerate}
+
+\textbf{Expected outputs:} Column audit, cleaning script, processed input file, and rerun note.
+
+\textbf{Interpretation prompts:} Which changes are mechanical? Which changes require scientific judgment? Were any rows removed?
+
+\textbf{Quality gate:} The raw file is preserved and every repair is scripted.
+
+\textbf{Troubleshooting:} If duplicate peak keys exist, create a documented rule before processing. If match factor or area columns are nonnumeric, inspect examples before coercion.
+
+\textbf{Research log entry:} Record original columns, repairs, row counts before and after, and remaining warnings.
+
+\textbf{Review guidance:} Strong repair scripts are explicit and reversible.
+
+\textbf{Minimum viable version:} Rename and audit one malformed file.
+
+\textbf{Advanced version:} Write a reusable audit function for future exports from the same instrument.
+
+\textbf{Rubric checklist:} Raw preserved; column map created; type checks documented; duplicates handled; processed file reproducible.
+
+\section{Lab 13: Source Coverage Missingness Audit}
+\textbf{Objective:} Determine whether missing database evidence changes the interpretation.
+
+\textbf{Required inputs:}
+\begin{itemize}
+  \item Saved \texttt{categorate()} result.
+  \item \texttt{SourceCoverage}, \texttt{TableQuality}, and \texttt{SourceDiagnostics}.
+  \item Source Coverage Report worksheet.
+\end{itemize}
+
+\textbf{Setup:} Use the same saved result object that will support figures. Do not rerun live queries just to fill gaps until the missingness is understood.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item Count source coverage by chemical and source family.
+  \item Mark missingness as expected, concerning, or project-limiting.
+  \item Identify whether missingness affects one chemical, one source, or one evidence type.
+  \item Write a limitation statement for the final report.
+  \item Decide whether to query an alternate identifier, reduce scope, or keep the missingness.
+\end{enumerate}
+
+\textbf{Expected outputs:} Source coverage report, missingness note, and any identifier follow-up list.
+
+\textbf{Interpretation prompts:} Are missing values random, source-specific, or tied to chemical class? Does a missing field mean no evidence was found or that the source was not queried successfully?
+
+\textbf{Quality gate:} Missing source coverage is visible in methods, figures, or limitations.
+
+\textbf{Troubleshooting:} If diagnostics show failed requests, repeat a small cached smoke test. If the source truly has no data, keep that result.
+
+\textbf{Research log entry:} Record source coverage pattern, decision, and any rerun settings.
+
+\textbf{Review guidance:} Strong audits prevent students from overinterpreting chemicals with richer records.
+
+\textbf{Minimum viable version:} One source coverage table and one paragraph.
+
+\textbf{Advanced version:} Compare conclusions with and without low-coverage chemicals.
+
+\textbf{Rubric checklist:} Coverage summarized; diagnostics checked; missingness classified; interpretation adjusted.
+
+\section{Lab 14: Matrix Sparsity Sensitivity Analysis}
+\textbf{Objective:} Test whether matrix-based conclusions are stable under reasonable trait filtering choices.
+
+\textbf{Required inputs:} Saved trait outputs, \texttt{chemicalTraitMatrix()}, Matrix Sensitivity Log worksheet, and final grouping dictionary draft.
+
+\textbf{Setup:} Freeze the chemical set. Change one matrix setting at a time.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item Build a baseline core binary matrix.
+  \item Build a higher-confidence matrix.
+  \item Build a narrower profile or lower maximum trait count.
+  \item Record dimensions, percent nonzero cells, dropped traits, and changed patterns.
+  \item Decide which matrix is final and which sensitivity result belongs in the report or appendix.
+\end{enumerate}
+
+\textbf{Expected outputs:} Sensitivity table, final matrix choice, and missing-data note.
+
+\textbf{Interpretation prompts:} Are the same chemicals grouped together? Are conclusions driven by one broad or low-confidence trait? Are sparse columns useful or misleading?
+
+\textbf{Quality gate:} The final matrix choice is justified by interpretability and evidence quality, not by the most visually appealing result.
+
+\textbf{Troubleshooting:} If all matrices are sparse, narrow the question or treat the project as a source-coverage analysis.
+
+\textbf{Research log entry:} Record settings, matrix dimensions, selected matrix, and reason.
+
+\textbf{Review guidance:} Strong sensitivity analysis shows what changed and what stayed stable.
+
+\textbf{Minimum viable version:} Two matrix settings compared.
+
+\textbf{Advanced version:} Add a similarity comparison using \texttt{chemicalTraitSimilarity()} when appropriate.
+
+\textbf{Rubric checklist:} One setting changed at a time; sparsity measured; conclusion stability assessed; final settings documented.
+
+\section{Lab 15: Reviewer Response Exercise}
+\textbf{Objective:} Practice responding to critique with evidence and revision rather than defensiveness.
+
+\textbf{Required inputs:} Draft report section, peer review form, rubrics, and source evidence.
+
+\textbf{Setup:} Choose three comments: one scientific, one reproducibility, and one writing or figure comment.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item Classify each comment as accept, partially accept, clarify, or reject with reason.
+  \item Locate the file, figure, table, or paragraph affected.
+  \item Make the revision or write the evidence-based reason for not changing it.
+  \item Create a response table with reviewer comment, action taken, file location, and remaining concern.
+  \item Update the research log and final report.
+\end{enumerate}
+
+\textbf{Expected outputs:} Reviewer response table and revised report or figure.
+
+\textbf{Interpretation prompts:} Did the revision improve evidence traceability? Did it weaken an overclaim? Did it make the project easier to rerun?
+
+\textbf{Quality gate:} Every accepted comment produces a concrete change and every declined comment has a defensible reason.
+
+\textbf{Troubleshooting:} If feedback conflicts, prioritize scientific accuracy and reproducibility over visual preference.
+
+\textbf{Research log entry:} Record feedback received, decisions, and files changed.
+
+\textbf{Review guidance:} Strong responses are specific and professional.
+
+\textbf{Minimum viable version:} Three comments resolved.
+
+\textbf{Advanced version:} Add a before-and-after claim table showing how interpretation improved.
+
+\textbf{Rubric checklist:} Comments classified; actions specific; evidence cited; files revised; unresolved issues named.
+
+\section{Lab 16: Final Package Recovery Exercise}
+\textbf{Objective:} Test whether the final package is robust when a file is missing, a session is clean, or a new reviewer starts from the README.
+
+\textbf{Required inputs:} Near-final project folder, final package audit, README, scripts, and saved outputs.
+
+\textbf{Setup:} Work on a copy of the project folder. Do not damage the authoritative final folder.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item Ask a reviewer to start from the README and identify the rerun sequence.
+  \item Temporarily move one generated output to an archive folder and rerun the script that should recreate it.
+  \item Start a clean R session and rerun the setup and final figure scripts.
+  \item Record any failure caused by missing data, unclear paths, package versions, or manual steps.
+  \item Fix the project so the same failure is unlikely for the next user.
+\end{enumerate}
+
+\textbf{Expected outputs:} Recovery audit, fixed README or scripts, and final archive note.
+
+\textbf{Interpretation prompts:} Which files are essential? Which outputs are regenerateable? Which files are historical records that should be preserved but not rerun?
+
+\textbf{Quality gate:} The final package can recover generated outputs from scripts and can explain any file that cannot be regenerated.
+
+\textbf{Troubleshooting:} If recovery fails because raw data are private, document access rules and provide a case-data substitute when possible.
+
+\textbf{Research log entry:} Record recovery test, failure points, fixes, and final status.
+
+\textbf{Review guidance:} Strong final packages are resilient to clean sessions and new reviewers.
+
+\textbf{Minimum viable version:} One generated output is regenerated successfully.
+
+\textbf{Advanced version:} A reviewer on another machine completes the recovery test from the student bundle.
+
+\textbf{Rubric checklist:} README usable; outputs regenerate; private data protected; recovery failures fixed or documented; archive note complete.

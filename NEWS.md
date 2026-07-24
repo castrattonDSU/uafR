@@ -2,6 +2,10 @@
 
 ## Major improvements
 
+- Published separate, versioned student and instructor editions of the 10-week
+  DSU dsDNA Core uafR curriculum with the official wordmark, public GitHub and
+  offline-bundle installation routes, species-first plant training support,
+  automated LaTeX builds, offline smoke tests, and public-content checks.
 - PubChem record-mode enrichment now filters requested headings and sources
   while traversing PUG-View records rather than materializing every unrelated
   annotation first. Large LOTUS classification responses are parsed with

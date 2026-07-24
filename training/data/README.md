@@ -1,9 +1,12 @@
 # Training Data
 
-This directory is reserved for training datasets that should ship with the
-curriculum but are not part of the R package itself.
+This directory contains blank or simulated templates that ship with the
+curriculum but are not part of the R package itself. The current CSV rows are
+instructional examples only. They are not observations, public-database
+exports, or evidence about a research sample and must be replaced or
+source-verified before analysis.
 
-Recommended contents:
+Acceptable future contents:
 
 - Small GC-MS example tables that can be shared publicly.
 - Metadata dictionaries for student projects.

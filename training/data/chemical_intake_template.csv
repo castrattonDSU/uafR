@@ -1,3 +1,3 @@
 Chemical,InputName,Source,SourceType,Confidence,ProjectRelevance,Include,Notes
-aspirin,aspirin,literature,example,known,teaching example,yes,Replace with project compounds
-caffeine,caffeine,literature,example,known,teaching example,yes,Replace with project compounds
+aspirin,aspirin,simulated_training_template,simulated,not_assessed,workflow demonstration,yes,Replace with a source-verified project compound
+caffeine,caffeine,simulated_training_template,simulated,not_assessed,workflow demonstration,yes,Replace with a source-verified project compound

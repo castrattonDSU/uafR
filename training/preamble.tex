@@ -15,6 +15,13 @@
 \usepackage{url}
 \usepackage{multicol}
 
+\providecommand{\DocumentTitle}{DSU dsDNA Core Undergraduate Research Training Program}
+\providecommand{\DocumentShortTitle}{uafR Undergraduate Research Training}
+\newcommand{\TrainingVersion}{1.1}
+\newcommand{\TrainingRevisionDate}{July 2026}
+\newcommand{\TrainingRepository}{https://github.com/castrattonDSU/uafR}
+\newcommand{\TrainingMaintainer}{Chase Stratton, DSU dsDNA Core}
+
 \definecolor{DSURed}{HTML}{EE3124}
 \definecolor{DSUBlue}{HTML}{0099CC}
 \definecolor{DSUDarkBlue}{HTML}{005A7A}
@@ -28,7 +35,7 @@
   linkcolor=DSURed,
   citecolor=DSUDarkBlue,
   urlcolor=DSUDarkBlue,
-  pdftitle={DSU dsDNA Core Undergraduate Research Training Program},
+  pdftitle={\DocumentTitle},
   pdfauthor={DSU dsDNA Core}
 }
 
@@ -42,7 +49,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \lhead{\textcolor{DSURed}{DSU dsDNA Core}}
-\rhead{\textcolor{DSUMidGray}{uafR Undergraduate Research Training}}
+\rhead{\textcolor{DSUMidGray}{\DocumentShortTitle}}
 \cfoot{\thepage}
 
 \titleformat{\chapter}
@@ -76,6 +83,7 @@
 
 \newtcolorbox{programbox}[2][]{
   enhanced,
+  breakable,
   colback=DSULightBlue,
   colframe=DSUBlue,
   coltitle=white,
@@ -92,6 +100,7 @@
 
 \newtcolorbox{goldbox}[2][]{
   enhanced,
+  breakable,
   colback=DSULightRed,
   colframe=DSURed,
   coltitle=DSUBlack,
@@ -108,6 +117,7 @@
 
 \newtcolorbox{checklistbox}[2][]{
   enhanced,
+  breakable,
   colback=white,
   colframe=DSUDarkBlue,
   coltitle=white,
@@ -122,14 +132,88 @@
   #1
 }
 
+\newtcolorbox{dailybox}[2][]{
+  enhanced,
+  breakable,
+  colback=white,
+  colframe=DSUBlue,
+  coltitle=white,
+  title={#2},
+  fonttitle=\bfseries,
+  boxrule=0.6pt,
+  arc=2mm,
+  left=1.0em,
+  right=1.0em,
+  top=0.75em,
+  bottom=0.75em,
+  #1
+}
+
+\newtcolorbox{mentorbox}[2][]{
+  enhanced,
+  breakable,
+  colback=DSULightGray,
+  colframe=DSUMidGray,
+  coltitle=white,
+  title={#2},
+  fonttitle=\bfseries,
+  boxrule=0.6pt,
+  arc=2mm,
+  left=1.0em,
+  right=1.0em,
+  top=0.75em,
+  bottom=0.75em,
+  #1
+}
+
+\newtcolorbox{evidencebox}[2][]{
+  enhanced,
+  breakable,
+  colback=white,
+  colframe=DSURed,
+  coltitle=white,
+  title={#2},
+  fonttitle=\bfseries,
+  boxrule=0.6pt,
+  arc=2mm,
+  left=1.0em,
+  right=1.0em,
+  top=0.75em,
+  bottom=0.75em,
+  #1
+}
+
+\newcommand{\SafeClaim}[3]{%
+  \begin{tabularx}{\textwidth}{p{0.26\textwidth}Y}
+  \toprule
+  \textbf{Weak claim} & #1\\
+  \textbf{Safer wording} & #2\\
+  \textbf{Reviewer challenge} & #3\\
+  \bottomrule
+  \end{tabularx}
+}
+
 \newcommand{\CoreLogo}{%
   \IfFileExists{assets/dsdna_core_logo.png}{%
-    \includegraphics[width=1.35in]{assets/dsdna_core_logo.png}%
+    \includegraphics[
+      width=0.76\textwidth,
+      height=2.15in,
+      keepaspectratio
+    ]{assets/dsdna_core_logo.png}%
   }{%
-    \fcolorbox{DSURed}{DSULightBlue}{%
-      \parbox[c][1.05in][c]{1.35in}{\centering\bfseries\color{DSURed}dsDNA\\Core\\Logo}%
-    }%
+    \PackageError{uafR training manual}
+      {Required dsDNA Core logo is missing}
+      {Add assets/dsdna_core_logo.png before building a public manual.}%
   }%
+}
+
+\newcommand{\CoreLogoBand}{%
+  \begingroup
+  \setlength{\fboxsep}{0.12in}%
+  \colorbox{white}{%
+    \parbox[c][2.28in][c]{0.88\textwidth}{\centering\CoreLogo}%
+  }%
+  \endgroup
 }
 
 \newcommand{\WeekHeader}[4]{%

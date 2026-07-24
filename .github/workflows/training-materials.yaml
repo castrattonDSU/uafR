@@ -1,0 +1,103 @@
+on:
+  push:
+    branches: [main]
+    paths:
+      - "training/**"
+      - "tools/build_training_manuals.R"
+      - "tools/check_training_publication.R"
+      - "tools/build_student_bundle.R"
+      - "tools/student_bundle/**"
+      - ".github/workflows/training-materials.yaml"
+      - "R/**"
+      - "NAMESPACE"
+      - "DESCRIPTION"
+  pull_request:
+    paths:
+      - "training/**"
+      - "tools/build_training_manuals.R"
+      - "tools/check_training_publication.R"
+      - "tools/build_student_bundle.R"
+      - "tools/student_bundle/**"
+      - ".github/workflows/training-materials.yaml"
+      - "R/**"
+      - "NAMESPACE"
+      - "DESCRIPTION"
+  workflow_dispatch:
+
+name: training-materials
+
+permissions:
+  contents: read
+
+jobs:
+  manuals-and-offline-training:
+    runs-on: ubuntu-latest
+    env:
+      UAFR_RUN_LIVE_TESTS: "false"
+      UAFR_TRAINING_LIVE: "0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-tinytex@v2
+
+      - name: Install training manual TeX packages
+        run: >-
+          tlmgr install
+          geometry
+          xcolor
+          colortbl
+          graphics
+          microtype
+          booktabs
+          tools
+          enumitem
+          fancyhdr
+          titlesec
+          tcolorbox
+          tikzfill
+          pdfcol
+          amsmath
+          listings
+          listingsutf8
+          hyperref
+          url
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::testthat
+            any::knitr
+            any::rmarkdown
+            bioc::ChemmineR
+            bioc::fmcsR
+            local::.
+          needs: check
+          dependencies: '"hard"'
+
+      - name: Build public manuals
+        run: Rscript tools/build_training_manuals.R
+
+      - name: Audit public training publications
+        run: Rscript tools/check_training_publication.R
+
+      - name: Run offline training smoke tests
+        run: Rscript training/scripts/run_training_smoke_tests.R
+
+      - name: Build and verify offline student bundle
+        run: |
+          Rscript tools/build_student_bundle.R "${RUNNER_TEMP}/uafR_student_bundle"
+          Rscript -e 'bundle <- list.dirs(file.path(Sys.getenv("RUNNER_TEMP"), "uafR_student_bundle"), recursive = FALSE, full.names = TRUE); stopifnot(length(bundle) == 1L); source(file.path(bundle, "verify_bundle_integrity.R"), chdir = TRUE)'
+          Rscript -e 'bundle <- list.dirs(file.path(Sys.getenv("RUNNER_TEMP"), "uafR_student_bundle"), recursive = FALSE, full.names = TRUE); stopifnot(length(bundle) == 1L); source(file.path(bundle, "run_student_acceptance_test.R"), chdir = TRUE)'
+
+      - name: Upload public manuals
+        uses: actions/upload-artifact@v4
+        with:
+          name: uafR-training-manuals-${{ github.sha }}
+          path: |
+            training/uafR_training_manual.pdf
+            training/uafR_instructor_guide.pdf
+          if-no-files-found: error

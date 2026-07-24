@@ -1,2 +1,2 @@
 Finding,Chemical,FigureOrTable,UafRTable,SourceField,SourceDatabase,EvidenceValue,Confidence,LiteratureCitation,Interpretation,Limitation,FollowUp
-example finding,aspirin,ChemicalTraitReport,ChemicalTraits,TraitValue,PubChem,example value,medium,replace with citation,replace with interpretation,replace with limitation,replace with next step
+simulated example finding,aspirin,ChemicalTraitReport,ChemicalTraits,TraitValue,simulated_training_template,replace with source-backed value,not_assessed,replace with verified citation,replace with interpretation,simulated row is not research evidence,replace with next step
