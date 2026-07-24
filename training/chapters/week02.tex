@@ -1,0 +1,83 @@
+\chapter{R, RStudio, Git, and Reproducible Project Structure}
+
+\WeekHeader{2}{R, RStudio, Git, and Reproducible Project Structure}{Build a project that another researcher can open, run, and audit.}{Working R project with folders, install check, research log, and first commit.}
+
+\section{Why This Matters}
+Reproducibility is a research skill, not an afterthought. A student who can organize files, name outputs clearly, and rerun an analysis has already solved many of the problems that slow down publication.
+
+\section{Concepts}
+\begin{itemize}
+  \item \textbf{Project root}: the top-level folder that contains scripts, data, results, and documentation.
+  \item \textbf{Relative path}: a file path that works from the project root on any machine.
+  \item \textbf{Raw data}: input data that should not be manually edited.
+  \item \textbf{Derived data}: tables created by scripts.
+  \item \textbf{Version control}: a record of changes to files and analysis decisions.
+  \item \textbf{Research log}: a dated record of decisions, errors, fixes, and interpretation changes.
+\end{itemize}
+
+\section{Recommended Project Structure}
+\begin{verbatim}
+student-project/
+  README.md
+  analysis/
+  data_raw/
+  data_processed/
+  figures/
+  results/
+  scripts/
+  reports/
+  logs/
+\end{verbatim}
+
+\section{Guided Lab}
+Run the install and environment check in \path{training/scripts/00_install_check.R}. Students should save the output in their research log.
+
+\begin{rcode}
+source("training/scripts/00_install_check.R")
+check_training_install()
+\end{rcode}
+
+Then create a project folder and initialize the file structure:
+
+\begin{rcode}
+source("training/scripts/01_project_setup.R")
+create_training_project("student-project")
+\end{rcode}
+
+\section{Git Practice}
+Students should make small, readable commits. A good commit message says what changed and why it matters:
+
+\begin{verbatim}
+Add chemical intake table for plant volatile project
+Document first uafR install check
+Add Week 1 project brief
+\end{verbatim}
+
+\section{Independent Extension}
+Students customize their project README with:
+\begin{itemize}
+  \item Project title.
+  \item Research question.
+  \item Data source.
+  \item Main scripts.
+  \item Contact and dsDNA Core support.
+  \item Current status.
+\end{itemize}
+
+\section{Deliverables}
+\begin{tabularx}{\textwidth}{p{0.25\textwidth}YY}
+\DeliverableTableHeader
+Project folder & Uses the required folder structure and relative paths. & Local folder or repository\\
+Install check & Shows R version, uafR version, key dependencies, and package data availability. & Research log\\
+First commit & Commit includes Week 1 and Week 2 materials without private tokens or sensitive data. & Git history\\
+\end{tabularx}
+
+\section{Quality Checklist}
+\begin{checklistbox}{Before Week 3}
+\begin{itemize}
+  \item No script uses an absolute path to another person's computer.
+  \item No token, password, or private key appears in any file.
+  \item The project can be opened from the project root and scripts can find their inputs.
+  \item The student can explain the difference between raw and processed data.
+\end{itemize}
+\end{checklistbox}

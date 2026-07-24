@@ -1,0 +1,3 @@
+VariableName,SourceTable,SourceField,ExtractionRule,AllowedValues,ConfidenceRule,WhyItMatters,Caveat
+has_ghs_hazard_code,ChemicalHazards,HazardCode,source-backed code present,0|1,medium or higher,safety screening,does not establish risk without exposure context
+has_kegg_pathway,ChemicalPathwayRoles,PathwayID,KEGG pathway ID present,0|1,medium or higher,biochemical context,does not prove pathway activity in sample

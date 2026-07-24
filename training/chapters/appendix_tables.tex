@@ -1,0 +1,86 @@
+\chapter{uafR Table and Script Guide}
+
+\section{High-Value categorate Tables}
+\begin{longtable}{p{0.34\textwidth}p{0.54\textwidth}}
+\toprule
+\textbf{Table} & \textbf{Research use}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Table} & \textbf{Research use}\\
+\midrule
+\endhead
+\texttt{PubChemIdentity} & Check CID matches, match status, and source URLs.\\
+\texttt{PubChemProperties} & Compare formula, exact mass, molecular weight, and descriptor fields when available.\\
+\texttt{SourceCoverage} & Identify which databases contributed evidence for each chemical.\\
+\texttt{ChemicalTerms} & Inspect long-form extracted terms before committing to variables.\\
+\texttt{ChemicalTraits} & Use cross-source discrete traits with confidence and evidence fields.\\
+\texttt{ChemicalTraitOntology} & Use whitelisted ontology-style traits grouped by research domain.\\
+\texttt{ChemicalTraitMatrix} & Analyze chemicals by binary, count, or confidence-weighted trait columns.\\
+\texttt{ChemicalTraitEvidence} & Trace matrix columns back to source evidence.\\
+\texttt{ChemicalTraitReport} & Review one compact row per compound for high-level interpretation.\\
+\texttt{ChemicalMeasurementSummary} & Summarize extracted measured or computed properties.\\
+\texttt{ChemicalHazards} & Inspect source-backed safety and hazard values.\\
+\texttt{ChemicalOccurrences} & Review organism or natural product occurrence evidence.\\
+\texttt{ChemicalPathwayRoles} & Interpret KEGG pathway context and biochemical roles.\\
+\texttt{KEGGReactionParticipants} & Examine reaction participation and related biochemical context.\\
+\texttt{DataDictionary} & Confirm expected table schemas and field meaning.\\
+\texttt{TableQuality} & Audit missing columns, duplicate keys, and completeness.\\
+\texttt{ValidationSummary} & Start every review here before interpreting output.\\
+\bottomrule
+\end{longtable}
+
+\section{Training Scripts}
+\begin{tabularx}{\textwidth}{p{0.34\textwidth}Y}
+\toprule
+\textbf{Script} & \textbf{Purpose}\\
+\midrule
+\path{00_install_check.R} & Confirms R, package, dependencies, and example data.\\
+\path{01_project_setup.R} & Creates a reproducible student project folder.\\
+\path{04_core_workflow.R} & Runs the core GC-MS example workflow.\\
+\path{05_categorate_research.R} & Runs a small research enrichment smoke test.\\
+\path{06_trait_matrix_analysis.R} & Builds selected trait matrices and evidence tables.\\
+\path{07_visualization.R} & Creates example coverage and trait figures.\\
+\path{09_reproducibility_check.R} & Audits a student project folder before final submission.\\
+\path{run_training_smoke_tests.R} & Runs lightweight checks across the training scripts.\\
+\bottomrule
+\end{tabularx}
+
+\section{Student Bundle Scripts}
+\begin{tabularx}{\textwidth}{p{0.38\textwidth}Y}
+\toprule
+\textbf{Script} & \textbf{Purpose}\\
+\midrule
+\path{tools/build_student_bundle.R} & Builds the private student bundle folder and zip archive from the repository root.\\
+\path{START_HERE.md} & Gives the first student checklist for setup, installation, acceptance testing, and opening the manual.\\
+\path{preflight_check.R} & Checks R, RStudio, internet access, bundle contents, library write access, and required dependencies before installation.\\
+\path{install_uafR_from_bundle.R} & Installs dependencies and the local uafR source archive from the unzipped student bundle.\\
+\path{update_uafR_from_bundle.R} & Reinstalls uafR from a newer bundle and verifies the result.\\
+\path{verify_uafR_install.R} & Confirms package loading, dependencies, bundled datasets, and saved standard categorate data without live web queries.\\
+\path{run_student_acceptance_test.R} & Runs package verification, the offline training workflow, and an optional live database smoke test.\\
+\path{examples/test_install.R} & Reruns the acceptance test from the bundle examples folder.\\
+\bottomrule
+\end{tabularx}
+
+\section{Choosing Detail Levels}
+\begin{itemize}
+  \item Use \texttt{detail = "standard"} for the legacy eight-table output.
+  \item Use \texttt{detail = "research"} for most student projects. It gives rich tables while keeping the query smaller than full assay detail.
+  \item Use \texttt{detail = "full"} only when the project needs broad assay details or deeper PubChem annotations.
+\end{itemize}
+
+\section{Recommended Smoke Test Settings}
+\begin{rcode}
+categorate(
+  compounds = c("aspirin", "caffeine"),
+  chemical_library = library_data,
+  input_format = "wide",
+  detail = "research",
+  cache = TRUE,
+  throttle = 0.2,
+  assay_detail_limit = 0,
+  trait_matrix_profile = "core",
+  trait_matrix_min_confidence = "medium",
+  trait_matrix_max_traits = 100
+)
+\end{rcode}

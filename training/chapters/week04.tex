@@ -1,0 +1,79 @@
+\chapter{uafR Core GC-MS Workflow}
+
+\WeekHeader{4}{uafR Core GC-MS Workflow}{Convert GC-MS-style hit tables into a form that supports targeted extraction.}{Processed example workflow using \texttt{spreadOut()}, \texttt{mzExacto()}, and \texttt{exactoThese()}.}
+
+\section{Why This Matters}
+Before enrichment, students need to understand the chemical identity table coming from a mass spectrometry workflow. Tentative compound names, retention time, base peak, match factor, file name, and peak area must be reshaped carefully so chemical evidence can be compared across samples.
+
+\section{Required Input Columns}
+The core workflow expects a GC-MS-style input table with these columns:
+\begin{itemize}
+  \item \texttt{Component.RT}
+  \item \texttt{Component.Area}
+  \item \texttt{Base.Peak.MZ}
+  \item \texttt{File.Name}
+  \item \texttt{Compound.Name}
+  \item \texttt{Match.Factor}
+\end{itemize}
+
+\section{Guided Lab}
+Use the package example data first. Students should not begin with their own messy file until they can run and explain the example. The support script uses bundled exact-match output by default so the classroom workflow does not depend on live services.
+
+\begin{rcode}
+library(uafR)
+source("training/scripts/04_core_workflow.R")
+
+core <- run_core_workflow(live_lookup = FALSE)
+
+names(core$spread)
+head(core$exact)
+\end{rcode}
+
+When services are available and live lookup behavior needs to be tested, run:
+
+\begin{rcode}
+live_core <- run_core_workflow(live_lookup = TRUE)
+head(live_core$exact)
+\end{rcode}
+
+Then subset an existing categorated object:
+
+\begin{rcode}
+data("standard_categorated", package = "uafR")
+subset_reactives <- exactoThese(
+  standard_categorated,
+  subsetBy = "Database",
+  subsetArgs = "reactives"
+)
+subset_reactives
+\end{rcode}
+
+\section{Interpretation Practice}
+Students should describe:
+\begin{itemize}
+  \item Which compounds were retained and why.
+  \item Whether match factors are high enough for the intended claim.
+  \item Whether retention time or base peak patterns suggest duplicated or ambiguous hits.
+  \item What should be considered tentative until confirmed by standards.
+\end{itemize}
+
+\section{Independent Extension}
+Students adapt the workflow to their own data or a program-provided example. They must document every cleaning step and preserve the original input file unchanged.
+
+\section{Deliverables}
+\begin{tabularx}{\textwidth}{p{0.25\textwidth}YY}
+\DeliverableTableHeader
+Core workflow script & Runs from project root and produces spread and exact outputs. & R script\\
+Input column audit & Confirms required columns, missing values, duplicates, and unusual match factors. & CSV or log\\
+Interpretation note & Explains what can and cannot be concluded from the processed hits. & Research log\\
+\end{tabularx}
+
+\section{Quality Checklist}
+\begin{checklistbox}{Before Week 5}
+\begin{itemize}
+  \item The script preserves raw data and writes processed outputs separately.
+  \item The student can explain why tentative library matches are not structural confirmation.
+  \item Duplicate or suspicious hit keys are documented.
+  \item The workflow uses clear object names and comments only where they clarify decisions.
+\end{itemize}
+\end{checklistbox}

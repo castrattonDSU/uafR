@@ -1,0 +1,3 @@
+Chemical,InputName,Source,SourceType,Confidence,ProjectRelevance,Include,Notes
+aspirin,aspirin,literature,example,known,teaching example,yes,Replace with project compounds
+caffeine,caffeine,literature,example,known,teaching example,yes,Replace with project compounds

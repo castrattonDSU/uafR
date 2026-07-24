@@ -1,0 +1,101 @@
+\chapter{Program Architecture for a Full-Day Internship}
+
+\section{Why This Is a 10-Week Full-Day Program}
+The program is not 10 weeks because students need 10 weeks to learn a few R functions. It is 10 weeks because the expected outcome is a research product with defensible evidence, reusable code, figures, interpretation, and a handoff package. A full-day internship gives students enough time to repeat the cycle that real research requires: learn, try, fail, diagnose, revise, document, and communicate.
+
+\begin{programbox}{Full-Day Assumption}
+Each week assumes roughly 30 to 35 focused hours. A typical day includes a short technical lesson, guided work, independent project time, dsDNA Core or peer feedback, and written documentation. Students who only attend part-time can still use the program; in that format the number of exercises is reduced rather than reducing the quality standard.
+\end{programbox}
+
+\section{Daily Work Blocks}
+\begin{tabularx}{\textwidth}{p{0.22\textwidth}Y}
+\toprule
+\textbf{Block} & \textbf{Purpose}\\
+\midrule
+Morning concept block & Introduce the scientific idea, database concept, coding pattern, or interpretation principle needed that day.\\
+Guided technical lab & Run code, inspect outputs, troubleshoot errors, and learn the expected workflow with a small example.\\
+Independent project block & Apply the day's method to the student's own project or assigned case study.\\
+Evidence and writing block & Convert analysis into a research log entry, methods text, figure caption, or decision memo.\\
+dsDNA Core checkpoint & Review a concrete artifact and decide whether the student can move forward or must revise.\\
+\bottomrule
+\end{tabularx}
+
+\section{Product Ladder}
+The internship is organized as a product ladder. Each week creates an artifact that is needed later.
+
+\begin{longtable}{p{0.12\textwidth}p{0.25\textwidth}p{0.53\textwidth}}
+\toprule
+\textbf{Week} & \textbf{Artifact} & \textbf{Why it matters}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Week} & \textbf{Artifact} & \textbf{Why it matters}\\
+\midrule
+\endhead
+1 & Project brief & Prevents a broad interest from becoming an untestable analysis.\\
+2 & Reproducible project & Gives the student a research workspace that can be audited and rerun.\\
+3 & Database evidence map & Separates identity, source coverage, biological context, and uncertainty.\\
+4 & Core GC-MS workflow & Establishes how tentative chemical evidence enters the project.\\
+5 & Enrichment result & Creates the main source-backed chemical evidence object.\\
+6 & Grouping dictionary & Converts source-backed fields into analysis-ready variables.\\
+7 & Figure set & Reveals patterns and missing data before interpretation hardens.\\
+8 & Evidence memo & Connects database evidence to peer-reviewed context.\\
+9 & Draft report & Forces the methods, results, figures, and limitations into a coherent argument.\\
+10 & Final package & Leaves behind work that the dsDNA Core team, a collaborator, or a future student can use.\\
+\bottomrule
+\end{longtable}
+
+\section{Skill Progression}
+Students move through four levels:
+
+\begin{enumerate}
+  \item \textbf{Operator}: can run a provided script and identify the output.
+  \item \textbf{Inspector}: can check whether an output is complete, duplicated, missing, or suspicious.
+  \item \textbf{Analyst}: can transform validated outputs into variables, figures, and tables.
+  \item \textbf{Researcher}: can defend interpretation with source evidence, literature, uncertainty, and next steps.
+\end{enumerate}
+
+\section{Research Integrity Rules}
+\begin{checklistbox}{Rules Students Must Follow}
+\begin{itemize}
+  \item Never present a tentative chemical match as confirmed identity unless standards or equivalent confirmatory evidence are available.
+  \item Never hide unmatched chemicals or missing source coverage.
+  \item Never copy a database sentence into a result and treat it as an analyzed variable.
+  \item Never store tokens, passwords, private data, or unpublished collaborator data in a repository.
+  \item Never change raw data manually; all cleaning must be scripted or documented.
+  \item Never make a figure that cannot be regenerated from code.
+\end{itemize}
+\end{checklistbox}
+
+\section{Program Decision Gates}
+Decision gates keep the program rigorous:
+
+\begin{tabularx}{\textwidth}{p{0.22\textwidth}Y}
+\toprule
+\textbf{Gate} & \textbf{Student must show}\\
+\midrule
+Scope gate & A feasible question, reviewed chemical list, and documented risk note.\\
+Reproducibility gate & A project folder with relative paths, scripts, logs, and no secrets.\\
+Evidence gate & Source coverage, validation results, and evidence rows for important traits.\\
+Variable gate & A grouping dictionary with source table, field, rule, allowed values, and caveat.\\
+Interpretation gate & A claim supported by a figure, table, database field, and literature source.\\
+Handoff gate & Final package can be understood by someone who was not present during the internship.\\
+\bottomrule
+\end{tabularx}
+
+\section{Expected Weekly Time Budget}
+\begin{tabularx}{\textwidth}{p{0.35\textwidth}p{0.18\textwidth}Y}
+\toprule
+\textbf{Activity} & \textbf{Hours/week} & \textbf{Notes}\\
+\midrule
+Technical instruction and guided lab & 6--8 & Short lessons followed by hands-on work.\\
+Independent project work & 10--12 & Student applies the workflow to their question or case study.\\
+Reading and annotation & 3--5 & Database docs, methods papers, and project-specific literature.\\
+Writing and documentation & 4--6 & Research log, methods, captions, interpretation, and handoff notes.\\
+dsDNA Core and peer review & 3--4 & Weekly review, code walk-throughs, and figure critique.\\
+Troubleshooting and revision & 4--6 & Expected time for errors, reruns, cleanup, and rethinking.\\
+\bottomrule
+\end{tabularx}
+
+\section{What Students Should Be Told Up Front}
+The internship is not a race to get a colorful heatmap. A student who finds that half their chemicals have weak source coverage has not failed. That is a useful result if it is documented clearly. A student who discovers that a project question is too broad has not failed. That is research judgment. The standard is not that every project produces a dramatic biological conclusion. The standard is that every project produces a trustworthy research package.

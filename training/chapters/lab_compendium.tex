@@ -1,0 +1,175 @@
+\chapter{Guided Lab and Exercise Compendium}
+
+The weekly chapters explain what students are learning. This compendium gives the dsDNA Core program a deeper set of labs and real-world exercises to fill full-day work blocks. Each lab ends with a saved artifact, a research log entry, and a short review check.
+
+\section{Lab 1: Chemical Question Triage}
+\textbf{Objective:} Teach students to reject questions that cannot be answered with available chemical evidence.
+
+\textbf{Inputs:} Three candidate research interests, the project brief worksheet, and a program-provided example chemical list.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item For each candidate question, identify the system, comparison, chemical evidence type, expected source tables, and likely limitation.
+  \item Mark each question as feasible, feasible with narrower scope, or not feasible in 10 weeks.
+  \item Rewrite weak questions so they specify a chemical set, comparison, evidence type, and output.
+  \item Choose one question for the internship and one backup question.
+\end{enumerate}
+
+\textbf{Quality gate:} The review should make clear what data will be analyzed and what decision the analysis could support.
+
+\textbf{Real-world exercise:} A collaborator asks whether these GC-MS hits can prove that a plant treatment increases medicinal compounds. Students must rewrite the request into a defensible question that separates tentative identity, trait enrichment, and follow-up validation.
+
+\section{Lab 2: Reproducible Project Build}
+\textbf{Objective:} Build a project that can be reopened and rerun by another person.
+
+\textbf{Inputs:} RStudio, Git, uafR source or installed package, and \path{training/scripts/01_project_setup.R}.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item Run \texttt{create\_training\_project()}.
+  \item Add a project title, research question, data description, and script order to \path{README.md}.
+  \item Create \path{logs/session_info.txt} using \texttt{capture.output(sessionInfo())}.
+  \item Commit only appropriate files. Confirm that tokens, private data, and local machine paths are absent.
+\end{enumerate}
+
+\textbf{Quality gate:} The project runs from its root directory and contains a log explaining what has been done so far.
+
+\textbf{Real-world exercise:} Students exchange project folders and try to identify the correct script order without asking the author. Any confusion becomes a README revision.
+
+\section{Lab 3: Database Source Audit}
+\textbf{Objective:} Teach students to interpret database sources as evidence with scope and limitations.
+
+\textbf{Inputs:} Three chemicals from the student's project, PubChem pages or uafR PubChem outputs, KEGG records when available, and the source comparison worksheet.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item For each chemical, identify a stable name, CID if available, and likely ambiguity.
+  \item Record which sources provide identity, properties, hazard, occurrence, sensory, biomedical, pathway, reaction, and literature evidence.
+  \item Mark every source-backed field as analysis-ready, narrative-only, or not relevant.
+  \item Write one sentence that states what each source can support and one sentence that states what it cannot support.
+\end{enumerate}
+
+\textbf{Quality gate:} Students must avoid treating database presence as proof of biological presence in their sample.
+
+\textbf{Real-world exercise:} Students compare caffeine and methyl salicylate. They should notice that one chemical may have strong biomedical and food-context evidence, while another may connect strongly to plant and sensory contexts. The result is a source suitability comparison, not a claim that one chemical is more important.
+
+\section{Lab 4: Offline Core Workflow}
+\textbf{Objective:} Teach the GC-MS workflow without depending on live web services.
+
+\textbf{Inputs:} \path{training/scripts/04_core_workflow.R}, bundled \texttt{standard\_spread}, and bundled \texttt{standard\_exacto}.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item Source the script and run \texttt{run\_core\_workflow(live\_lookup = FALSE)}.
+  \item Inspect the structure of \texttt{spread} and \texttt{exact}.
+  \item Identify which columns would be needed to write a methods paragraph.
+  \item If services are available and live requests are appropriate, rerun with \texttt{live\_lookup = TRUE} and compare outputs.
+\end{enumerate}
+
+\textbf{Quality gate:} Students can explain which objects are bundled teaching outputs and which require live lookup.
+
+\textbf{Real-world exercise:} A student receives a CSV with the wrong column names. They must create an input audit that lists missing columns, suspicious duplicate keys, and a decision on whether the file can be processed.
+
+\section{Lab 5: Research Enrichment Smoke Test}
+\textbf{Objective:} Run a small \texttt{categorate()} workflow and inspect validation before interpretation.
+
+\textbf{Inputs:} \path{training/scripts/05_categorate_research.R}, two or three common compounds, and \texttt{library\_data}.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item Run a two-compound test with \texttt{assay\_detail\_limit = 0}.
+  \item Inspect \texttt{ValidationSummary}, \texttt{TableQuality}, and \texttt{SourceCoverage}.
+  \item Save the result as an RDS file and write the query settings in the research log.
+  \item Identify three useful tables and three tables that are empty or weak for the chosen compounds.
+\end{enumerate}
+
+\textbf{Quality gate:} Students do not inspect \texttt{ChemicalTraitMatrix} until they have inspected validation and source coverage.
+
+\textbf{Real-world exercise:} The student must decide whether to run 50 compounds immediately or batch-test 5 first. They should justify the decision using database etiquette, caching, and source coverage.
+
+\section{Lab 6: Evidence Court}
+\textbf{Objective:} Train students to defend or withdraw claims based on evidence rows.
+
+\textbf{Inputs:} \texttt{ChemicalTraitMatrix}, \texttt{ChemicalTraitEvidence}, \texttt{ChemicalTraitReport}, and one draft result claim.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item Choose one matrix column that appears important.
+  \item Pull all evidence rows for that matrix key.
+  \item Identify source database, source field, evidence text, source URL, confidence, and extraction rule.
+  \item Decide whether the trait can support a result, a hypothesis, or only a note.
+  \item Rewrite the claim using the correct strength of evidence.
+\end{enumerate}
+
+\textbf{Quality gate:} Every accepted claim must trace to evidence and every rejected claim must be documented.
+
+\textbf{Real-world exercise:} Students hold a mock review panel. One student argues for a claim, one argues against it, and one acts as editor. The editor decides whether the claim belongs in Results, Discussion, or Future Work.
+
+\section{Lab 7: Trait Matrix Design}
+\textbf{Objective:} Build matrices that answer a research question rather than maximize column count.
+
+\textbf{Inputs:} \texttt{ChemicalTraits}, \texttt{ChemicalTraitOntology}, \texttt{chemicalTraitMatrix()}, and the grouping dictionary worksheet.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item Build a core binary matrix with medium confidence or higher.
+  \item Build a wider confidence-weighted matrix.
+  \item Compare matrix dimensions, sparsity, and interpretability.
+  \item Select a final matrix profile and document why weaker columns were removed.
+\end{enumerate}
+
+\textbf{Quality gate:} The final matrix should be smaller, clearer, and more defensible than the widest possible matrix.
+
+\textbf{Real-world exercise:} A project review requests clustering. Students must decide whether the matrix has enough meaningful columns and coverage to make clustering interpretable.
+
+\section{Lab 8: Figure Clinic}
+\textbf{Objective:} Convert validated matrices and summaries into figures that support interpretation.
+
+\textbf{Inputs:} \path{training/scripts/07_visualization.R}, a saved enrichment result, and the figure planning worksheet.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item Generate a source coverage heatmap and a trait matrix heatmap.
+  \item Build one additional figure that matches the project question.
+  \item Write a caption that names the source table, evidence type, and limitation.
+  \item Peer review the figure using the presentation rubric.
+\end{enumerate}
+
+\textbf{Quality gate:} A figure must answer a question, not merely display available columns.
+
+\textbf{Real-world exercise:} Students receive two versions of a figure: one visually attractive but overclaiming, one plain but honest. They revise the attractive figure so it remains readable while becoming scientifically defensible.
+
+\section{Lab 9: Literature-to-Evidence Bridge}
+\textbf{Objective:} Connect database-derived patterns to peer-reviewed context.
+
+\textbf{Inputs:} A figure, an evidence row, and three papers related to the system or chemical class.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item For each paper, extract organism or system, method, chemical evidence, main claim, and limitation.
+  \item Map each paper to a specific project result.
+  \item Mark whether the paper supports background, interpretation, mechanism, or follow-up.
+  \item Write a claim-evidence-limitation paragraph.
+\end{enumerate}
+
+\textbf{Quality gate:} Literature should sharpen interpretation, not inflate it.
+
+\textbf{Real-world exercise:} A student finds a paper about the same compound but a different organism and analytical method. They must decide whether it belongs in Introduction, Discussion, or not at all.
+
+\section{Lab 10: Final Handoff Audit}
+\textbf{Objective:} Ensure the project can survive after the student leaves.
+
+\textbf{Inputs:} Final project folder, \path{training/scripts/09_reproducibility_check.R}, final report, figures, and saved result objects.
+
+\textbf{Procedure:}
+\begin{enumerate}
+  \item Run \texttt{check\_training\_project()}.
+  \item Confirm every figure can be regenerated from scripts.
+  \item Confirm every major result has a source table, evidence row, or citation.
+  \item Move abandoned scratch files into an archive folder or remove them after program review.
+  \item Write a continuation note for the next student.
+\end{enumerate}
+
+\textbf{Quality gate:} A reviewer should be able to rerun or inspect the work without asking the student to explain where files are.
+
+\textbf{Real-world exercise:} Students trade final project folders and perform a handoff audit. The reviewer writes a one-page note naming what they could reproduce, what was unclear, and what should be fixed first.

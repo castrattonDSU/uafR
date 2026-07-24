@@ -1,3 +1,8 @@
+url: https://castrattonDSU.github.io/uafR/
+
+template:
+  bootstrap: 5
+
 navbar:
   structure:
     left:
@@ -13,7 +18,7 @@ navbar:
       href: reference/index.html
     github:
       icon: fab fa-github fa-lg
-      href: https://github.com/castratton/uafR/
+      href: https://github.com/castrattonDSU/uafR/
       aria-label: github
     intro:
       text: Descriptive Walkthrough
@@ -35,16 +40,30 @@ reference:
 - title: All functions
   contents:
   - '`categorate`'
+  - '`chemicalDataDictionary`'
+  - '`chemicalMeasurementSummary`'
+  - '`chemicalTraitEvidence`'
+  - '`chemicalTraitMatrix`'
+  - '`chemicalTraitOntology`'
+  - '`chemicalTraitOntologyMatrix`'
+  - '`chemicalTraitReport`'
+  - '`chemicalTraitSimilarity`'
+  - '`chemicalTraitSummary`'
   - '`exactoThese`'
   - '`ExternalStandard_data`'
+  - '`exportCategorateWorkbook`'
   - '`library_data`'
   - '`library_data_long`'
+  - '`keggProfile`'
   - '`mzExacto`'
   - '`personalLib`'
+  - '`published_data`'
+  - '`pubchemProfile`'
   - '`spreadOut`'
   - '`standardifyIt`'
   - '`standard_categorated`'
   - '`standard_data`'
   - '`standard_exacto`'
   - '`standard_spread`'
-
+  - '`standards_model_data`'
+  - '`validateCategorateResult`'
