@@ -14,15 +14,14 @@ chemicalTraitSimilarity(
 )
 }
 \arguments{
-\item{traits}{A \code{ChemicalTraits} data frame, a categorate result
-containing \code{ChemicalTraits}, or a trait matrix with \code{Query}/\code{CID}
-columns.}
+\item{traits}{A `ChemicalTraits` data frame, a categorate result containing
+`ChemicalTraits`, or a trait matrix with `Query`/`CID` columns.}
 
-\item{profile}{Trait matrix profile used when \code{traits} is not already a
-matrix. See \code{chemicalTraitMatrix()}.}
+\item{profile}{Trait matrix profile used when `traits` is not already a
+matrix. See `chemicalTraitMatrix()`.}
 
 \item{min_confidence}{Minimum confidence score for included traits. Accepts a
-numeric score or \code{"low"}, \code{"medium"}, or \code{"high"}.}
+numeric score or `"low"`, `"medium"`, or `"high"`.}
 
 \item{max_traits}{Maximum number of trait columns to include before computing
 similarity.}
@@ -34,10 +33,10 @@ explanatory columns.}
 A pairwise data frame with Jaccard and overlap similarities.
 }
 \description{
-\code{chemicalTraitSimilarity()} computes pairwise similarity from
-\code{ChemicalTraits}, a categorate result, or an already-built trait matrix. It
-reports shared and distinct trait counts plus collapsed shared/distinct matrix
-keys so researchers can quickly see why compounds group together.
+`chemicalTraitSimilarity()` computes pairwise similarity from
+`ChemicalTraits`, a categorate result, or an already-built trait matrix. It
+reports shared and distinct trait counts plus collapsed shared/distinct
+matrix keys so researchers can quickly see why compounds group together.
 }
 \examples{
 \dontrun{
@@ -45,4 +44,5 @@ result = categorate(compounds, library_data, detail = "full")
 chemicalTraitSimilarity(result)
 chemicalTraitSimilarity(result, profile = "bioactivity")
 }
+
 }

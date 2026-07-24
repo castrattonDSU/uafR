@@ -1,0 +1,204 @@
+---
+title: "Offline Plant Phytochemistry Workflow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Offline Plant Phytochemistry Workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(uafR)
+```
+
+## Purpose
+
+This article runs a complete plant-chemistry project without web access. The
+included rows are a **simulated teaching fixture**. Their source labels,
+citations, occurrence relationships, and project context are synthetic and
+must not be treated as evidence about the listed plants.
+
+The fixture exists to demonstrate the package contracts:
+
+- one stable plant universe;
+- direct, fallback, candidate, and review-required evidence;
+- resolved and unresolved compounds;
+- comparable and non-comparable chemistry;
+- plant-labeled Tanimoto rows;
+- model-ready feature matrices; and
+- a validated analysis bundle.
+
+## Load the fixture
+
+```{r load-fixture}
+example_dir = system.file(
+  "extdata",
+  "offline_plant_chemistry",
+  package = "uafR"
+)
+stopifnot(nzchar(example_dir))
+
+plants = read.csv(
+  file.path(example_dir, "plant_list.csv"),
+  stringsAsFactors = FALSE
+)
+metadata = read.csv(
+  file.path(example_dir, "plant_metadata.csv"),
+  stringsAsFactors = FALSE
+)
+plant_compounds = read.csv(
+  file.path(example_dir, "plant_compounds.csv"),
+  stringsAsFactors = FALSE,
+  check.names = FALSE
+)
+compound_pairs = read.csv(
+  file.path(example_dir, "plant_compound_pair_tanimoto.csv"),
+  stringsAsFactors = FALSE
+)
+
+data.frame(
+  plants = nrow(plants),
+  metadata_rows = nrow(metadata),
+  occurrence_rows = nrow(plant_compounds),
+  pair_rows = nrow(compound_pairs)
+)
+```
+
+Inspect the evidence and identity fields before building outputs:
+
+```{r inspect-input}
+plant_compounds[, c(
+  "species",
+  "compound_name",
+  "source_database",
+  "evidence_tier",
+  "matched_rank",
+  "confidence",
+  "InChIKey",
+  "comparison_scope",
+  "comparable_for_matrix",
+  "curation_flag"
+)]
+```
+
+## Build and validate a project
+
+`runPlantChemistryProject()` is the offline/cached project coordinator. Live
+discovery is disabled unless `run_discovery = TRUE` is supplied explicitly.
+
+```{r build-project}
+project_dir = tempfile("uafr_offline_project_")
+
+project = runPlantChemistryProject(
+  plant_list = plants,
+  metadata = metadata,
+  plant_compounds = plant_compounds,
+  plant_compound_pair_tanimoto = compound_pairs,
+  output_dir = project_dir,
+  project_id = "simulated_offline_example",
+  overwrite = TRUE
+)
+
+bundle_dir = project$Project$bundle_dir[[1]]
+validation = validatePlantChemistryAnalysisBundle(bundle_dir)
+stopifnot(identical(
+  validation$Summary$ExportReadyStatus[[1]],
+  "pass"
+))
+
+validation$Summary
+```
+
+The validator checks CSV parsing, required columns, artifact relationships,
+manifest references, and the bundle’s export-ready status. A passing bundle is
+structurally ready for handoff; it does not make the simulated evidence real.
+
+## Inspect evidence and review queues
+
+```{r inspect-evidence}
+membership = read.csv(
+  file.path(bundle_dir, "03b_PlantCompoundMembershipEnriched.csv"),
+  stringsAsFactors = FALSE,
+  check.names = FALSE
+)
+
+grade_summary = read.csv(
+  file.path(bundle_dir, "16_EvidenceGradeSummary.csv"),
+  stringsAsFactors = FALSE,
+  check.names = FALSE
+)
+
+direct = filterPlantEvidenceDirect(membership)
+comparable = filterPlantEvidenceComparable(membership)
+review_required = filterPlantEvidenceReviewRequired(membership)
+
+grade_summary
+data.frame(
+  all_rows = nrow(membership),
+  direct_structure_resolved = nrow(direct),
+  direct_comparable = nrow(comparable),
+  review_required = nrow(review_required)
+)
+```
+
+These filters do not delete the original evidence. They make the analysis rule
+explicit while the bundle preserves fallback, candidate, unresolved, and
+excluded rows for audit.
+
+## Inspect model-ready features
+
+```{r inspect-features}
+feature_manifest = read.csv(
+  file.path(bundle_dir, "28_FeatureMatrixManifest.csv"),
+  stringsAsFactors = FALSE,
+  check.names = FALSE
+)
+
+feature_manifest[, c(
+  "Table",
+  "FileName",
+  "Mode",
+  "RowCount",
+  "ColumnCount"
+)]
+
+feature_files = file.path(bundle_dir, feature_manifest$FileName)
+species_order = lapply(feature_files, function(path) {
+  read.csv(
+    path,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )$species
+})
+
+stopifnot(all(vapply(
+  species_order[-1],
+  identical,
+  logical(1),
+  species_order[[1]]
+)))
+```
+
+Feature matrices are analysis inputs. They are not evidence of mechanism,
+efficacy, remediation performance, exposure, pathway activity, or chemistry
+measured in a project sample.
+
+## Reproduce outside the vignette
+
+From a repository checkout:
+
+```sh
+Rscript tools/build_offline_plant_chemistry_example.R \
+  --out-dir offline-plant-example
+```
+
+Record `packageVersion("uafR")`, `sessionInfo()`, the input checksums, and the
+generated manifest with any downstream analysis.
+
+```{r cleanup, include=FALSE}
+unlink(project_dir, recursive = TRUE, force = TRUE)
+```

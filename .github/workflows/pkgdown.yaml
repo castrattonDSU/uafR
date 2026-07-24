@@ -20,6 +20,7 @@ jobs:
       group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      UAFR_RUN_LIVE_TESTS: "false"
     steps:
       - uses: actions/checkout@v4
 
@@ -46,10 +47,20 @@ jobs:
           dependencies: '"hard"'
 
       - name: Build site
-        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
+        run: |
+          pkgdown::check_pkgdown()
+          pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
         shell: Rscript {0}
 
-      - name: Deploy to GitHub pages 🚀
+      - name: Upload pull request documentation artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: uafR-pkgdown-${{ github.sha }}
+          path: docs
+          if-no-files-found: error
+
+      - name: Deploy to GitHub pages
         if: github.event_name != 'pull_request'
         uses: JamesIves/github-pages-deploy-action@v4.4.1
         with:

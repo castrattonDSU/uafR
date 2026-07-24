@@ -7,23 +7,23 @@
 validateCategorateResult(x, tables = NULL, strict = FALSE)
 }
 \arguments{
-\item{x}{A list returned by \code{categorate()}, preferably with
-\code{detail = "research"} or \code{detail = "full"}.}
+\item{x}{A list returned by `categorate()`, preferably with
+`detail = "research"` or `detail = "full"`.}
 
 \item{tables}{Optional character vector of table names to validate. If
-\code{NULL}, all dictionary tables relevant to the result are checked.}
+`NULL`, all dictionary tables relevant to the result are checked.}
 
-\item{strict}{Logical. If \code{TRUE}, missing optional documented columns are
+\item{strict}{Logical. If `TRUE`, missing optional documented columns are
 reported as warnings.}
 }
 \value{
-A list with \code{Summary}, \code{TableQuality}, \code{SourceDiagnostics},
-\code{Issues}, and \code{DataDictionary} data frames.
+A list with `Summary`, `TableQuality`, `SourceDiagnostics`, `Issues`,
+and `DataDictionary` data frames.
 }
 \description{
-\code{validateCategorateResult()} audits a \code{categorate()} result against
-the uafR data dictionary. It checks expected tables, required columns, basic
-column types, controlled values, duplicate keys, table completeness, and source
+`validateCategorateResult()` audits a `categorate()` result against the uafR
+data dictionary. It checks expected tables, required columns, basic column
+types, controlled values, duplicate keys, table completeness, and source
 coverage diagnostics. The return value is designed to be stored with results
 and inspected before downstream analyses.
 }
@@ -34,4 +34,5 @@ audit = validateCategorateResult(result)
 audit$Summary
 audit$Issues
 }
+
 }

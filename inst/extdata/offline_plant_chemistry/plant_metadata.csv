@@ -1,0 +1,7 @@
+species,accepted_species_name,genus,family,group,role
+Salix nigra,Salix nigra,Salix,Salicaceae,woody_wetland,candidate
+Zea mays,Zea mays,Zea,Poaceae,crop_reference,reference
+Camellia sinensis,Camellia sinensis,Camellia,Theaceae,beverage_plant,reference
+Mentha piperita,Mentha x piperita,Mentha,Lamiaceae,aromatic_plant,candidate
+Brassica juncea,Brassica juncea,Brassica,Brassicaceae,remediation_candidate,candidate
+Acer rubrum,Acer rubrum,Acer,Sapindaceae,missing_profile,holdout

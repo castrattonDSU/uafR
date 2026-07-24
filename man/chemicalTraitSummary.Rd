@@ -12,28 +12,28 @@ chemicalTraitSummary(
 )
 }
 \arguments{
-\item{traits}{A \code{ChemicalTraits} data frame or a categorate result list
-that contains \code{ChemicalTraits}.}
+\item{traits}{A `ChemicalTraits` data frame or a categorate result list that
+contains `ChemicalTraits`.}
 
-\item{by}{Summary level: \code{"type"} summarizes by \code{TraitType},
-\code{"source"} summarizes by \code{SourceDatabase}, and \code{"compound"}
-summarizes all traits per compound.}
+\item{by}{Summary level: `"type"` summarizes by `TraitType`, `"source"`
+summarizes by `SourceDatabase`, and `"compound"` summarizes all traits per
+compound.}
 
 \item{min_confidence}{Minimum confidence score for included traits. Accepts a
-numeric score or \code{"low"}, \code{"medium"}, or \code{"high"}.}
+numeric score or `"low"`, `"medium"`, or `"high"`.}
 
 \item{top_n}{Number of top trait groups and values to include in collapsed
 summary columns.}
 }
 \value{
-A data frame with counts, confidence summaries, source coverage, and top trait
-groups/values.
+A data frame with counts, confidence summaries, source coverage, and
+top trait groups/values.
 }
 \description{
-\code{chemicalTraitSummary()} produces compact per-compound summaries from a
-\code{ChemicalTraits} table or a categorate result. Use it to see how many
-traits were extracted by domain or source, which sources contributed evidence,
-and which trait groups/values dominate each compound.
+`chemicalTraitSummary()` produces compact per-compound summaries from a
+`ChemicalTraits` table or a categorate result. Use it to see how many traits
+were extracted by domain or source, which sources contributed evidence, and
+which trait groups/values dominate each compound.
 }
 \examples{
 \dontrun{
@@ -41,4 +41,5 @@ result = categorate(compounds, library_data, detail = "full")
 chemicalTraitSummary(result)
 chemicalTraitSummary(result, by = "source", min_confidence = "high")
 }
+
 }

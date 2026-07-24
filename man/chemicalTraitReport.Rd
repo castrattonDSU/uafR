@@ -7,26 +7,27 @@
 chemicalTraitReport(x, min_confidence = 0, top_n = 8, neighbor_count = 3)
 }
 \arguments{
-\item{x}{A categorate result, a \code{ChemicalTraitOntology} data frame, or a
-\code{ChemicalTraits} data frame.}
+\item{x}{A categorate result, a `ChemicalTraitOntology` data frame, or a
+`ChemicalTraits` data frame.}
 
 \item{min_confidence}{Minimum confidence score for included rows. Accepts a
-numeric score or \code{"low"}, \code{"medium"}, or \code{"high"}.}
+numeric score or `"low"`, `"medium"`, or `"high"`.}
 
 \item{top_n}{Maximum number of terms, IDs, URLs, and shared keys to collapse
 into each report cell.}
 
 \item{neighbor_count}{Maximum number of nearest ontology neighbors to include
-per compound. Set to \code{0} to skip neighbor summaries.}
+per compound. Set to `0` to skip neighbor summaries.}
 }
 \value{
-A data frame with one row per compound and compact analysis-ready summaries.
+A data frame with one row per compound and compact analysis-ready
+summaries.
 }
 \description{
-\code{chemicalTraitReport()} summarizes the normalized trait system into one
-compact row per compound. It combines trait counts, ontology domains, evidence
-coverage, source databases, high-confidence terms, external IDs, and nearest
-ontology neighbors so results are easier to inspect before filtering,
+`chemicalTraitReport()` summarizes the normalized trait system into one
+compact row per compound. It combines trait counts, ontology domains,
+evidence coverage, source databases, high-confidence terms, external IDs, and
+nearest ontology neighbors so results are easier to inspect before filtering,
 clustering, modeling, or exporting.
 }
 \examples{
@@ -34,4 +35,5 @@ clustering, modeling, or exporting.
 result = categorate(compounds, library_data, detail = "research")
 report = chemicalTraitReport(result, min_confidence = "medium")
 }
+
 }

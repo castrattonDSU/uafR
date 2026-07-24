@@ -17,21 +17,19 @@ navbar:
     - news
     right: github
   components:
+    intro:
+      text: Get started
+      href: articles/uafR.html
     reference:
-      text: Function Documentation
+      text: Reference
       href: reference/index.html
     github:
       icon: fab fa-github fa-lg
       href: https://github.com/castrattonDSU/uafR/
-      aria-label: github
-    intro:
-      text: Descriptive Walkthrough
-      href: articles/uafR.html
+      aria-label: GitHub repository
 
 authors:
   Chase Stratton:
-    href: https://landinstitute.org/about-us/staff/chase-stratton/
-  Philipp Hansen:
   Yvonne Thompson:
     href: https://landinstitute.org/about-us/staff/yvonne-thompson/
   Konilo Zio:
@@ -40,34 +38,158 @@ authors:
   Ebony Murrell:
     href: https://landinstitute.org/about-us/staff/ebony-murrell/
 
-reference:
-- title: All functions
+articles:
+- title: Getting started
+  navbar: Getting started
   contents:
-  - '`categorate`'
-  - '`chemicalDataDictionary`'
-  - '`chemicalMeasurementSummary`'
-  - '`chemicalTraitEvidence`'
-  - '`chemicalTraitMatrix`'
-  - '`chemicalTraitOntology`'
-  - '`chemicalTraitOntologyMatrix`'
-  - '`chemicalTraitReport`'
-  - '`chemicalTraitSimilarity`'
-  - '`chemicalTraitSummary`'
-  - '`exactoThese`'
-  - '`ExternalStandard_data`'
-  - '`exportCategorateWorkbook`'
-  - '`library_data`'
-  - '`library_data_long`'
-  - '`keggProfile`'
-  - '`mzExacto`'
-  - '`personalLib`'
-  - '`published_data`'
-  - '`pubchemProfile`'
-  - '`spreadOut`'
-  - '`standardifyIt`'
-  - '`standard_categorated`'
-  - '`standard_data`'
-  - '`standard_exacto`'
-  - '`standard_spread`'
-  - '`standards_model_data`'
-  - '`validateCategorateResult`'
+  - uafR
+- title: Plant phytochemistry
+  navbar: Plant phytochemistry
+  contents:
+  - plant-phytochemistry-offline
+  - plant-phytochemistry-live
+
+reference:
+- title: Orientation and contracts
+  desc: Choose a workflow and inspect stable schemas, provider contracts, and scientific cautions.
+  contents:
+  - uafRWorkflowGuide
+  - uafRApiStability
+  - uafRSchemaMetadata
+  - uafRProviderContracts
+  - standardizeProviderDiagnostics
+  - uafRClaimGuidance
+  - chemicalDataDictionary
+
+- title: Core GC-MS processing
+  desc: Prepare hit tables, select exact-mass candidates, subset annotations, and standardize peak areas.
+  contents:
+  - spreadOut
+  - mzExacto
+  - exactoThese
+  - standardifyIt
+  - personalLib
+
+- title: Compound enrichment and chemical traits
+  desc: Retrieve and validate source-backed compound annotations, traits, measurements, and similarity summaries.
+  contents:
+  - categorate
+  - pubchemProfile
+  - keggProfile
+  - validateCategorateResult
+  - exportCategorateWorkbook
+  - runCategorateEnrichmentBatches
+  - readCategorateBatchDirectory
+  - summarizeCategorateBatches
+  - combineCategorateTables
+  - chemicalTraitOntology
+  - chemicalTraitOntologyMatrix
+  - chemicalTraitMatrix
+  - chemicalTraitEvidence
+  - chemicalTraitSummary
+  - chemicalTraitReport
+  - chemicalTraitSimilarity
+  - chemicalMeasurementSummary
+
+- title: Species-first plant phytochemistry
+  desc: Discover, standardize, enrich, summarize, validate, and export plant-compound evidence.
+  contents:
+  - resolvePlantPhytochemistry
+  - plantPhytochemistrySchema
+  - validatePlantPhytochemistryResult
+  - standardizePlantCompoundIntake
+  - standardizePlantMetadata
+  - enrichPlantCompounds
+  - summarizePlantPhytochemistry
+  - plantPhytochemistryMatrix
+  - joinPlantChemistryMetadata
+  - scorePlantChemistryCandidates
+  - exportPlantPhytochemistryWorkbook
+  - mergePlantPhytochemistryResults
+  - runPlantPhytochemistryBatch
+  - runPlantPhytochemistryPilot
+  - runPlantChemistryPanel
+  - plantPhytochemistryPilotPanel
+  - plantPhytochemistryQAReport
+
+- title: Plant providers and biological context
+  desc: Build and query local LOTUS/NPASS indexes and audit source-backed plant-part, tissue, and method context.
+  contents:
+  - plantProviderAvailability
+  - standardizeLotusIndex
+  - buildLotusIndex
+  - queryLotusIndex
+  - buildNpassIndex
+  - queryNpassIndex
+  - enrichPlantContextEvidence
+  - plantContextEvidence
+  - plantProviderContextAudit
+
+- title: Evidence and identity review
+  desc: Grade occurrence evidence, isolate review queues, and replay plant or compound identity decisions.
+  contents:
+  - plantOccurrenceEvidenceDictionary
+  - plantOccurrenceEvidenceGrade
+  - filterPlantEvidenceDirect
+  - filterPlantEvidenceComparable
+  - filterPlantEvidenceReviewRequired
+  - filterPlantPhytochemistryEvidence
+  - plantPhytochemistryReviewTable
+  - applyPlantPhytochemistryReview
+  - resolvePlantCompoundIdentities
+  - plantCompoundIdentityReviewTable
+  - applyPlantCompoundIdentityReview
+  - standardizeCompoundIdentityAudit
+  - validateCompoundIdentityAudit
+  - exportCompoundIdentityReviewTemplate
+  - applyCompoundIdentityReview
+
+- title: Comparable chemistry and Tanimoto similarity
+  desc: Classify like-with-like chemistry and calculate structure-based compound and plant summaries.
+  contents:
+  - chemistryComparisonDictionary
+  - standardizeChemistryClassificationOverrides
+  - applyChemistryClassificationOverrides
+  - plantChemistryComparability
+  - plantComparableChemistryMatrix
+  - preparePlantTanimotoInput
+  - chemicalTanimotoSimilarity
+  - plantChemicalTanimotoSimilarity
+  - plantComparableTanimotoSummary
+  - estimateTanimotoOutput
+
+- title: Project bundles and analysis exports
+  desc: Run reproducible local projects and create portable, validated handoff bundles and feature matrices.
+  contents:
+  - runPlantChemistryProject
+  - exportPlantChemistryAnalysisBundle
+  - finalizePlantChemistryAnalysisBundle
+  - validatePlantChemistryAnalysisBundle
+  - exportPlantChemistryFeatureSet
+
+- title: Large-run planning, cache, and recovery
+  desc: Plan, inspect, pause, validate, and retry cache-first plant chemistry runs.
+  contents:
+  - planPlantChemistryRun
+  - inspectUafRCache
+  - summarizeUafRCache
+  - validatePlantChemistryRunManifest
+  - writePlantChemistryRetryQueue
+  - rerunFailedPlantQueries
+
+- title: External workflow integrations
+  contents:
+  - exportAiNsectMolOlfInputs
+
+- title: Example datasets
+  desc: Bundled data used in documentation and offline examples.
+  contents:
+  - ExternalStandard_data
+  - library_data
+  - library_data_long
+  - published_data
+  - standard_categorated
+  - standard_data
+  - standard_exacto
+  - standard_spread
+  - standards_model_data

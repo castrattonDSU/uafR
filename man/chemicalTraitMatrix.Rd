@@ -14,34 +14,34 @@ chemicalTraitMatrix(
 )
 }
 \arguments{
-\item{traits}{A \code{ChemicalTraits} data frame or a categorate result list
-that contains \code{ChemicalTraits}.}
+\item{traits}{A `ChemicalTraits` data frame or a categorate result list that
+contains `ChemicalTraits`.}
 
-\item{profile}{Matrix profile. \code{"core"} keeps compact cross-domain
-grouping traits. \code{"full"} keeps every eligible trait. Other profiles keep
-traits for one analysis domain: \code{"bioactivity"}, \code{"safety"},
-\code{"ecology"}, \code{"kegg"}, \code{"sensory"}, or \code{"biomedical"}.}
+\item{profile}{Matrix profile. `"core"` keeps compact cross-domain grouping
+traits. `"full"` keeps every eligible trait. Other profiles keep traits for
+one analysis domain: `"bioactivity"`, `"safety"`, `"ecology"`, `"kegg"`,
+`"sensory"`, or `"biomedical"`.}
 
-\item{mode}{Matrix value mode. \code{"binary"} stores 0/1 presence,
-\code{"count"} stores trait-row counts, and \code{"confidence"} stores the
-maximum confidence score for each compound-trait pair.}
+\item{mode}{Matrix value mode. `"binary"` stores 0/1 presence, `"count"`
+stores trait-row counts, and `"confidence"` stores the maximum confidence
+score for each compound-trait pair.}
 
 \item{min_confidence}{Minimum confidence score for included traits. Accepts a
-numeric score or \code{"low"}, \code{"medium"}, or \code{"high"}.}
+numeric score or `"low"`, `"medium"`, or `"high"`.}
 
 \item{max_traits}{Maximum number of trait columns to include, ranked by
 prevalence and confidence.}
 }
 \value{
-A data frame with \code{Query}, \code{CID}, and one column per selected trait.
+A data frame with `Query`, `CID`, and one column per selected trait.
 }
 \description{
-\code{chemicalTraitMatrix()} converts a \code{ChemicalTraits} table, or a
-\code{categorate(detail = "research")}/\code{categorate(detail = "full")}
-result, into a wide matrix for filtering, clustering, ordination, heatmaps, and
-model inputs. The long \code{ChemicalTraits} table remains the complete evidence
-table; this helper lets users choose compact or source-specific matrix views
-without rerunning web queries.
+`chemicalTraitMatrix()` converts a `ChemicalTraits` table, or a
+`categorate(detail = "research")`/`categorate(detail = "full")` result, into
+a wide matrix for filtering, clustering, ordination, heatmaps, and model
+inputs. The long `ChemicalTraits` table remains the complete evidence table;
+this helper lets users choose compact or source-specific matrix views without
+rerunning web queries.
 }
 \examples{
 \dontrun{
@@ -53,4 +53,5 @@ confidence_matrix = chemicalTraitMatrix(result$ChemicalTraits,
                                        mode = "confidence",
                                        min_confidence = "high")
 }
+
 }

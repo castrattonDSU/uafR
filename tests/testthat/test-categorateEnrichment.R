@@ -626,6 +626,15 @@ expect_no_duplicate_keys = function(table, cols) {
   expect_false(any(duplicated(keys)))
 }
 
+test_that("normalized CID lookup tolerates missing query keys", {
+  lookup = stats::setNames(c("2244", "2519"), c("aspirin", "caffeine"))
+
+  expect_equal(.normalized_lookup_cid("aspirin", lookup), 2244L)
+  expect_equal(.normalized_lookup_cid("not indexed", lookup), NA_integer_)
+  expect_equal(.normalized_lookup_cid("", lookup), NA_integer_)
+  expect_equal(.normalized_lookup_cid(NA_character_, lookup), NA_integer_)
+})
+
 test_that("categorate research enrichment builds analysis-ready tables", {
   data_list = list(
     reactives = data.frame(reactives = "Carboxylic acids",

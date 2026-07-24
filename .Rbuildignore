@@ -1,5 +1,8 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^\.git$
+^.*\.DS_Store$
+^\.Rhistory$
 ^.*\.tar\.gz$
 ^.*\.Rcheck$
 ^uafR.*_export.*$
@@ -14,7 +17,14 @@
 ^docs$
 ^pkgdown$
 ^training$
+^training_bundles$
+^training_wicced_water_quality$
 ^tools$
 ^student_bundle$
+^manual_upgrade_report\.md$
 ^uafR_student_bundle_.*[.]zip$
+^.*_cache$
+^.*_cache/
+^lotus_cache$
+^lotus_cache/
 ^\.github$

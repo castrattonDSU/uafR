@@ -126,7 +126,9 @@
 
 .normalized_lookup_cid = function(query, cid_lookup) {
   if (length(cid_lookup) < 1 || is.na(query) || query == "") return(NA_integer_)
-  value = unname(cid_lookup[[query]])
+  hit = match(query, names(cid_lookup), nomatch = 0L)
+  if (hit < 1L) return(NA_integer_)
+  value = unname(cid_lookup[hit])
   if (is.null(value) || length(value) < 1 || is.na(value)) return(NA_integer_)
   suppressWarnings(as.integer(value))
 }
