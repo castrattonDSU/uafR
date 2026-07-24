@@ -3,6 +3,8 @@
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 name: pkgdown
@@ -27,22 +29,15 @@ jobs:
         with:
           use-public-rspm: true
 
-      - name: Install website dependencies
-        run: |
-          install.packages(c("BiocManager", "pkgdown", "remotes", "sessioninfo",
-                             "knitr", "rmarkdown", "spelling", "testthat",
-                             "openxlsx", "writexl"))
-          BiocManager::install(c("ChemmineR", "fmcsR"), ask = FALSE,
-                               update = FALSE,
-                               dependencies = c("Depends", "Imports",
-                                                "LinkingTo"))
-          remotes::install_deps(dependencies = c("Depends", "Imports",
-                                                 "LinkingTo"),
-                                upgrade = "never")
-        shell: Rscript {0}
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::pkgdown
+            local::.
+          needs: website
 
       - name: Build site
-        run: pkgdown::build_site_github_pages(new_process = FALSE, install = TRUE)
+        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
         shell: Rscript {0}
 
       - name: Deploy to GitHub pages 🚀
