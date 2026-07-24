@@ -1,183 +1,2197 @@
-\chapter{Full-Day 10-Week Schedule}
+\chapter{Complete 70-Day Training Spine}
 
-This chapter provides the day-by-day structure that turns the program into a full-day internship. The order can be adjusted for local scheduling, but the sequence remains intact: scope before analysis, validation before interpretation, and evidence before claims.
+This chapter is the operating schedule for the internship. It is written for active use: students should know what to open, what to run, what to inspect, what to write, and what artifact closes the day. Weekdays are full internship days. Weekend days are lighter asynchronous work, but they are still required because research quality depends on steady reading, logging, reruns, revision, and handoff maintenance.
+
+\begin{programbox}{Daily Work Assumption}
+Weekdays normally use a full-day rhythm: 30 minutes for check-in and objectives, 60 to 90 minutes for concept or reading discussion, 90 to 120 minutes for guided technical work, 90 to 150 minutes for independent project work, 45 to 60 minutes for evidence and writing, and 30 minutes for peer or mentor checkpoint. Weekend days normally require 1 to 3 focused hours.
+\end{programbox}
 
 \section{Week 1: Research Onboarding and Question Design}
-\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endhead
-1 & Orientation to DSU dsDNA Core research expectations, safety, data integrity, and responsible conduct. & Students inventory their interests and match them to possible chemical evidence types. & Draft interest statement and initial discussion questions.\\
-2 & What makes a chemical research question testable. & Convert broad topics into question, system, comparison, evidence, and limitation fields. & Three candidate research questions.\\
-3 & Chemical identity, tentative annotation, and why uncertainty matters. & Build first chemical intake table from literature, standards, GC-MS hits, or program-provided examples. & Chemical intake table v1.\\
-4 & Evidence types across PubChem, KEGG, LOTUS, FEMA, FDA/SPL, MeSH, and literature. & Map which evidence types could answer each candidate question. & Evidence feasibility matrix.\\
-5 & Scope review and project selection. & Revise question, write risk note, and define Week 2 setup needs. & Reviewed one-page project brief.\\
-\bottomrule
-\end{longtable}
+\WeekHeader{1}{Research onboarding and question design}{A feasible, cautious chemical research question is selected.}{One-page project brief, risk note, chemical intake table v1, and research log setup.}
 
-\section{Week 2: R, RStudio, Git, and Reproducible Structure}
-\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endhead
-1 & RStudio projects, file paths, and why raw data are protected. & Create project folder and run installation checks. & Project skeleton and install log.\\
-2 & Reading and writing tables in R. & Practice importing CSV files, checking dimensions, and writing processed outputs. & Data import script with comments explaining decisions.\\
-3 & Git concepts: commits, branches, ignored files, and secrets. & Make first local commits and inspect what should not be committed. & Clean repository status and research log entry.\\
-4 & Reproducible scripts and numbered workflows. & Create script sequence for the student's project. & Numbered script plan and README update.\\
-5 & Troubleshooting clinic. & Each student reruns setup from a clean R session and documents failures. & Reproducibility checkpoint signed off in program review.\\
-\bottomrule
-\end{longtable}
+\begin{checklistbox}{Week 1 Operating Plan}
+\textbf{Concepts:} DSU dsDNA Core expectations, research conduct, chemical evidence types, tentative annotation, database scope, and project feasibility.
 
-\section{Week 3: Chemical Data Literacy and Public Databases}
-\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endhead
-1 & Names, CIDs, InChIKeys, synonyms, salts, mixtures, stereochemistry, and ambiguity. & Students audit five chemicals for naming risks. & Identifier ambiguity note.\\
-2 & PubChem structure: properties, annotations, assays, classifications, and source-specific records. & Explore one compound manually and compare to uafR profile tables. & PubChem evidence worksheet.\\
-3 & KEGG biochemical context: compounds, reactions, enzymes, modules, pathways, and academic-use etiquette. & Inspect a KEGG compound record and identify pathway or reaction fields. & KEGG evidence worksheet.\\
-4 & Natural product occurrence, biomedical terms, regulatory records, and flavor/sensory context. & Compare LOTUS, MeSH, FEMA, and FDA/SPL evidence roles. & Source comparison table.\\
-5 & Database evidence discussion. & Students revise project scope based on source coverage expectations. & Database evidence map v1.\\
-\bottomrule
-\end{longtable}
+\textbf{uafR/R skills:} None required beyond opening RStudio and reading package examples. Students inspect names and tables before running analysis.
+
+\textbf{Required readings or references:} Program preface, project tracks, PubChem and KEGG reference descriptions, and the evidence caution rules in this manual.
+
+\textbf{Required files/scripts/data:} Project brief worksheet, chemical intake table template, evidence map worksheet, and research log template.
+
+\textbf{Weekly deliverables:} Candidate question set, chemical intake table v1, evidence feasibility map, one-page project brief, risk note, and Week 2 readiness checklist.
+
+\textbf{Mentor review checkpoint:} Day 5 scope gate. A project is approved only if the chemical set, comparison, evidence type, and likely limitation are explicit.
+
+\textbf{Common failure modes:} Questions are too broad, students treat tentative hits as confirmed identities, or database annotations are treated as sample evidence.
+
+\textbf{Minimum viable path:} Use a program-provided chemical list and write a narrow comparative question.
+
+\textbf{Advanced extension path:} Bring a student-interest chemical set and justify each chemical with a source and ambiguity note.
+\end{checklistbox}
+
+\begin{dailybox}{Day 1: Orientation to DSU dsDNA Core Expectations}
+\textbf{Purpose:} Establish the research culture before analysis begins. Students learn that reproducibility, evidence discipline, and cautious claims matter as much as software output.
+
+\textbf{Learning objectives:} Describe the program promise, explain what a research log is for, distinguish private data from shareable training data, and name at least three ways chemical evidence can be overclaimed.
+
+\textbf{Prerequisites and materials:} This manual, project tracks chapter, daily research log worksheet, local code of conduct or lab expectations, and a notebook or digital log.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes orientation, 90 minutes project-domain discussion, 120 minutes interest inventory, 60 minutes log setup, 30 minutes review.
+
+\textbf{Morning concept block:} Discuss responsible conduct, data integrity, file ownership, and how the dsDNA Core evaluates progress. Emphasize that a clean negative result or a well-supported limitation is valid research output.
+
+\textbf{Guided lab or reading discussion:} Read the program outcomes and final package expectations. Annotate where the final report, reproducible folder, evidence trail, and continuation note will come from.
+
+\textbf{Independent project block:} Write an interest inventory with systems, chemicals, methods, organisms, health questions, environmental questions, food or flavor questions, or data-science questions that could become projects.
+
+\textbf{Evidence and writing block:} Draft a first research log entry that records today's orientation decisions and one scientific claim students already know they must avoid.
+
+\textbf{Research log prompt:} What kind of chemical evidence would be exciting, and what would it not prove by itself?
+
+\textbf{End-of-day deliverable:} Research log created and a one-page interest inventory.
+
+\textbf{Quality gate:} The log must include a dated objective, at least one decision, one risk, and one question for review.
+
+\textbf{Common problems and fixes:} If the project idea is a topic rather than a question, rewrite it as system plus chemical set plus possible comparison. If the log is vague, add concrete file names or decisions.
+
+\textbf{Optional advanced challenge:} Find one published chemical study in a field of interest and identify its analytical method, chemical evidence, and main limitation.
+\end{dailybox}
+
+\begin{dailybox}{Day 2: Turning Broad Interests Into Testable Chemical Questions}
+\textbf{Purpose:} Convert curiosity into a question that can be answered in 10 weeks with available data and source-backed chemical metadata.
+
+\textbf{Learning objectives:} Write a question with system, chemical set, comparison, evidence source, and limitation; reject questions that require unavailable confirmation; and create three candidate questions.
+
+\textbf{Prerequisites and materials:} Day 1 interest inventory, project tracks chapter, project brief worksheet, and chemical intake table template.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes question design, 90 minutes guided triage, 120 minutes independent drafting, 60 minutes project brief writing, 30 minutes review.
+
+\textbf{Morning concept block:} Compare broad questions such as ``What chemicals are important?'' with feasible questions such as ``Which tentative GC-MS hits in this list have source-backed sensory or plant-occurrence annotations?''
+
+\textbf{Guided lab or reading discussion:} Complete Lab 1, Chemical Question Triage. Classify each candidate as feasible, feasible with narrower scope, or not feasible.
+
+\textbf{Independent project block:} Draft three candidate questions and identify what data would be needed for each.
+
+\textbf{Evidence and writing block:} For each question, write one sentence beginning ``This analysis can support...'' and one sentence beginning ``This analysis cannot prove...''
+
+\textbf{Research log prompt:} Which question is most feasible and what evidence would make it stronger?
+
+\textbf{End-of-day deliverable:} Three candidate research questions with feasibility labels.
+
+\textbf{Quality gate:} Each candidate must name a chemical set, source of chemical names, comparison or grouping idea, and major limitation.
+
+\textbf{Common problems and fixes:} If a question depends on confirmed identity, rewrite it around tentative annotations or planned follow-up confirmation. If the comparison is unclear, define the groups before naming software.
+
+\textbf{Optional advanced challenge:} Write a backup question that could still work if no student-generated data are available.
+\end{dailybox}
+
+\begin{dailybox}{Day 3: Chemical Identity, Tentative Annotation, and Standards}
+\textbf{Purpose:} Build scientific caution around GC-MS annotation before students touch workflow outputs.
+
+\textbf{Learning objectives:} Distinguish tentative library match, standard-confirmed identity, PubChem record, synonym, CID, and analytical evidence; explain why a match factor is not proof.
+
+\textbf{Prerequisites and materials:} Chemical intake table template, example GC-MS hit table description, Week 4 input column list, and database evidence map worksheet.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes concept block, 90 minutes identifier examples, 120 minutes intake table work, 60 minutes uncertainty note, 30 minutes review.
+
+\textbf{Morning concept block:} Explain that tentative GC-MS hits are hypotheses. Discuss standards, retention time, mass spectra, match factors, base peaks, and why names can be ambiguous.
+
+\textbf{Guided lab or reading discussion:} Compare a simple compound, a synonym-heavy compound, and an ambiguous name. Record what makes each easy or risky.
+
+\textbf{Independent project block:} Start the chemical intake table with candidate chemical names, source of the name, confidence, and reason for inclusion.
+
+\textbf{Evidence and writing block:} Draft the first uncertainty paragraph for the project brief.
+
+\textbf{Research log prompt:} Which chemical name in the current list is most ambiguous, and what would reduce that ambiguity?
+
+\textbf{End-of-day deliverable:} Chemical intake table v1 and tentative identity caution paragraph.
+
+\textbf{Quality gate:} No chemical should appear without a source and uncertainty note.
+
+\textbf{Common problems and fixes:} If students copy names without source context, add the original file, paper, or database page. If they say ``identified,'' change to ``tentatively annotated'' unless standards confirm identity.
+
+\textbf{Optional advanced challenge:} Add candidate CID or InChIKey fields for five chemicals and note conflicts.
+\end{dailybox}
+
+\begin{dailybox}{Day 4: Evidence Source Landscape}
+\textbf{Purpose:} Teach students what public databases can and cannot support before enrichment outputs are interpreted.
+
+\textbf{Learning objectives:} Describe roles for PubChem, KEGG, LOTUS, FEMA, FDA/SPL, MeSH, and literature; separate identity, property, pathway, occurrence, sensory, regulatory, and biomedical evidence.
+
+\textbf{Prerequisites and materials:} Database evidence map worksheet, project chemical intake table, supplementary readings, and project tracks chapter.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes evidence landscape, 90 minutes source comparison, 120 minutes evidence map work, 60 minutes claim caution writing, 30 minutes review.
+
+\textbf{Morning concept block:} Explain evidence boundaries: database presence is not sample presence, pathway context is not pathway activity, and hazard screening is not risk assessment.
+
+\textbf{Guided lab or reading discussion:} Compare what PubChem, KEGG, LOTUS, FEMA, FDA/SPL, and MeSH would contribute to the same chemical.
+
+\textbf{Independent project block:} Build an evidence feasibility matrix for the three candidate questions.
+
+\textbf{Evidence and writing block:} Write safe wording templates for the project's most likely evidence types.
+
+\textbf{Research log prompt:} Which source is likely to be most useful, and what claim would be unsafe from that source alone?
+
+\textbf{End-of-day deliverable:} Evidence feasibility matrix.
+
+\textbf{Quality gate:} Each source entry must say both what it can support and what it cannot support.
+
+\textbf{Common problems and fixes:} If a source is described as ``proves,'' rewrite using ``is annotated as,'' ``is associated with,'' or ``has a database record indicating.''
+
+\textbf{Optional advanced challenge:} Add one reviewer challenge question for each evidence source.
+\end{dailybox}
+
+\begin{dailybox}{Day 5: Scope Gate and Project Brief Review}
+\textbf{Purpose:} Choose a feasible project before students invest in setup and analysis.
+
+\textbf{Learning objectives:} Defend a selected question, identify the minimum viable project, write a risk note, and define the Week 2 setup plan.
+
+\textbf{Prerequisites and materials:} Candidate questions, chemical intake table v1, evidence feasibility matrix, project brief worksheet, and rubric.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes scope discussion, 90 minutes brief drafting, 120 minutes mentor review revisions, 60 minutes risk note, 30 minutes sign-off.
+
+\textbf{Morning concept block:} Review the decision gate: the project must be answerable, reproducible, evidence-backed, and narrow enough for 10 weeks.
+
+\textbf{Guided lab or reading discussion:} Students present candidate questions and receive structured critique on feasibility and evidence limits.
+
+\textbf{Independent project block:} Revise the selected project brief and define the backup path if live databases, student data, or specific evidence sources fail.
+
+\textbf{Evidence and writing block:} Write a risk note naming missing data, ambiguous identifiers, weak evidence sources, and overclaiming hazards.
+
+\textbf{Research log prompt:} What was approved, what was rejected, and what evidence would trigger a later scope change?
+
+\textbf{End-of-day deliverable:} Reviewed one-page project brief and risk note.
+
+\textbf{Quality gate:} A reviewer can identify the question, chemical set, evidence sources, comparison, minimum viable product, and claim boundary in under five minutes.
+
+\textbf{Common problems and fixes:} If the brief promises biological mechanism, rewrite to metadata-supported interpretation or follow-up hypothesis. If the chemical list is too large, cap it for the first analysis pass.
+
+\textbf{Optional advanced challenge:} Draft a short alternative project brief for a methods or data-quality project.
+\end{dailybox}
+
+\begin{dailybox}{Day 6: Weekend Reading Annotation and Intake Revision}
+\textbf{Purpose:} Keep the project moving with focused reading and cleanup while avoiding full weekday workload.
+
+\textbf{Learning objectives:} Annotate one source, revise chemical intake fields, and identify one project assumption that needs support.
+
+\textbf{Prerequisites and materials:} Project brief, chemical intake table, one approved reading or database reference, and research log.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1.5 to 2.5 hours.
+
+\textbf{Morning concept block:} Not scheduled. Begin with the selected reading or source record.
+
+\textbf{Guided lab or reading discussion:} Use the reading annotation template to capture system, method, chemical evidence, main claim, and limitation.
+
+\textbf{Independent project block:} Revise the chemical intake table based on the reading.
+
+\textbf{Evidence and writing block:} Add one source-backed sentence to the project brief or risk note.
+
+\textbf{Research log prompt:} What did the reading change about the project scope or chemical list?
+
+\textbf{End-of-day deliverable:} Reading annotation and revised intake table.
+
+\textbf{Quality gate:} The annotation must include a limitation, not just a summary.
+
+\textbf{Common problems and fixes:} If the reading is only background, label it as background and do not treat it as evidence for project results.
+
+\textbf{Optional advanced challenge:} Add a second reading that disagrees with or complicates the first.
+\end{dailybox}
+
+\begin{dailybox}{Day 7: Weekend Reflection and Week 2 Readiness}
+\textbf{Purpose:} Close Week 1 with a clean project direction and a setup checklist.
+
+\textbf{Learning objectives:} Identify unresolved risks, prepare for R/RStudio setup, and make the project brief readable to someone else.
+
+\textbf{Prerequisites and materials:} Project brief, risk note, chemical intake table, research log, and Week 2 installation checklist.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1 to 2 hours.
+
+\textbf{Morning concept block:} Not scheduled. Focus on revision and readiness.
+
+\textbf{Guided lab or reading discussion:} Reread the project brief as if it belonged to another student and mark unclear terms.
+
+\textbf{Independent project block:} Clean the brief, update the risk note, and list files or accounts needed for Week 2.
+
+\textbf{Evidence and writing block:} Write a Week 1 reflection naming the strongest project element and the biggest uncertainty.
+
+\textbf{Research log prompt:} What must be true by the end of Week 2 for this project to remain feasible?
+
+\textbf{End-of-day deliverable:} Week 2 readiness checklist.
+
+\textbf{Quality gate:} The project brief can be understood without verbal explanation.
+
+\textbf{Common problems and fixes:} If the brief still depends on undefined data, add a case-data fallback.
+
+\textbf{Optional advanced challenge:} Make a one-slide project overview for Monday check-in.
+\end{dailybox}
+
+\section{Week 2: R, RStudio, Git, and Reproducible Project Structure}
+\WeekHeader{2}{R, RStudio, Git, and reproducible project structure}{The project becomes a runnable folder rather than a collection of files.}{Installed uafR, project skeleton, README, first scripts, Git log, and reproducibility checkpoint.}
+
+\begin{checklistbox}{Week 2 Operating Plan}
+\textbf{Concepts:} RStudio projects, relative paths, raw versus processed data, scripts as records, Git commits, ignored files, secrets, and clean-session testing.
+
+\textbf{uafR/R skills:} Run student bundle checks, create project folders, read and write CSV files, inspect data frames, run \path{training/scripts/00_install_check.R} and \path{training/scripts/01_project_setup.R}.
+
+\textbf{Required readings or references:} Installation appendix, quick reference, reproducible project structure notes, and Git safety guidance.
+
+\textbf{Required files/scripts/data:} Student bundle scripts, \path{training/scripts/00_install_check.R}, \path{training/scripts/01_project_setup.R}, and project README template.
+
+\textbf{Weekly deliverables:} Install verification, reproducible project folder, README, script order, session information, Git checkpoint, and peer handoff note.
+
+\textbf{Mentor review checkpoint:} Day 12 clean-session rerun and folder review.
+
+\textbf{Common failure modes:} Absolute paths, edited raw data, missing README instructions, committed private data, and scripts that only work interactively.
+
+\textbf{Minimum viable path:} Build the standard project skeleton and document script order.
+
+\textbf{Advanced extension path:} Add automated project checks and a reproducibility script that writes outputs to \path{results/}.
+\end{checklistbox}
+
+\begin{dailybox}{Day 8: Installation Check and Project Skeleton}
+\textbf{Purpose:} Confirm that the working environment is ready before analysis begins.
+
+\textbf{Learning objectives:} Run bundle integrity checks, verify uafR installation, create a reproducible project folder, and record package versions.
+
+\textbf{Prerequisites and materials:} Student bundle, \path{START_HERE.md}, \path{verify_bundle_integrity.R}, \path{preflight_check.R}, \path{install_uafR_from_bundle.R}, and \path{training/scripts/01_project_setup.R}.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 60 minutes installation concepts, 120 minutes setup lab, 120 minutes project skeleton work, 60 minutes documentation, 30 minutes review.
+
+\textbf{Morning concept block:} Explain why installation logs and session information are part of research evidence.
+
+\textbf{Guided lab or reading discussion:} Source \path{verify_bundle_integrity.R}, \path{preflight_check.R}, \path{install_uafR_from_bundle.R}, and \path{run_student_acceptance_test.R}. Review success messages and log files.
+
+\textbf{Independent project block:} Source \path{training/scripts/01_project_setup.R} and run \texttt{create\_training\_project()} for the student project.
+
+\textbf{Evidence and writing block:} Add the project question and data status to \path{README.md}; save \texttt{sessionInfo()} in \path{logs/}.
+
+\textbf{Research log prompt:} What was installed, what version was installed, and what evidence proves the setup worked?
+
+\textbf{End-of-day deliverable:} Project skeleton with README, logs folder, installation log, and session information.
+
+\textbf{Quality gate:} Another person can open the folder and identify the project question, data folders, script folders, and setup evidence.
+
+\textbf{Common problems and fixes:} If \texttt{library(uafR)} fails, restart RStudio and rerun verification. If paths point to a local desktop folder, replace them with project-relative paths.
+
+\textbf{Optional advanced challenge:} Add a script named \path{scripts/00_check_setup.R} that reruns the installation check inside the student project.
+\end{dailybox}
+
+\begin{dailybox}{Day 9: Reading, Inspecting, Cleaning, and Writing Tables}
+\textbf{Purpose:} Teach students how table operations become reproducible evidence.
+
+\textbf{Learning objectives:} Read CSV files, inspect dimensions and column names, identify missing values, write processed outputs, and avoid editing raw files.
+
+\textbf{Prerequisites and materials:} Project skeleton, chemical intake table template, evidence table template, and RStudio.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes table concepts, 120 minutes guided R practice, 120 minutes project table work, 60 minutes documentation, 30 minutes review.
+
+\textbf{Morning concept block:} Explain raw data preservation, processed data, row counts, column names, and why cleaning choices must be scripted.
+
+\textbf{Guided lab or reading discussion:} Practice \texttt{read.csv()}, \texttt{str()}, \texttt{names()}, \texttt{dim()}, \texttt{summary()}, and \texttt{write.csv()} on templates.
+
+\textbf{Independent project block:} Create or revise a project chemical intake CSV and write it to \path{data_processed/} from a script.
+
+\textbf{Evidence and writing block:} Write comments in the script explaining each cleaning decision.
+
+\textbf{Research log prompt:} Which rows or columns changed today, and why?
+
+\textbf{End-of-day deliverable:} Data import and cleaning script with a saved processed table.
+
+\textbf{Quality gate:} Running the script from the project root recreates the processed table without manual steps.
+
+\textbf{Common problems and fixes:} If a script depends on the working directory set by clicking, use an RStudio project root or relative paths. If raw files were edited, restore them and script the change.
+
+\textbf{Optional advanced challenge:} Add checks that stop the script if required columns are missing.
+\end{dailybox}
+
+\begin{dailybox}{Day 10: Git Basics and Safe Repository Habits}
+\textbf{Purpose:} Make version history a normal part of research practice.
+
+\textbf{Learning objectives:} Explain commits, inspect status, avoid committing secrets or private data, and use \path{.gitignore}.
+
+\textbf{Prerequisites and materials:} Project folder, Git-enabled RStudio or terminal, \path{.gitignore}, and README.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes Git concepts, 90 minutes guided commits, 120 minutes cleanup, 60 minutes README revision, 30 minutes review.
+
+\textbf{Morning concept block:} Discuss what belongs in version control: scripts, documentation, templates, and small shareable derived outputs. Discuss what does not belong: tokens, private raw data, large temporary files, and local machine paths.
+
+\textbf{Guided lab or reading discussion:} Run status checks, stage a small README change, commit it, then inspect history.
+
+\textbf{Independent project block:} Add or revise \path{.gitignore}, remove scratch files from the candidate commit, and make a meaningful project checkpoint commit if appropriate.
+
+\textbf{Evidence and writing block:} Write a short repository policy in the README explaining where raw data are stored and what is intentionally ignored.
+
+\textbf{Research log prompt:} What did the commit preserve, and what files were intentionally excluded?
+
+\textbf{End-of-day deliverable:} Clean repository status or documented reason for remaining untracked files.
+
+\textbf{Quality gate:} No secrets, private data, local usernames, or absolute paths appear in committed text.
+
+\textbf{Common problems and fixes:} If Git shows many generated files, update \path{.gitignore}. If private data were staged, unstage them and document the approved storage location.
+
+\textbf{Optional advanced challenge:} Write a short commit message standard for the project.
+\end{dailybox}
+
+\begin{dailybox}{Day 11: Numbered Workflows and README Structure}
+\textbf{Purpose:} Turn the project folder into a runnable research record.
+
+\textbf{Learning objectives:} Define script order, separate raw and processed data, name outputs predictably, and explain how to rerun the project.
+
+\textbf{Prerequisites and materials:} Project folder, Day 9 cleaning script, README, and final package checklist.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 60 minutes workflow design, 90 minutes guided folder review, 150 minutes independent script planning, 60 minutes README writing, 30 minutes peer check.
+
+\textbf{Morning concept block:} Explain numbered workflows: \path{00_check_setup.R}, \path{01_import_data.R}, \path{02_core_workflow.R}, and so on.
+
+\textbf{Guided lab or reading discussion:} Review examples of clear and unclear README files. Identify what a future student needs to know first.
+
+\textbf{Independent project block:} Rename or draft scripts in logical order and specify expected inputs and outputs for each script.
+
+\textbf{Evidence and writing block:} Update README with research question, data description, script order, output locations, and current limitations.
+
+\textbf{Research log prompt:} Which part of the project is now reproducible, and which part still depends on manual interpretation?
+
+\textbf{End-of-day deliverable:} Numbered script plan and updated README.
+
+\textbf{Quality gate:} A peer can identify the first script to run and where outputs should appear.
+
+\textbf{Common problems and fixes:} If scripts do too many unrelated tasks, split them. If outputs overwrite each other, add descriptive file names.
+
+\textbf{Optional advanced challenge:} Add an output manifest listing expected files after each script.
+\end{dailybox}
+
+\begin{dailybox}{Day 12: Clean R Session Reproducibility Check}
+\textbf{Purpose:} Test the project as a user, not as the author.
+
+\textbf{Learning objectives:} Restart R, rerun setup, document errors, and obtain mentor sign-off on folder structure.
+
+\textbf{Prerequisites and materials:} Project folder, README, scripts, installation check script, and research log.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 60 minutes reproducibility expectations, 120 minutes clean-session rerun, 120 minutes fixes, 60 minutes documentation, 30 minutes sign-off.
+
+\textbf{Morning concept block:} Explain that reproducibility is tested from a clean session because hidden objects in the workspace can mask broken scripts.
+
+\textbf{Guided lab or reading discussion:} Restart RStudio, run the installation check, run each current script in order, and record failures.
+
+\textbf{Independent project block:} Fix path errors, missing packages, unclear file names, and README gaps.
+
+\textbf{Evidence and writing block:} Save session information and write a reproducibility checkpoint note.
+
+\textbf{Research log prompt:} What failed from a clean session, what fixed it, and how can that failure be prevented?
+
+\textbf{End-of-day deliverable:} Reproducibility checkpoint and mentor sign-off note.
+
+\textbf{Quality gate:} The current project can be rerun from a clean R session through all scripts available so far.
+
+\textbf{Common problems and fixes:} If objects are missing, the script is relying on interactive workspace state. Create objects inside the script or load them explicitly.
+
+\textbf{Optional advanced challenge:} Ask a peer to rerun the project using README instructions only.
+\end{dailybox}
+
+\begin{dailybox}{Day 13: Weekend Debugging Log and Command Recap}
+\textbf{Purpose:} Reinforce setup commands and package-version awareness.
+
+\textbf{Learning objectives:} Record session information, summarize common commands, and maintain a debugging log.
+
+\textbf{Prerequisites and materials:} Project folder, research log, session information, and quick reference.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1 to 2 hours.
+
+\textbf{Morning concept block:} Not scheduled. Focus on command recall and documentation.
+
+\textbf{Guided lab or reading discussion:} Review the commands used this week and annotate what each one does.
+
+\textbf{Independent project block:} Add a command recap section to the README or research log.
+
+\textbf{Evidence and writing block:} Save a fresh \texttt{sessionInfo()} note and list packages used so far.
+
+\textbf{Research log prompt:} Which command is most important to remember, and what mistake would it prevent?
+
+\textbf{End-of-day deliverable:} Debugging log and command recap.
+
+\textbf{Quality gate:} The recap is specific enough for another student to follow.
+
+\textbf{Common problems and fixes:} If entries say only ``it worked,'' add the exact command, output location, and package version.
+
+\textbf{Optional advanced challenge:} Add a short troubleshooting table to the project README.
+\end{dailybox}
+
+\begin{dailybox}{Day 14: Weekend Peer Handoff}
+\textbf{Purpose:} Test whether the project folder communicates without the author present.
+
+\textbf{Learning objectives:} Review another project, identify missing instructions, and revise the README for handoff clarity.
+
+\textbf{Prerequisites and materials:} Project folder, README, final package checklist, and peer review form.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1.5 to 3 hours.
+
+\textbf{Morning concept block:} Not scheduled. Begin with folder review.
+
+\textbf{Guided lab or reading discussion:} Exchange folders or screenshots and try to identify the project question, data status, and script order from README alone.
+
+\textbf{Independent project block:} Revise README and folder organization based on reviewer confusion.
+
+\textbf{Evidence and writing block:} Write a peer handoff note naming what was clear and what was fixed.
+
+\textbf{Research log prompt:} What did the reviewer misunderstand, and how was the project documentation changed?
+
+\textbf{End-of-day deliverable:} Peer handoff note and revised README.
+
+\textbf{Quality gate:} A reviewer can understand the project without verbal explanation.
+
+\textbf{Common problems and fixes:} If a reviewer cannot find data or scripts, add a top-level directory guide.
+
+\textbf{Optional advanced challenge:} Create a one-paragraph ``start here'' section at the top of the README.
+\end{dailybox}
+
+\section{Week 3: Chemical Data Literacy and Public Database Foundations}
+\WeekHeader{3}{Chemical data literacy and public database foundations}{Students understand identifiers, ambiguity, and source-specific evidence before enrichment.}{Identifier ambiguity note, database evidence map v1, source comparison table, and revised project scope.}
+
+\begin{checklistbox}{Week 3 Operating Plan}
+\textbf{Concepts:} Names, synonyms, salts, mixtures, stereochemistry, CIDs, InChIKeys, PubChem records, KEGG biochemical context, LOTUS occurrence, FEMA/FDA/SPL/MeSH source roles, and literature context.
+
+\textbf{uafR/R skills:} Inspect source-backed outputs conservatively. Optional use of \texttt{pubchemProfile()} and \texttt{keggProfile()} should be kept small and documented.
+
+\textbf{Required readings or references:} PubChem, KEGG, LOTUS, reporting standards, and at least one approved field-specific source.
+
+\textbf{Required files/scripts/data:} Database evidence map, chemical intake table, source comparison worksheet, and evidence table template.
+
+\textbf{Weekly deliverables:} Identifier ambiguity note, PubChem evidence worksheet, KEGG evidence worksheet, source comparison table, evidence map v1, and scope adjustment.
+
+\textbf{Mentor review checkpoint:} Day 19 evidence-source interpretation review.
+
+\textbf{Common failure modes:} Treating synonyms as separate chemicals, assuming pathway activity, treating occurrence in one organism as occurrence in another, and ignoring mixture or salt ambiguity.
+
+\textbf{Minimum viable path:} Audit five project chemicals and record which sources are useful.
+
+\textbf{Advanced extension path:} Compare manual source records to uafR-assisted profiles for a small set.
+\end{checklistbox}
+
+\begin{dailybox}{Day 15: Chemical Names, Identifiers, and Ambiguity}
+\textbf{Purpose:} Prevent identifier errors from contaminating the whole project.
+
+\textbf{Learning objectives:} Explain synonyms, salts, mixtures, stereochemistry, CIDs, and InChIKeys; identify ambiguous project chemicals; decide when a name is not safe enough for analysis.
+
+\textbf{Prerequisites and materials:} Chemical intake table, identifier ambiguity drill, and source records for five chemicals.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes identifier concept block, 90 minutes guided ambiguity drill, 120 minutes project chemical audit, 60 minutes evidence note, 30 minutes review.
+
+\textbf{Morning concept block:} Demonstrate how one common name can map to multiple records and how salts, stereochemistry, and mixtures change interpretation.
+
+\textbf{Guided lab or reading discussion:} Complete the Identifier Ambiguity Drill from the lab compendium.
+
+\textbf{Independent project block:} Audit five chemicals from the project list and record preferred name, alternate names, CID if available, and ambiguity status.
+
+\textbf{Evidence and writing block:} Write a rule for excluding or flagging ambiguous identifiers.
+
+\textbf{Research log prompt:} Which identifier is most likely to mislead the analysis?
+
+\textbf{End-of-day deliverable:} Identifier ambiguity note.
+
+\textbf{Quality gate:} Every audited chemical has a preferred label, source, and ambiguity decision.
+
+\textbf{Common problems and fixes:} If a name returns multiple plausible records, do not choose silently. Flag it and document the decision rule.
+
+\textbf{Optional advanced challenge:} Add InChIKey or CID columns to the chemical intake table where defensible.
+\end{dailybox}
+
+\begin{dailybox}{Day 16: PubChem Manual and uafR-Assisted Source Audit}
+\textbf{Purpose:} Learn PubChem as a source ecosystem rather than a single answer.
+
+\textbf{Learning objectives:} Identify PubChem identity, property, classification, safety, literature, assay, and source-annotation records; distinguish manual source inspection from automated enrichment.
+
+\textbf{Prerequisites and materials:} PubChem reading, chemical intake table, evidence map worksheet, and optional \texttt{pubchemProfile()} documentation.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes PubChem concept block, 120 minutes guided source audit, 90 minutes project audit, 60 minutes writing, 30 minutes review.
+
+\textbf{Morning concept block:} Explain PubChem CIDs, depositor-supplied records, annotations, and why source context matters.
+
+\textbf{Guided lab or reading discussion:} Manually inspect one compound and identify which fields are identity, property, hazard, classification, literature, or assay evidence.
+
+\textbf{Independent project block:} Audit two project chemicals and add PubChem-relevant evidence types to the evidence map.
+
+\textbf{Evidence and writing block:} Write one strong and one weak PubChem-based claim.
+
+\textbf{Research log prompt:} Which PubChem field appears useful, and what limitation should accompany it?
+
+\textbf{End-of-day deliverable:} PubChem evidence worksheet.
+
+\textbf{Quality gate:} The worksheet names the source field and evidence type, not just the compound page.
+
+\textbf{Common problems and fixes:} If students cite PubChem broadly, require a table, heading, or source-specific field.
+
+\textbf{Optional advanced challenge:} Run a small \texttt{pubchemProfile()} call and compare automated fields to manual inspection.
+\end{dailybox}
+
+\begin{dailybox}{Day 17: KEGG Compounds, Reactions, Enzymes, Modules, and Pathways}
+\textbf{Purpose:} Teach biochemical context without overstating activity or presence.
+
+\textbf{Learning objectives:} Explain KEGG compound records, reaction IDs, enzyme IDs, modules, pathways, and what each can support.
+
+\textbf{Prerequisites and materials:} KEGG reading, evidence map worksheet, optional \texttt{keggProfile()} documentation, and project chemical list.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes KEGG concept block, 120 minutes guided record review, 90 minutes project mapping, 60 minutes caution writing, 30 minutes review.
+
+\textbf{Morning concept block:} Distinguish pathway membership or reaction participation from measured pathway activity.
+
+\textbf{Guided lab or reading discussion:} Inspect a KEGG compound record when available and identify compound, pathway, reaction, enzyme, and module fields.
+
+\textbf{Independent project block:} Record KEGG relevance for project chemicals that have plausible KEGG context.
+
+\textbf{Evidence and writing block:} Write a safe pathway-context sentence and an unsafe pathway-activity sentence, then revise the unsafe sentence.
+
+\textbf{Research log prompt:} What KEGG context is useful, and what would require experimental confirmation?
+
+\textbf{End-of-day deliverable:} KEGG evidence worksheet.
+
+\textbf{Quality gate:} No pathway claim should imply activity, abundance, or biological flux in the sample.
+
+\textbf{Common problems and fixes:} If a pathway name is treated as a result, reframe it as context or hypothesis.
+
+\textbf{Optional advanced challenge:} Compare KEGG context across two compounds and identify shared reactions or pathways if present.
+\end{dailybox}
+
+\begin{dailybox}{Day 18: LOTUS, FEMA, FDA/SPL, MeSH, and Other Source Evidence}
+\textbf{Purpose:} Show that source families answer different kinds of questions.
+
+\textbf{Learning objectives:} Separate natural-product occurrence, sensory/flavor context, regulatory or label context, biomedical terms, and literature evidence.
+
+\textbf{Prerequisites and materials:} Source comparison worksheet, project chemical intake table, and readings on source-specific limitations.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes source landscape, 120 minutes guided comparison, 90 minutes project source map, 60 minutes limitation writing, 30 minutes review.
+
+\textbf{Morning concept block:} Discuss LOTUS occurrence evidence, FEMA flavor context, FDA/SPL labeling context, and MeSH biomedical indexing.
+
+\textbf{Guided lab or reading discussion:} Compare source records for a familiar compound and label each as identity, occurrence, sensory, regulatory, biomedical, or literature context.
+
+\textbf{Independent project block:} Add source roles to the evidence map for project chemicals.
+
+\textbf{Evidence and writing block:} Draft source-specific caveats for each source that appears relevant.
+
+\textbf{Research log prompt:} Which source is easiest to overinterpret and why?
+
+\textbf{End-of-day deliverable:} Source comparison table.
+
+\textbf{Quality gate:} Each source role has a matching ``cannot support'' note.
+
+\textbf{Common problems and fixes:} If natural-product occurrence is treated as sample occurrence, add organism and source-context caveats.
+
+\textbf{Optional advanced challenge:} Add a field-specific source approved by the program lead and define its evidence boundary.
+\end{dailybox}
+
+\begin{dailybox}{Day 19: Database Evidence Map Review}
+\textbf{Purpose:} Freeze the first evidence plan before automated enrichment begins.
+
+\textbf{Learning objectives:} Summarize source coverage expectations, revise project scope based on evidence, and identify missing evidence types.
+
+\textbf{Prerequisites and materials:} Identifier note, PubChem worksheet, KEGG worksheet, source comparison table, evidence map.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 60 minutes synthesis, 120 minutes evidence map revision, 120 minutes scope adjustment, 60 minutes review memo, 30 minutes checkpoint.
+
+\textbf{Morning concept block:} Discuss how weak source coverage can change a project question without making the project fail.
+
+\textbf{Guided lab or reading discussion:} Review examples of evidence maps and identify unsupported cells.
+
+\textbf{Independent project block:} Revise the evidence map and project scope based on actual source expectations.
+
+\textbf{Evidence and writing block:} Write an evidence-source interpretation memo.
+
+\textbf{Research log prompt:} What changed in the project because of database evidence limits?
+
+\textbf{End-of-day deliverable:} Database evidence map v1 and scope adjustment note.
+
+\textbf{Quality gate:} Each planned result has a plausible evidence source or is removed from scope.
+
+\textbf{Common problems and fixes:} If the evidence map is mostly empty, narrow the question or switch to a methods/data-quality project.
+
+\textbf{Optional advanced challenge:} Add confidence labels for each evidence source in the map.
+\end{dailybox}
+
+\begin{dailybox}{Day 20: Weekend Reading Annotation on Public Databases}
+\textbf{Purpose:} Deepen source literacy with one focused reading.
+
+\textbf{Learning objectives:} Annotate a source document or paper, extract evidence limits, and update the evidence map.
+
+\textbf{Prerequisites and materials:} Approved PubChem, KEGG, LOTUS, metabolomics reporting, or field-specific reading.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1.5 to 3 hours.
+
+\textbf{Morning concept block:} Not scheduled. Begin with reading annotation.
+
+\textbf{Guided lab or reading discussion:} Complete the reading annotation template.
+
+\textbf{Independent project block:} Add one note from the reading to the project evidence map.
+
+\textbf{Evidence and writing block:} Write a limitation sentence that should appear later in the report.
+
+\textbf{Research log prompt:} What did the reading clarify about source reliability?
+
+\textbf{End-of-day deliverable:} Reading annotation and updated evidence map cell.
+
+\textbf{Quality gate:} The annotation includes a method or source limitation.
+
+\textbf{Common problems and fixes:} If the reading is not directly relevant, document it as background and choose a better source for evidence.
+
+\textbf{Optional advanced challenge:} Compare the reading to a second source with a different database or method perspective.
+\end{dailybox}
+
+\begin{dailybox}{Day 21: Weekend Evidence Map Revision}
+\textbf{Purpose:} Prepare for the GC-MS workflow by removing weak or unsupported project claims.
+
+\textbf{Learning objectives:} Revise evidence map, update chemical intake table, and name Week 4 data needs.
+
+\textbf{Prerequisites and materials:} Evidence map v1, chemical intake table, project brief, and research log.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1 to 2 hours.
+
+\textbf{Morning concept block:} Not scheduled. Focus on revision.
+
+\textbf{Guided lab or reading discussion:} Revisit each evidence map row and mark keep, revise, or remove.
+
+\textbf{Independent project block:} Update the project brief and chemical intake table.
+
+\textbf{Evidence and writing block:} Write a Week 3 summary paragraph for the research log.
+
+\textbf{Research log prompt:} What evidence type will be most important in Week 4 and Week 5?
+
+\textbf{End-of-day deliverable:} Revised evidence map and Week 4 readiness checklist.
+
+\textbf{Quality gate:} The project can move into GC-MS workflow without unresolved identifier problems blocking every chemical.
+
+\textbf{Common problems and fixes:} If more than half the list remains ambiguous, define a smaller verified subset.
+
+\textbf{Optional advanced challenge:} Draft a source coverage hypothesis for the enrichment phase.
+\end{dailybox}
 
 \section{Week 4: uafR Core GC-MS Workflow}
-\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endhead
-1 & GC-MS hit tables, required columns, match factors, retention time, base peaks, and peak area. & Audit example input columns and suspicious values. & Input column audit.\\
-2 & Reshaping and extracting chemical hits with uafR. & Run the offline core workflow and inspect bundled outputs. & Annotated core workflow script.\\
-3 & Duplicates, ambiguous peaks, and tentative identity limits. & Students identify duplicate or conflicting hits in an example table. & Duplicate and uncertainty note.\\
-4 & Applying the workflow to student data or a case dataset. & Run a small project-specific workflow. & Processed output v1.\\
-5 & Methods writing clinic. & Write a methods paragraph for GC-MS processing and tentative identification caveats. & Methods paragraph draft.\\
-\bottomrule
-\end{longtable}
+\WeekHeader{4}{uafR core GC-MS workflow}{Students can run and explain the offline GC-MS workflow and its limits.}{Input column audit, offline workflow output, uncertainty note, methods paragraph, and processed-output cleanup.}
 
-\section{Week 5: Research-Grade categorate Enrichment}
-\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endhead
-1 & What \texttt{categorate(detail = "research")} returns and why validation comes first. & Run a two-compound smoke test when services are available or inspect saved examples. & Validation summary and table inventory.\\
-2 & Source coverage and provenance. & Inspect \texttt{SourceCoverage}, \texttt{SourceDiagnostics}, \texttt{TableQuality}, and \texttt{DataDictionary}. & Source coverage report.\\
-3 & PubChem enrichment outputs. & Trace properties, safety, literature, classifications, and source annotations for selected chemicals. & PubChem evidence audit.\\
-4 & KEGG and source-specific enrichment outputs. & Trace pathway, reaction, enzyme, occurrence, and taxonomy rows. & KEGG/LOTUS evidence audit.\\
-5 & Scaling and caching. & Run project list in batches, save RDS results, and document query settings. & Saved enrichment object and query log.\\
-\bottomrule
-\end{longtable}
+\begin{checklistbox}{Week 4 Operating Plan}
+\textbf{Concepts:} GC-MS hit-table anatomy, match factors, retention time, base peak, area, file names, duplicate peaks, suspicious values, and tentative identification limits.
+
+\textbf{uafR/R skills:} Use \texttt{spreadOut()}, \texttt{mzExacto()}, and \texttt{exactoThese()} in a cautious workflow. Use \path{training/scripts/04_core_workflow.R} for offline examples.
+
+\textbf{Required readings or references:} Function docs for \texttt{spreadOut()}, \texttt{mzExacto()}, and \texttt{exactoThese()}; Week 4 chapter; GC-MS input column audit worksheet.
+
+\textbf{Required files/scripts/data:} \texttt{standard\_data}, \texttt{standard\_spread}, \texttt{standard\_exacto}, \path{training/scripts/04_core_workflow.R}, and optional student or case dataset.
+
+\textbf{Weekly deliverables:} Input audit, annotated offline workflow, duplicate/uncertainty note, processed output v1, and methods paragraph.
+
+\textbf{Mentor review checkpoint:} Day 26 methods paragraph and data-preservation caveat.
+
+\textbf{Common failure modes:} Wrong column names, duplicate peak keys, treating match factor as confirmation, and losing raw data provenance.
+
+\textbf{Minimum viable path:} Use bundled offline outputs and explain them correctly.
+
+\textbf{Advanced extension path:} Apply the workflow to a small project or case dataset after input audit passes.
+\end{checklistbox}
+
+\begin{dailybox}{Day 22: GC-MS Hit-Table Anatomy}
+\textbf{Purpose:} Ensure students understand the input format before running uafR.
+
+\textbf{Learning objectives:} Identify required columns, explain match factor, retention time, base peak, component area, file name, and suspicious values.
+
+\textbf{Prerequisites and materials:} Week 4 chapter, \texttt{spreadOut()} documentation, example \texttt{standard\_data}, and GC-MS input column audit worksheet.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes GC-MS table concept block, 90 minutes guided input audit, 120 minutes project or case input review, 60 minutes notes, 30 minutes review.
+
+\textbf{Morning concept block:} Explain why \texttt{spreadOut()} requires \texttt{Component.RT}, \texttt{Component.Area}, \texttt{Base.Peak.MZ}, \texttt{File.Name}, \texttt{Compound.Name}, and \texttt{Match.Factor}.
+
+\textbf{Guided lab or reading discussion:} Inspect \texttt{standard\_data} and compare its columns to a malformed example.
+
+\textbf{Independent project block:} Audit student or case data for required columns, missing values, duplicate peak keys, and suspicious match factors.
+
+\textbf{Evidence and writing block:} Write an input-quality note for the methods folder.
+
+\textbf{Research log prompt:} What input issue would most damage downstream interpretation?
+
+\textbf{End-of-day deliverable:} GC-MS input column audit.
+
+\textbf{Quality gate:} The audit states whether the file can be processed and what fixes are allowed.
+
+\textbf{Common problems and fixes:} If a required column is absent, do not guess silently. Rename only when the source field is clearly equivalent and document it.
+
+\textbf{Optional advanced challenge:} Write a small R check that stops when required columns are missing.
+\end{dailybox}
+
+\begin{dailybox}{Day 23: Offline Core Workflow With Package Examples}
+\textbf{Purpose:} Run the core workflow without relying on live web services.
+
+\textbf{Learning objectives:} Source the training workflow, inspect \texttt{standard\_spread} and \texttt{standard\_exacto}, explain where \texttt{spreadOut()}, \texttt{mzExacto()}, and \texttt{exactoThese()} fit.
+
+\textbf{Prerequisites and materials:} Installed uafR, \path{training/scripts/04_core_workflow.R}, package example data, and research log.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes workflow overview, 120 minutes guided script run, 120 minutes output inspection, 60 minutes annotation, 30 minutes review.
+
+\textbf{Morning concept block:} Explain that offline saved outputs are teaching artifacts; live lookup is a separate optional step.
+
+\textbf{Guided lab or reading discussion:} Run \texttt{run\_core\_workflow(live\_lookup = FALSE)} and inspect the returned list.
+
+\textbf{Independent project block:} Annotate the workflow script with comments explaining inputs, outputs, and limitations.
+
+\textbf{Evidence and writing block:} Draft a paragraph explaining what the exact-match output can and cannot show.
+
+\textbf{Research log prompt:} Which object is raw input, which is reshaped output, and which is extracted result?
+
+\textbf{End-of-day deliverable:} Annotated core workflow script and output inspection notes.
+
+\textbf{Quality gate:} Students can explain why the offline workflow is reproducible and why live lookup may vary.
+
+\textbf{Common problems and fixes:} If \texttt{uafR} is not found, rerun installation verification. If outputs are not understood, inspect structure before plotting or interpreting.
+
+\textbf{Optional advanced challenge:} Use \texttt{exactoThese()} with a saved categorate result to create a targeted query list, noting legacy and research schema differences where relevant.
+\end{dailybox}
+
+\begin{dailybox}{Day 24: Duplicate Hits, Ambiguous Peaks, and Tentative Limits}
+\textbf{Purpose:} Prevent students from treating workflow output as final truth.
+
+\textbf{Learning objectives:} Identify duplicate or conflicting hits, explain why multiple candidates can share evidence, and write cautious interpretation.
+
+\textbf{Prerequisites and materials:} Offline workflow output, input audit, duplicate troubleshooting exercise, and methods notes.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes uncertainty concept block, 120 minutes duplicate exercise, 120 minutes project/case review, 60 minutes writing, 30 minutes review.
+
+\textbf{Morning concept block:} Discuss why GC-MS tentative annotation can produce similar or conflicting names and why decontamination or filtering must be documented.
+
+\textbf{Guided lab or reading discussion:} Review a wrong-column or duplicate-key example and predict how it should fail.
+
+\textbf{Independent project block:} Identify duplicate, ambiguous, or low-confidence features in project or case outputs.
+
+\textbf{Evidence and writing block:} Write a duplicate and uncertainty note for the methods folder.
+
+\textbf{Research log prompt:} Which hits should be treated with the greatest caution and why?
+
+\textbf{End-of-day deliverable:} Duplicate and uncertainty note.
+
+\textbf{Quality gate:} Each flagged issue has a decision: keep, remove, rerun, or mark as uncertain.
+
+\textbf{Common problems and fixes:} If students delete rows manually, require a scripted filter and a reason.
+
+\textbf{Optional advanced challenge:} Compare outputs under two documented filtering choices and record sensitivity.
+\end{dailybox}
+
+\begin{dailybox}{Day 25: Applying the Workflow to Student or Case Data}
+\textbf{Purpose:} Move from example outputs to project-specific processing only when the input audit supports it.
+
+\textbf{Learning objectives:} Run a small workflow subset, save output objects, and document all settings and caveats.
+
+\textbf{Prerequisites and materials:} Passing input audit, project or case data, \path{training/scripts/04_core_workflow.R}, and output folders.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 60 minutes processing plan, 120 minutes guided run, 150 minutes independent troubleshooting, 45 minutes output saving, 30 minutes review.
+
+\textbf{Morning concept block:} Explain why small test runs protect time and reduce confusion.
+
+\textbf{Guided lab or reading discussion:} Plan the first project run using a limited chemical list or case dataset.
+
+\textbf{Independent project block:} Run the workflow, save processed outputs, and capture errors.
+
+\textbf{Evidence and writing block:} Write the processing settings and output locations in the research log.
+
+\textbf{Research log prompt:} What ran successfully, what failed, and what should not be interpreted yet?
+
+\textbf{End-of-day deliverable:} Processed output v1 or documented reason processing is not yet valid.
+
+\textbf{Quality gate:} The output must be generated by a script and saved with clear file names.
+
+\textbf{Common problems and fixes:} If live services are slow, return to saved offline outputs and document the live-query limitation.
+
+\textbf{Optional advanced challenge:} Compare project output to bundled output structure and note differences.
+\end{dailybox}
+
+\begin{dailybox}{Day 26: Methods Writing Clinic for GC-MS Processing}
+\textbf{Purpose:} Convert technical workflow steps into reproducible scientific methods.
+
+\textbf{Learning objectives:} Write methods with input columns, package functions, settings, output objects, filtering rules, and tentative-identification caveats.
+
+\textbf{Prerequisites and materials:} Input audit, workflow script, output object, duplicate note, and methods rubric.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes methods concept block, 90 minutes example critique, 120 minutes methods drafting, 75 minutes peer review, 30 minutes revision.
+
+\textbf{Morning concept block:} Compare method text that is reproducible with text that only says ``data were analyzed in R.''
+
+\textbf{Guided lab or reading discussion:} Mark missing details in a weak methods paragraph.
+
+\textbf{Independent project block:} Draft the GC-MS processing methods paragraph.
+
+\textbf{Evidence and writing block:} Add a data-preservation caveat and tentative-identification caveat.
+
+\textbf{Research log prompt:} What method detail would another student need to reproduce this step?
+
+\textbf{End-of-day deliverable:} Methods paragraph draft.
+
+\textbf{Quality gate:} The paragraph names functions, inputs, settings, output objects, and limitations without claiming confirmation.
+
+\textbf{Common problems and fixes:} If the methods text lacks function names or settings, add them. If it says compounds were identified, revise to tentative language unless standards support confirmation.
+
+\textbf{Optional advanced challenge:} Add a short workflow diagram in the project notes.
+\end{dailybox}
+
+\begin{dailybox}{Day 27: Weekend Wrong-Column Troubleshooting Exercise}
+\textbf{Purpose:} Practice diagnosing input failures without damaging project data.
+
+\textbf{Learning objectives:} Identify malformed input, explain expected error messages, and rerun from the project root.
+
+\textbf{Prerequisites and materials:} Wrong-column exercise, input audit worksheet, project README, and research log.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1.5 to 2.5 hours.
+
+\textbf{Morning concept block:} Not scheduled. Begin with the troubleshooting exercise.
+
+\textbf{Guided lab or reading discussion:} Compare malformed columns to required columns and write the fix plan.
+
+\textbf{Independent project block:} Rerun the valid workflow from the project root and confirm outputs still appear.
+
+\textbf{Evidence and writing block:} Add one troubleshooting entry to the research log.
+
+\textbf{Research log prompt:} What error would help diagnose a real input problem?
+
+\textbf{End-of-day deliverable:} Wrong-column troubleshooting note.
+
+\textbf{Quality gate:} The fix is described as a documented transformation, not a manual edit to raw data.
+
+\textbf{Common problems and fixes:} If the exercise is solved by editing raw input, rewrite the solution as a script.
+
+\textbf{Optional advanced challenge:} Add an input-validation function to the student's import script.
+\end{dailybox}
+
+\begin{dailybox}{Day 28: Weekend Output Cleanup and Week 5 Readiness}
+\textbf{Purpose:} Prepare for enrichment by cleaning outputs and documenting the query list.
+
+\textbf{Learning objectives:} Archive outputs, update research log, and define the chemical list for enrichment.
+
+\textbf{Prerequisites and materials:} Processed output v1, chemical intake table, methods paragraph, and Week 5 checklist.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1 to 2 hours.
+
+\textbf{Morning concept block:} Not scheduled. Focus on cleanup and readiness.
+
+\textbf{Guided lab or reading discussion:} Review output folder and remove or archive confusing scratch outputs.
+
+\textbf{Independent project block:} Create the Week 5 enrichment query list with inclusion rules.
+
+\textbf{Evidence and writing block:} Update the research log with output locations and unresolved caveats.
+
+\textbf{Research log prompt:} Which chemicals are ready for enrichment and which are excluded?
+
+\textbf{End-of-day deliverable:} Week 5 readiness checklist and enrichment query list.
+
+\textbf{Quality gate:} The enrichment list has an inclusion rule and excludes unresolved ambiguous identifiers.
+
+\textbf{Common problems and fixes:} If the query list is too large, define a smoke-test subset and a batch plan.
+
+\textbf{Optional advanced challenge:} Save the query list as a CSV with reason-for-inclusion and confidence columns.
+\end{dailybox}
+
+\section{Week 5: Research-Grade \texttt{categorate()} Enrichment}
+\WeekHeader{5}{Research-grade categorate enrichment}{Students run small, validated enrichment before scaling.}{Validation outputs, source coverage report, saved enrichment object, query log, and Evidence Court notes.}
+
+\begin{checklistbox}{Week 5 Operating Plan}
+\textbf{Concepts:} \texttt{categorate(detail = "research")}, caching, throttling, source coverage, validation-first interpretation, PubChem/KEGG/LOTUS/FEMA/FDA/SPL/MeSH output families, source diagnostics, and database etiquette.
+
+\textbf{uafR/R skills:} Use \texttt{categorate()}, \texttt{validateCategorateResult()}, \texttt{chemicalDataDictionary()}, and saved RDS objects. Use \path{training/scripts/05_categorate_research.R}.
+
+\textbf{Required readings or references:} \texttt{categorate()} documentation, table guide, installation appendix live-smoke guidance, and database etiquette note.
+
+\textbf{Required files/scripts/data:} \path{training/scripts/05_categorate_research.R}, \texttt{library\_data}, enrichment query list, query settings log, and evidence table template.
+
+\textbf{Weekly deliverables:} Smoke-test result, validation summary, source coverage report, evidence audits, saved RDS enrichment object, and query log.
+
+\textbf{Mentor review checkpoint:} Day 33 scaling plan and saved archive.
+
+\textbf{Common failure modes:} Running too many compounds first, ignoring validation, overinterpreting empty tables, and treating source warnings as final conclusions.
+
+\textbf{Minimum viable path:} Run or inspect a two-compound smoke test and validate outputs.
+
+\textbf{Advanced extension path:} Batch a project list with caching and export selected tables.
+\end{checklistbox}
+
+\begin{dailybox}{Day 29: \texttt{categorate(detail = "research")} Smoke Test}
+\textbf{Purpose:} Start enrichment with a small reproducible test.
+
+\textbf{Learning objectives:} Run a two-compound smoke test, use caching and throttling, save an RDS result, and avoid large first queries.
+
+\textbf{Prerequisites and materials:} Installed uafR, \texttt{library\_data}, \path{training/scripts/05_categorate_research.R}, and query settings log.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes enrichment overview, 120 minutes guided smoke test, 120 minutes output inspection, 60 minutes query log, 30 minutes review.
+
+\textbf{Morning concept block:} Explain why live database services require small tests, caching, and respectful throttling.
+
+\textbf{Guided lab or reading discussion:} Run \texttt{run\_categorate\_smoke()} or inspect a saved result if services are unavailable.
+
+\textbf{Independent project block:} Create a project smoke-test list of two to five chemicals.
+
+\textbf{Evidence and writing block:} Write query settings, date, package version, cache setting, and compound list in the query log.
+
+\textbf{Research log prompt:} What was queried, what returned, and what should not be interpreted yet?
+
+\textbf{End-of-day deliverable:} Smoke-test result and query settings log.
+
+\textbf{Quality gate:} Students do not interpret traits until validation and source coverage are inspected.
+
+\textbf{Common problems and fixes:} If the package says no library was detected, load \texttt{library\_data} and pass \texttt{chemical\_library = library\_data}. If queries hang, reduce compound count and use cached results.
+
+\textbf{Optional advanced challenge:} Compare \texttt{detail = "research"} to \texttt{detail = "standard"} for table count and purpose.
+\end{dailybox}
+
+\begin{dailybox}{Day 30: Validation First}
+\textbf{Purpose:} Make validation the first analysis step after enrichment.
+
+\textbf{Learning objectives:} Inspect \texttt{ValidationSummary}, \texttt{TableQuality}, \texttt{SourceCoverage}, \texttt{SourceDiagnostics}, and \texttt{DataDictionary}; decide which outputs are usable.
+
+\textbf{Prerequisites and materials:} Smoke-test result, \texttt{validateCategorateResult()}, \texttt{chemicalDataDictionary()}, and source coverage worksheet.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes validation concept block, 120 minutes guided audit, 120 minutes source coverage report, 60 minutes interpretation limits, 30 minutes review.
+
+\textbf{Morning concept block:} Explain row counts, missing required columns, duplicate analysis keys, source diagnostics, and source coverage. Note that saved \texttt{categorate()} results use \texttt{ValidationSummary}, while direct \texttt{validateCategorateResult()} audits use \texttt{Summary}.
+
+\textbf{Guided lab or reading discussion:} Run \texttt{validateCategorateResult(result)} and inspect each validation table.
+
+\textbf{Independent project block:} Build the first source coverage report for the smoke-test or project result.
+
+\textbf{Evidence and writing block:} Write a short statement naming which tables are strong enough to use and which are weak or empty.
+
+\textbf{Research log prompt:} Which table has the strongest coverage and which table should be ignored for now?
+
+\textbf{End-of-day deliverable:} Validation summary and source coverage report.
+
+\textbf{Quality gate:} Every planned interpretation is tied to a table that passed basic validation and coverage checks.
+
+\textbf{Common problems and fixes:} If a table is empty, do not write that the chemical lacks the trait; write that the source returned no usable rows in this query.
+
+\textbf{Optional advanced challenge:} Use \texttt{chemicalDataDictionary("ChemicalTraitReport")} to inspect expected columns.
+\end{dailybox}
+
+\begin{dailybox}{Day 31: PubChem-Derived Enrichment Outputs}
+\textbf{Purpose:} Interpret PubChem-derived tables as source-backed evidence, not free text.
+
+\textbf{Learning objectives:} Inspect identity, properties, hazards, classifications, literature, annotations, and measurement summaries conservatively.
+
+\textbf{Prerequisites and materials:} Validated enrichment result, table guide, source coverage report, and evidence table template.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes PubChem table families, 120 minutes guided table inspection, 90 minutes project audit, 60 minutes evidence writing, 30 minutes review.
+
+\textbf{Morning concept block:} Explain \texttt{PubChemIdentity}, \texttt{PubChemProperties}, \texttt{ChemicalHazards}, \texttt{ChemicalMeasurements}, \texttt{ChemicalMeasurementSummary}, \texttt{PubChemClassifications}, and literature-related tables.
+
+\textbf{Guided lab or reading discussion:} Trace one property and one hazard-related row to its source context.
+
+\textbf{Independent project block:} Select three PubChem-derived outputs relevant to the project and document their evidence strength.
+
+\textbf{Evidence and writing block:} Write safe templates for property, hazard, and literature claims.
+
+\textbf{Research log prompt:} Which PubChem-derived value is analysis-ready, and which is narrative-only?
+
+\textbf{End-of-day deliverable:} PubChem evidence audit.
+
+\textbf{Quality gate:} Hazard annotations are described as screening/context evidence, not risk assessment.
+
+\textbf{Common problems and fixes:} If a table has long descriptive text, look for discrete fields or route it to evidence notes rather than matrices.
+
+\textbf{Optional advanced challenge:} Compare \texttt{ChemicalMeasurements} to \texttt{ChemicalMeasurementSummary} and decide which is better for figures.
+\end{dailybox}
+
+\begin{dailybox}{Day 32: KEGG, LOTUS, FEMA, FDA/SPL, MeSH, and Related Outputs}
+\textbf{Purpose:} Inspect non-PubChem and source-specific outputs without overclaiming.
+
+\textbf{Learning objectives:} Trace pathway, reaction, enzyme, module, taxonomy, occurrence, sensory, regulatory, and biomedical rows to source context.
+
+\textbf{Prerequisites and materials:} Validated enrichment result, source coverage report, table guide, and evidence map.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes output families, 120 minutes guided source tracing, 90 minutes project source audit, 60 minutes caveat writing, 30 minutes review.
+
+\textbf{Morning concept block:} Explain \texttt{KEGGPathways}, \texttt{KEGGReactions}, \texttt{KEGGEnzymes}, \texttt{KEGGModules}, \texttt{KEGGReactionParticipants}, \texttt{LOTUSProfile}, \texttt{FEMAProfile}, \texttt{FDA\_SPL\_Profile}, \texttt{MeSHProfile}, \texttt{ChemicalTaxonomy}, and \texttt{ChemicalOccurrences}.
+
+\textbf{Guided lab or reading discussion:} Trace one pathway or occurrence-like record and write what it can and cannot support.
+
+\textbf{Independent project block:} Audit source-specific rows for project chemicals and mark them usable, context-only, or not relevant.
+
+\textbf{Evidence and writing block:} Write three caveats: pathway context, organism occurrence, and regulatory or sensory context.
+
+\textbf{Research log prompt:} Which non-PubChem source adds useful context, and what would be unsafe to claim from it?
+
+\textbf{End-of-day deliverable:} KEGG/LOTUS/source-specific evidence audit.
+
+\textbf{Quality gate:} No source-specific row is interpreted without naming source database and source field.
+
+\textbf{Common problems and fixes:} If taxonomy fields are sparse or unexpected, inspect \texttt{ChemicalTaxonomy} and source rows before grouping.
+
+\textbf{Optional advanced challenge:} Identify one \texttt{KEGGReactionParticipants} row and explain reactant/product role cautiously.
+\end{dailybox}
+
+\begin{dailybox}{Day 33: Scaling, Batching, Caching, and Query Logs}
+\textbf{Purpose:} Scale enrichment responsibly after validation.
+
+\textbf{Learning objectives:} Batch query lists, use cache settings, save RDS result objects, export selected tables, and maintain query logs.
+
+\textbf{Prerequisites and materials:} Query list, smoke-test result, \path{training/scripts/05_categorate_research.R}, and query settings log.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes scaling strategy, 120 minutes guided batch plan, 120 minutes project run or saved-result archive, 60 minutes query log, 30 minutes review.
+
+\textbf{Morning concept block:} Discuss database etiquette, service instability, and why cached RDS files are research artifacts.
+
+\textbf{Guided lab or reading discussion:} Design batch sizes and naming conventions for saved results.
+
+\textbf{Independent project block:} Run a defensible batch or archive saved enrichment outputs if live services are not used.
+
+\textbf{Evidence and writing block:} Record all settings: compound list, date, detail level, cache, throttle, assay detail limit, and output file.
+
+\textbf{Research log prompt:} What exact query produced the saved result object?
+
+\textbf{End-of-day deliverable:} Saved enrichment object and query log.
+
+\textbf{Quality gate:} The result object can be reloaded without repeating live queries.
+
+\textbf{Common problems and fixes:} If a batch fails, reduce size and keep the failed query log rather than deleting it.
+
+\textbf{Optional advanced challenge:} Use \texttt{exportCategorateWorkbook()} if optional spreadsheet dependencies are available, or export a CSV bundle of selected tables.
+\end{dailybox}
+
+\begin{dailybox}{Day 34: Weekend Evidence Court}
+\textbf{Purpose:} Make students prove that important traits trace back to evidence.
+
+\textbf{Learning objectives:} Trace five matrix or report signals to source evidence, rewrite unsupported claims, and document rejected claims.
+
+\textbf{Prerequisites and materials:} Saved enrichment result, \texttt{ChemicalTraitMatrix}, \texttt{ChemicalTraitEvidence}, \texttt{ChemicalTraitReport}, and Evidence Court worksheet.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 2 to 3 hours.
+
+\textbf{Morning concept block:} Not scheduled. Begin with evidence tracing.
+
+\textbf{Guided lab or reading discussion:} Use \texttt{chemicalTraitEvidence(result)} to inspect evidence for selected keys when available.
+
+\textbf{Independent project block:} Trace five traits or report fields to source evidence and confidence metadata.
+
+\textbf{Evidence and writing block:} Rewrite one weak claim into safer wording.
+
+\textbf{Research log prompt:} Which trait was strongest, which was weakest, and why?
+
+\textbf{End-of-day deliverable:} Evidence Court worksheet for five traits.
+
+\textbf{Quality gate:} Each trait has source table, source field, evidence row or key, and caveat.
+
+\textbf{Common problems and fixes:} If a trait cannot be traced, remove it from result claims and document why.
+
+\textbf{Optional advanced challenge:} Compare evidence strength under medium versus high confidence thresholds.
+\end{dailybox}
+
+\begin{dailybox}{Day 35: Weekend Source Coverage Report and Archive}
+\textbf{Purpose:} Close enrichment with a reproducible archive before matrix design begins.
+
+\textbf{Learning objectives:} Save validation outputs, source coverage report, query log, and result object in predictable locations.
+
+\textbf{Prerequisites and materials:} Saved enrichment result, validation output, source coverage report, query settings log, and project folder.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1 to 2 hours.
+
+\textbf{Morning concept block:} Not scheduled. Focus on archiving.
+
+\textbf{Guided lab or reading discussion:} Inspect the results folder and confirm file names match README.
+
+\textbf{Independent project block:} Save the enrichment archive and update README script order.
+
+\textbf{Evidence and writing block:} Write a Week 6 readiness note naming which tables can feed trait matrices.
+
+\textbf{Research log prompt:} What saved object is the source of truth for Week 6?
+
+\textbf{End-of-day deliverable:} Enrichment result archive and Week 6 readiness checklist.
+
+\textbf{Quality gate:} A student can reload the saved RDS object and inspect validation without web queries.
+
+\textbf{Common problems and fixes:} If the only output is printed in the Console, rerun and save RDS/CSV outputs.
+
+\textbf{Optional advanced challenge:} Export selected validation tables to CSV for the final package.
+\end{dailybox}
 
 \section{Week 6: Research Variables and Trait Matrices}
-\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endhead
-1 & Discrete variables versus descriptive text. & Inspect \texttt{ChemicalTraits} and separate analysis-ready values from narrative fields. & Candidate variable list.\\
-2 & Confidence, evidence, and matrix keys. & Build binary and confidence-weighted matrices. & Trait matrix v1.\\
-3 & Project grouping dictionary. & Define allowed values, source fields, extraction rules, and caveats. & Grouping dictionary v1.\\
-4 & Real-world grouping exercise. & Compare two chemical sets by shared and distinct traits. & Comparison table and interpretation note.\\
-5 & Variable gate. & Remove weak variables, revise rules, and freeze analysis inputs for Week 7. & Reviewed trait matrix and dictionary.\\
-\bottomrule
-\end{longtable}
+\WeekHeader{6}{Research variables and trait matrices}{Students convert evidence into defensible analysis variables.}{Candidate variable list, trait matrices, grouping dictionary, sensitivity note, and variable gate decision.}
+
+\begin{checklistbox}{Week 6 Operating Plan}
+\textbf{Concepts:} Discrete variables versus narrative text, matrix profiles, binary/count/confidence modes, confidence thresholds, grouping dictionaries, missingness, sparsity, and sensitivity.
+
+\textbf{uafR/R skills:} Use \texttt{chemicalTraitMatrix()}, \texttt{chemicalTraitOntologyMatrix()}, \texttt{chemicalTraitEvidence()}, and \texttt{chemicalTraitReport()}. Use \path{training/scripts/06_trait_matrix_analysis.R}.
+
+\textbf{Required readings or references:} Trait matrix chapter, table guide, evidence court notes, and matrix sparsity exercise.
+
+\textbf{Required files/scripts/data:} Saved enrichment RDS, \path{training/scripts/06_trait_matrix_analysis.R}, grouping dictionary template, and trait evidence audit worksheet.
+
+\textbf{Weekly deliverables:} Candidate variable list, core matrix, confidence matrix, ontology matrix, grouping dictionary, comparison exercise, and variable freeze note.
+
+\textbf{Mentor review checkpoint:} Day 40 variable gate.
+
+\textbf{Common failure modes:} Keeping too many sparse traits, using narrative text as a variable, ignoring confidence, and clustering uninterpretable matrices.
+
+\textbf{Minimum viable path:} Use a core binary matrix with medium confidence or higher.
+
+\textbf{Advanced extension path:} Compare matrix profiles and document sensitivity.
+\end{checklistbox}
+
+\begin{dailybox}{Day 36: Discrete Variables Versus Narrative Text}
+\textbf{Purpose:} Decide what is analysis-ready and what remains evidence context.
+
+\textbf{Learning objectives:} Inspect \texttt{ChemicalTraits}, separate discrete values from descriptive text, and create a candidate variable list.
+
+\textbf{Prerequisites and materials:} Saved enrichment result, \texttt{ChemicalTraits}, \texttt{ChemicalTraitReport}, and variable worksheet.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes variable concept block, 120 minutes guided table inspection, 90 minutes project variable list, 60 minutes caveat writing, 30 minutes review.
+
+\textbf{Morning concept block:} Explain that a useful variable has defined allowed values, source, confidence rule, and interpretation boundary.
+
+\textbf{Guided lab or reading discussion:} Inspect \texttt{ChemicalTraits} and mark rows as matrix-ready, evidence-only, or not relevant.
+
+\textbf{Independent project block:} Build a candidate variable list for the project question.
+
+\textbf{Evidence and writing block:} Write a note explaining why some descriptive fields were excluded.
+
+\textbf{Research log prompt:} Which attractive field is not analysis-ready, and why?
+
+\textbf{End-of-day deliverable:} Candidate variable list.
+
+\textbf{Quality gate:} Each candidate variable has source table, source field, allowed values, and confidence rule.
+
+\textbf{Common problems and fixes:} If a variable is a sentence, either extract a discrete value with a documented rule or keep it as narrative evidence.
+
+\textbf{Optional advanced challenge:} Add a column for expected figure use.
+\end{dailybox}
+
+\begin{dailybox}{Day 37: Binary, Count, and Confidence-Weighted Matrices}
+\textbf{Purpose:} Build multiple matrix views and understand what each means.
+
+\textbf{Learning objectives:} Use \texttt{chemicalTraitMatrix()} with \texttt{binary}, \texttt{count}, and \texttt{confidence} modes; compare profiles and thresholds.
+
+\textbf{Prerequisites and materials:} Saved enrichment result, \path{training/scripts/06_trait_matrix_analysis.R}, and matrix sensitivity log.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes matrix concept block, 120 minutes guided matrix build, 120 minutes matrix comparison, 60 minutes methods note, 30 minutes review.
+
+\textbf{Morning concept block:} Explain that binary matrices show presence, count matrices show row counts, and confidence matrices show evidence strength.
+
+\textbf{Guided lab or reading discussion:} Run \texttt{build\_trait\_analysis()} or equivalent code to build core, confidence, and ontology matrices.
+
+\textbf{Independent project block:} Compare matrix dimensions, sparsity, and top variables.
+
+\textbf{Evidence and writing block:} Write a matrix settings note with profile, mode, confidence threshold, and max traits.
+
+\textbf{Research log prompt:} Which matrix is most interpretable for the project question?
+
+\textbf{End-of-day deliverable:} Trait matrix v1 and matrix settings note.
+
+\textbf{Quality gate:} Matrix settings are documented and the matrix is not interpreted without coverage/sparsity review.
+
+\textbf{Common problems and fixes:} If the matrix has too many columns, cap \texttt{max\_traits} or use the \texttt{core} profile. If it is mostly zeros, revise the variable set.
+
+\textbf{Optional advanced challenge:} Rebuild with high confidence only and compare which findings survive.
+\end{dailybox}
+
+\begin{dailybox}{Day 38: Project-Specific Grouping Dictionary}
+\textbf{Purpose:} Freeze how variables will be named and interpreted.
+
+\textbf{Learning objectives:} Define source table, source field, extraction rule, allowed values, confidence rule, caveat, and planned figure for each variable.
+
+\textbf{Prerequisites and materials:} Candidate variable list, matrices, \texttt{ChemicalTraitEvidence}, grouping dictionary template.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 60 minutes dictionary concept block, 120 minutes guided examples, 150 minutes project dictionary work, 45 minutes review, 30 minutes revision.
+
+\textbf{Morning concept block:} Explain that a grouping dictionary is the bridge between source evidence and analysis.
+
+\textbf{Guided lab or reading discussion:} Review a strong dictionary row and a weak row.
+
+\textbf{Independent project block:} Complete dictionary rows for all candidate variables.
+
+\textbf{Evidence and writing block:} Add one caveat per variable or explain why the variable is robust.
+
+\textbf{Research log prompt:} Which variable is most vulnerable to misinterpretation?
+
+\textbf{End-of-day deliverable:} Grouping dictionary v1.
+
+\textbf{Quality gate:} No variable is used in a figure or table unless it appears in the grouping dictionary.
+
+\textbf{Common problems and fixes:} If the source field cannot be named, return to evidence tables before keeping the variable.
+
+\textbf{Optional advanced challenge:} Add a reviewer challenge question for each variable.
+\end{dailybox}
+
+\begin{dailybox}{Day 39: Shared Versus Distinct Trait Comparison}
+\textbf{Purpose:} Practice using matrices for a real comparison without overinterpreting.
+
+\textbf{Learning objectives:} Compare two chemical sets or sample groups, identify shared/distinct traits, and write cautious interpretation.
+
+\textbf{Prerequisites and materials:} Trait matrix v1, grouping dictionary, project comparison groups, and evidence map.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes comparison concept block, 120 minutes guided comparison, 120 minutes project analysis, 60 minutes interpretation note, 30 minutes review.
+
+\textbf{Morning concept block:} Explain that matrix differences are patterns in source-backed metadata, not direct measurements of biological behavior.
+
+\textbf{Guided lab or reading discussion:} Compare two example groups and identify traits that are shared, distinct, or missing.
+
+\textbf{Independent project block:} Build a comparison table for the project.
+
+\textbf{Evidence and writing block:} Write one cautious interpretation paragraph and one rejected overclaim.
+
+\textbf{Research log prompt:} Which difference is interpretable, and which difference may reflect source coverage?
+
+\textbf{End-of-day deliverable:} Comparison table and interpretation note.
+
+\textbf{Quality gate:} Each interpreted difference has evidence and missingness context.
+
+\textbf{Common problems and fixes:} If a group has fewer source records, do not treat absence of traits as biological absence.
+
+\textbf{Optional advanced challenge:} Repeat the comparison under a stricter confidence threshold.
+\end{dailybox}
+
+\begin{dailybox}{Day 40: Variable Gate}
+\textbf{Purpose:} Remove weak variables before visualization and report writing.
+
+\textbf{Learning objectives:} Evaluate variables by relevance, coverage, confidence, interpretability, and caveat burden; freeze analysis inputs.
+
+\textbf{Prerequisites and materials:} Candidate variable list, matrix v1, grouping dictionary, comparison table, and mentor review rubric.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 60 minutes gate criteria, 120 minutes variable review, 120 minutes revisions, 60 minutes methods note, 30 minutes sign-off.
+
+\textbf{Morning concept block:} Discuss why removing weak variables improves the project.
+
+\textbf{Guided lab or reading discussion:} Score variables as keep, revise, evidence-only, or remove.
+
+\textbf{Independent project block:} Freeze final matrix and dictionary for Week 7.
+
+\textbf{Evidence and writing block:} Write exclusion rules and missing-data note.
+
+\textbf{Research log prompt:} Which variable was removed and what made that decision defensible?
+
+\textbf{End-of-day deliverable:} Reviewed trait matrix and grouping dictionary.
+
+\textbf{Quality gate:} Frozen inputs are saved, named, and documented.
+
+\textbf{Common problems and fixes:} If students want to keep a weak variable because it is interesting, move it to Discussion or Future Work.
+
+\textbf{Optional advanced challenge:} Add a matrix sensitivity summary comparing versions before and after exclusions.
+\end{dailybox}
+
+\begin{dailybox}{Day 41: Weekend Matrix Sparsity and Sensitivity Challenge}
+\textbf{Purpose:} Test whether matrix conclusions survive reasonable filtering choices.
+
+\textbf{Learning objectives:} Calculate or inspect sparsity, compare thresholds, and document sensitivity.
+
+\textbf{Prerequisites and materials:} Frozen matrix, previous matrix versions, grouping dictionary, and sensitivity log.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 2 to 3 hours.
+
+\textbf{Morning concept block:} Not scheduled. Begin with matrix comparison.
+
+\textbf{Guided lab or reading discussion:} Compare core versus full or medium versus high confidence matrices.
+
+\textbf{Independent project block:} Record which findings remain stable and which disappear.
+
+\textbf{Evidence and writing block:} Write a missing-data and sensitivity note.
+
+\textbf{Research log prompt:} Which conclusion is robust to filtering, and which is not?
+
+\textbf{End-of-day deliverable:} Matrix sparsity and sensitivity log.
+
+\textbf{Quality gate:} At least one matrix limitation is explicitly documented.
+
+\textbf{Common problems and fixes:} If sensitivity is ignored, add a paragraph explaining why the chosen matrix is acceptable.
+
+\textbf{Optional advanced challenge:} Create a small table comparing matrix dimensions across settings.
+\end{dailybox}
+
+\begin{dailybox}{Day 42: Weekend Variable Methods Paragraph}
+\textbf{Purpose:} Convert matrix design into methods text.
+
+\textbf{Learning objectives:} Write the variable-selection method, confidence threshold, missing-data handling, and exclusion note.
+
+\textbf{Prerequisites and materials:} Matrix settings note, grouping dictionary, sensitivity log, and methods draft.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1 to 2 hours.
+
+\textbf{Morning concept block:} Not scheduled. Focus on writing.
+
+\textbf{Guided lab or reading discussion:} Reread matrix settings and verify every setting appears in the methods paragraph.
+
+\textbf{Independent project block:} Draft the variable methods paragraph.
+
+\textbf{Evidence and writing block:} Add missing-data language and excluded-variable examples.
+
+\textbf{Research log prompt:} What variable decision must future readers understand?
+
+\textbf{End-of-day deliverable:} Variable-methods paragraph and missing-data note.
+
+\textbf{Quality gate:} The paragraph names functions, profiles, modes, thresholds, and caveats.
+
+\textbf{Common problems and fixes:} If the paragraph says ``traits were analyzed'' without settings, add exact function calls and matrix profile.
+
+\textbf{Optional advanced challenge:} Add a reproducibility footnote with saved file names.
+\end{dailybox}
 
 \section{Week 7: Visualization and Exploratory Analysis}
-\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endhead
-1 & Figure purpose, audience, and visual honesty. & Sketch three figure questions before plotting. & Figure plan worksheet.\\
-2 & Coverage and trait heatmaps. & Generate heatmaps and inspect missingness. & Coverage and trait figures v1.\\
-3 & Property and trait summaries. & Build bar charts, scatterplots, and summary tables. & Two additional figures or tables.\\
-4 & Figure critique. & Peer review labels, captions, color choices, and claim strength. & Revised figure set.\\
-5 & Exploratory interpretation. & Write a results paragraph for each figure. & Figure captions and results draft.\\
-\bottomrule
-\end{longtable}
+\WeekHeader{7}{Visualization and exploratory analysis}{Students turn validated outputs into honest figures and captions.}{Figure plan, coverage heatmap, trait heatmap, summary figures/tables, captions, and visual narrative outline.}
+
+\begin{checklistbox}{Week 7 Operating Plan}
+\textbf{Concepts:} Figure purpose, audience, missingness, visual honesty, caption evidence, exploratory analysis, and claim strength.
+
+\textbf{uafR/R skills:} Use \path{training/scripts/07_visualization.R}, saved matrices, source coverage, and base R export settings.
+
+\textbf{Required readings or references:} Figure planning worksheet, figure caption checklist, visualization script, and results rubric.
+
+\textbf{Required files/scripts/data:} Saved enrichment result, frozen matrix, grouping dictionary, \path{training/scripts/07_visualization.R}, and figures folder.
+
+\textbf{Weekly deliverables:} Figure plan, source coverage heatmap, trait matrix heatmap, at least two additional figures/tables, captions, and results paragraphs.
+
+\textbf{Mentor review checkpoint:} Day 46 figure clinic.
+
+\textbf{Common failure modes:} Figures display too many variables, captions overclaim, missingness is hidden, and axes are unreadable.
+
+\textbf{Minimum viable path:} One source coverage figure, one trait matrix figure, and one focused summary table.
+
+\textbf{Advanced extension path:} Add sensitivity figure or comparison figure with alternative matrix settings.
+\end{checklistbox}
+
+\begin{dailybox}{Day 43: Figure Purpose and Planning}
+\textbf{Purpose:} Plan figures before plotting so visuals answer a research question.
+
+\textbf{Learning objectives:} Define figure question, audience, data source, rows, columns, grouping variable, expected pattern, and limitation.
+
+\textbf{Prerequisites and materials:} Figure planning worksheet, frozen matrix, source coverage report, grouping dictionary.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes figure concept block, 90 minutes guided critique, 120 minutes project planning, 60 minutes caption sketch, 30 minutes review.
+
+\textbf{Morning concept block:} Explain why figures should not be decorative. Each figure should answer one question and expose uncertainty where necessary.
+
+\textbf{Guided lab or reading discussion:} Critique example figures for axis labels, color choices, missingness, and claim strength.
+
+\textbf{Independent project block:} Draft three figure plans.
+
+\textbf{Evidence and writing block:} Write preliminary captions naming source table and limitation.
+
+\textbf{Research log prompt:} Which figure is most central to the final argument?
+
+\textbf{End-of-day deliverable:} Figure planning worksheet.
+
+\textbf{Quality gate:} Each planned figure has a data source, question, and limitation.
+
+\textbf{Common problems and fixes:} If a figure is only ``interesting,'' rewrite the question it answers or remove it.
+
+\textbf{Optional advanced challenge:} Add a figure that shows missingness rather than hiding it.
+\end{dailybox}
+
+\begin{dailybox}{Day 44: Source Coverage and Trait Matrix Heatmaps}
+\textbf{Purpose:} Visualize coverage and traits while keeping missingness visible.
+
+\textbf{Learning objectives:} Generate heatmaps, inspect row/column labels, and explain what heatmap cells represent.
+
+\textbf{Prerequisites and materials:} Saved enrichment result, \path{training/scripts/07_visualization.R}, figures folder, and caption checklist.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 60 minutes heatmap concepts, 120 minutes guided plotting, 120 minutes project figure revision, 60 minutes captions, 30 minutes review.
+
+\textbf{Morning concept block:} Explain source coverage heatmaps versus trait matrix heatmaps.
+
+\textbf{Guided lab or reading discussion:} Run \texttt{build\_training\_figures(result)} on a saved result.
+
+\textbf{Independent project block:} Generate project heatmaps and revise labels for readability.
+
+\textbf{Evidence and writing block:} Write captions that name source tables and missingness limitations.
+
+\textbf{Research log prompt:} What does a blank or zero cell mean in this figure?
+
+\textbf{End-of-day deliverable:} Coverage and trait heatmaps v1.
+
+\textbf{Quality gate:} Labels are readable and captions do not imply unmeasured absence.
+
+\textbf{Common problems and fixes:} If labels overlap, reduce variables, shorten labels, or create a focused subset.
+
+\textbf{Optional advanced challenge:} Create a second heatmap using a stricter confidence threshold.
+\end{dailybox}
+
+\begin{dailybox}{Day 45: Property Summaries, Bar Charts, Scatterplots, and Tables}
+\textbf{Purpose:} Build focused summaries that complement heatmaps.
+
+\textbf{Learning objectives:} Choose appropriate summary figures or tables, connect them to the project question, and avoid overloading visuals.
+
+\textbf{Prerequisites and materials:} Frozen matrix, \texttt{ChemicalMeasurementSummary}, \texttt{ChemicalTraitReport}, grouping dictionary, and figure plan.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes summary figure concepts, 120 minutes guided examples, 120 minutes project plotting/table building, 60 minutes captioning, 30 minutes review.
+
+\textbf{Morning concept block:} Discuss when to use bar charts, scatterplots, and tables instead of heatmaps.
+
+\textbf{Guided lab or reading discussion:} Build or inspect a trait-count bar chart and a focused summary table.
+
+\textbf{Independent project block:} Create two additional figures or tables for the project.
+
+\textbf{Evidence and writing block:} Draft captions with evidence source and limitation.
+
+\textbf{Research log prompt:} Which figure or table best answers the research question?
+
+\textbf{End-of-day deliverable:} Two additional figures or tables.
+
+\textbf{Quality gate:} Every plotted value traces to a saved table or matrix.
+
+\textbf{Common problems and fixes:} If a plot mixes incompatible evidence types, split it or turn it into a table.
+
+\textbf{Optional advanced challenge:} Add a figure that compares results before and after a filtering choice.
+\end{dailybox}
+
+\begin{dailybox}{Day 46: Figure Clinic}
+\textbf{Purpose:} Improve figures through structured critique before results writing.
+
+\textbf{Learning objectives:} Review axes, legends, labels, captions, color choices, missingness, and claim strength.
+
+\textbf{Prerequisites and materials:} Figure drafts, caption checklist, peer review form, and results rubric.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 60 minutes review criteria, 120 minutes peer critique, 120 minutes figure revision, 60 minutes caption revision, 30 minutes mentor checkpoint.
+
+\textbf{Morning concept block:} Explain the difference between a figure that is visually polished and one that is scientifically honest.
+
+\textbf{Guided lab or reading discussion:} Review one example as a group and rewrite its caption.
+
+\textbf{Independent project block:} Revise all current figures based on peer and mentor feedback.
+
+\textbf{Evidence and writing block:} Update captions and add figure source notes to the research log.
+
+\textbf{Research log prompt:} What changed after critique, and how did that improve evidence discipline?
+
+\textbf{End-of-day deliverable:} Revised figure set.
+
+\textbf{Quality gate:} A reviewer can understand each figure without needing verbal explanation.
+
+\textbf{Common problems and fixes:} If the caption makes a stronger claim than the data support, rewrite it using evidence-limited language.
+
+\textbf{Optional advanced challenge:} Prepare one figure for poster-scale display and one for report-scale display.
+\end{dailybox}
+
+\begin{dailybox}{Day 47: Results Paragraphs and Defensible Captions}
+\textbf{Purpose:} Connect figures to written results without overclaiming.
+
+\textbf{Learning objectives:} Write results paragraphs that describe patterns, evidence source, and uncertainty; separate results from discussion.
+
+\textbf{Prerequisites and materials:} Revised figures, captions, source coverage report, grouping dictionary, and results rubric.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes results-writing concept block, 90 minutes guided examples, 150 minutes project writing, 45 minutes peer review, 30 minutes revision.
+
+\textbf{Morning concept block:} Explain that Results describes what the analysis shows; Discussion explains why it may matter.
+
+\textbf{Guided lab or reading discussion:} Compare overclaimed and cautious figure captions.
+
+\textbf{Independent project block:} Write one results paragraph per major figure or table.
+
+\textbf{Evidence and writing block:} Add source table references and limitations to captions.
+
+\textbf{Research log prompt:} Which sentence is most likely to be challenged by a reviewer?
+
+\textbf{End-of-day deliverable:} Figure captions and results draft.
+
+\textbf{Quality gate:} Every results paragraph points to a figure/table and avoids mechanism claims not supported by evidence.
+
+\textbf{Common problems and fixes:} If the paragraph says ``caused,'' ``proved,'' or ``confirmed,'' check whether the evidence really supports that verb.
+
+\textbf{Optional advanced challenge:} Write a one-sentence key result for a non-specialist audience and a technical audience.
+\end{dailybox}
+
+\begin{dailybox}{Day 48: Weekend Figure Revision and Reproducibility Check}
+\textbf{Purpose:} Confirm that figures regenerate from scripts.
+
+\textbf{Learning objectives:} Rerun figure scripts, verify output files, and update export settings.
+
+\textbf{Prerequisites and materials:} Figure scripts, saved result object, figures folder, and research log.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1.5 to 3 hours.
+
+\textbf{Morning concept block:} Not scheduled. Begin with rerun.
+
+\textbf{Guided lab or reading discussion:} Restart R and rerun the figure workflow from the project root.
+
+\textbf{Independent project block:} Fix missing inputs or output paths and save final-format images.
+
+\textbf{Evidence and writing block:} Record figure file names and script names in the log.
+
+\textbf{Research log prompt:} Which figures regenerate cleanly, and which need repair?
+
+\textbf{End-of-day deliverable:} Figure reproducibility check.
+
+\textbf{Quality gate:} Figures can be regenerated from scripts without manual editing.
+
+\textbf{Common problems and fixes:} If a figure was manually edited, either script the edit or document it as presentation-only.
+
+\textbf{Optional advanced challenge:} Add a small figure manifest with dimensions and file names.
+\end{dailybox}
+
+\begin{dailybox}{Day 49: Weekend Visual Narrative Outline}
+\textbf{Purpose:} Organize figures into a report story.
+
+\textbf{Learning objectives:} Choose figure order, identify central result, and connect each visual to a claim boundary.
+
+\textbf{Prerequisites and materials:} Revised figures, results paragraphs, project question, and report outline template.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1 to 2 hours.
+
+\textbf{Morning concept block:} Not scheduled. Focus on narrative.
+
+\textbf{Guided lab or reading discussion:} Arrange figures in the order a reader should understand them.
+
+\textbf{Independent project block:} Draft a visual narrative outline.
+
+\textbf{Evidence and writing block:} Add one limitation under each figure.
+
+\textbf{Research log prompt:} What is the central result and what evidence supports it?
+
+\textbf{End-of-day deliverable:} Visual narrative outline for the final report.
+
+\textbf{Quality gate:} The outline connects each figure to the research question and a limitation.
+
+\textbf{Common problems and fixes:} If a figure does not fit the story, move it to supplementary material or remove it.
+
+\textbf{Optional advanced challenge:} Draft the first version of a graphical abstract or poster flow.
+\end{dailybox}
 
 \section{Week 8: Literature Integration and Evidence-Based Interpretation}
-\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endhead
-1 & Evidence ladder from tentative match to confirmed conclusion. & Rank the student's major findings by evidence strength. & Evidence ladder table.\\
-2 & Literature search strategies. & Build search strings from chemical names, traits, pathways, organisms, and methods. & Search log.\\
-3 & Reading scientific papers efficiently. & Extract system, method, chemical evidence, and limitation from three papers. & Annotated literature table.\\
-4 & Connecting literature to figures. & Write claim-evidence-limitation paragraphs. & Interpretation memo v1.\\
-5 & Interpretation gate. & Remove unsupported claims and identify follow-up experiments. & Reviewed interpretation memo.\\
-\bottomrule
-\end{longtable}
+\WeekHeader{8}{Literature integration and evidence-based interpretation}{Students connect uafR outputs to literature without inflating claims.}{Evidence ladder table, search log, annotated literature table, interpretation memo, and final report outline.}
+
+\begin{checklistbox}{Week 8 Operating Plan}
+\textbf{Concepts:} Evidence ladder, literature search strings, reading papers efficiently, claim-evidence-limitation paragraphs, literature conflicts, and follow-up tests.
+
+\textbf{uafR/R skills:} Link figures and matrix outputs back to \texttt{ChemicalTraitEvidence}, \texttt{ChemicalTraitReport}, validation outputs, and source coverage.
+
+\textbf{Required readings or references:} At least three field-specific papers, reporting standards, and evidence ladder guidance.
+
+\textbf{Required files/scripts/data:} Figures, evidence rows, literature table template, and claim-evidence-limitation memo.
+
+\textbf{Weekly deliverables:} Evidence ladder table, search log, annotated literature table, interpretation memo, unsupported-claim removal note, and report outline.
+
+\textbf{Mentor review checkpoint:} Day 54 interpretation gate.
+
+\textbf{Common failure modes:} Citing papers that use different systems as direct proof, treating bioactivity annotations as mechanism, and ignoring conflicting literature.
+
+\textbf{Minimum viable path:} Three strong sources and one cautious interpretation memo.
+
+\textbf{Advanced extension path:} Add a literature conflict table and define follow-up tests.
+\end{checklistbox}
+
+\begin{dailybox}{Day 50: Evidence Ladder}
+\textbf{Purpose:} Rank project findings by strength of evidence.
+
+\textbf{Learning objectives:} Place findings on a ladder from tentative match to confirmed standard and use ladder position to control claim strength.
+
+\textbf{Prerequisites and materials:} Figures, source evidence, validation outputs, literature synthesis worksheet.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes evidence ladder concept block, 90 minutes guided ranking, 120 minutes project ranking, 60 minutes writing, 30 minutes review.
+
+\textbf{Morning concept block:} Compare tentative match, database descriptor, source annotation, occurrence/pathway context, peer-reviewed measurement, and confirmed standard.
+
+\textbf{Guided lab or reading discussion:} Rank example claims and rewrite their strength.
+
+\textbf{Independent project block:} Rank each major project finding.
+
+\textbf{Evidence and writing block:} Write safe wording for the strongest and weakest findings.
+
+\textbf{Research log prompt:} Which finding is most defensible and which needs follow-up confirmation?
+
+\textbf{End-of-day deliverable:} Evidence ladder table.
+
+\textbf{Quality gate:} Claim verbs match evidence strength.
+
+\textbf{Common problems and fixes:} If a database descriptor is treated like measured sample evidence, move it down the ladder.
+
+\textbf{Optional advanced challenge:} Add a follow-up experiment that would move one finding up the evidence ladder.
+\end{dailybox}
+
+\begin{dailybox}{Day 51: Literature Search Strategy}
+\textbf{Purpose:} Find literature that clarifies, challenges, or contextualizes project results.
+
+\textbf{Learning objectives:} Build search strings from chemical names, CIDs, traits, organisms, systems, methods, and database fields.
+
+\textbf{Prerequisites and materials:} Evidence ladder table, chemical intake table, figures, and search log.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes search strategy, 120 minutes guided search, 120 minutes independent literature search, 60 minutes search log writing, 30 minutes review.
+
+\textbf{Morning concept block:} Explain how search terms change when a project needs background, method support, interpretation, or follow-up context.
+
+\textbf{Guided lab or reading discussion:} Build search strings for one compound and one trait.
+
+\textbf{Independent project block:} Search for at least six candidate papers and select three to annotate.
+
+\textbf{Evidence and writing block:} Record search terms, database or search engine, date, and reason for inclusion/exclusion.
+
+\textbf{Research log prompt:} Which search string found the most relevant evidence?
+
+\textbf{End-of-day deliverable:} Literature search log.
+
+\textbf{Quality gate:} The search log includes failed searches, not only successful ones.
+
+\textbf{Common problems and fixes:} If searches return too much, add system and method terms. If they return too little, use synonyms or broader trait terms.
+
+\textbf{Optional advanced challenge:} Add one paper that complicates the expected interpretation.
+\end{dailybox}
+
+\begin{dailybox}{Day 52: Reading Papers Efficiently}
+\textbf{Purpose:} Extract useful evidence without drowning in full-paper details.
+
+\textbf{Learning objectives:} Identify system, method, chemical evidence, main claim, and limitation in each paper.
+
+\textbf{Prerequisites and materials:} Three selected papers, literature table template, figures, and evidence ladder table.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes reading strategy, 120 minutes guided paper annotation, 120 minutes independent reading, 60 minutes synthesis, 30 minutes review.
+
+\textbf{Morning concept block:} Discuss which paper details matter for chemical interpretation and which do not.
+
+\textbf{Guided lab or reading discussion:} Annotate one paper as a group.
+
+\textbf{Independent project block:} Annotate three papers in the literature table.
+
+\textbf{Evidence and writing block:} Mark whether each paper supports background, method, interpretation, mechanism hypothesis, or follow-up only.
+
+\textbf{Research log prompt:} Which paper is most directly relevant and why?
+
+\textbf{End-of-day deliverable:} Annotated literature table.
+
+\textbf{Quality gate:} Each paper entry includes a limitation and does not claim more than the paper measured.
+
+\textbf{Common problems and fixes:} If a paper is about a different organism or method, label it as context unless it directly supports the method or interpretation.
+
+\textbf{Optional advanced challenge:} Add one sentence comparing the project evidence to each paper's evidence level.
+\end{dailybox}
+
+\begin{dailybox}{Day 53: Claim-Evidence-Limitation Paragraphs}
+\textbf{Purpose:} Build interpretation paragraphs that are both useful and cautious.
+
+\textbf{Learning objectives:} Link uafR outputs, figures, source evidence, and literature into claim-evidence-limitation paragraphs.
+
+\textbf{Prerequisites and materials:} Figures, evidence ladder, literature table, evidence rows, and memo template.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes paragraph structure, 90 minutes guided example revision, 150 minutes project writing, 45 minutes peer review, 30 minutes revision.
+
+\textbf{Morning concept block:} Explain the paragraph pattern: claim, project evidence, source or literature support, limitation, and next-step implication.
+
+\textbf{Guided lab or reading discussion:} Rewrite an overclaimed paragraph using evidence-limited language.
+
+\textbf{Independent project block:} Draft two to four project interpretation paragraphs.
+
+\textbf{Evidence and writing block:} Add citations or source table references to every paragraph.
+
+\textbf{Research log prompt:} Which interpretation paragraph is most vulnerable to overclaiming?
+
+\textbf{End-of-day deliverable:} Interpretation memo v1.
+
+\textbf{Quality gate:} Each paragraph includes a limitation.
+
+\textbf{Common problems and fixes:} If literature is used as proof of the student's sample, revise it as context or hypothesis support.
+
+\textbf{Optional advanced challenge:} Add a reviewer rebuttal note for the strongest paragraph.
+\end{dailybox}
+
+\begin{dailybox}{Day 54: Interpretation Gate}
+\textbf{Purpose:} Remove unsupported claims before report drafting.
+
+\textbf{Learning objectives:} Challenge each claim, remove or weaken unsupported statements, and define follow-up tests.
+
+\textbf{Prerequisites and materials:} Interpretation memo, figures, source evidence, literature table, and evidence ladder.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 60 minutes gate criteria, 120 minutes claim review, 120 minutes revisions, 60 minutes follow-up plan, 30 minutes mentor checkpoint.
+
+\textbf{Morning concept block:} Discuss what not to claim: confirmed identity, biological mechanism, pathway activity, risk, organism occurrence, or clinical relevance unless evidence specifically supports it.
+
+\textbf{Guided lab or reading discussion:} Review examples of statements that must be removed, weakened, or moved to Future Work.
+
+\textbf{Independent project block:} Mark every interpretation sentence as keep, revise, remove, or future work.
+
+\textbf{Evidence and writing block:} Write follow-up tests for claims that cannot be made now.
+
+\textbf{Research log prompt:} What claim was removed today and why?
+
+\textbf{End-of-day deliverable:} Reviewed interpretation memo and follow-up test list.
+
+\textbf{Quality gate:} No major claim remains without figure/table evidence and source or literature support.
+
+\textbf{Common problems and fixes:} If students resist removing an interesting claim, move it to a clearly labeled follow-up hypothesis.
+
+\textbf{Optional advanced challenge:} Write a reviewer-style critique of the final remaining claims.
+\end{dailybox}
+
+\begin{dailybox}{Day 55: Weekend Literature Conflict Exercise}
+\textbf{Purpose:} Practice handling conflicting or imperfect literature.
+
+\textbf{Learning objectives:} Identify conflicts, explain differences in system or method, and revise interpretation.
+
+\textbf{Prerequisites and materials:} Literature table, one conflicting or less-direct source, and interpretation memo.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1.5 to 3 hours.
+
+\textbf{Morning concept block:} Not scheduled. Begin with literature comparison.
+
+\textbf{Guided lab or reading discussion:} Compare two sources that differ in system, method, or conclusion.
+
+\textbf{Independent project block:} Add conflict notes to the literature table.
+
+\textbf{Evidence and writing block:} Revise one interpretation paragraph to acknowledge conflict.
+
+\textbf{Research log prompt:} What conflict or limitation changed the interpretation?
+
+\textbf{End-of-day deliverable:} Literature conflict note and annotated literature table update.
+
+\textbf{Quality gate:} Conflict is not hidden; it is used to refine claim strength.
+
+\textbf{Common problems and fixes:} If sources disagree, do not pick the convenient one without explaining method differences.
+
+\textbf{Optional advanced challenge:} Add a decision tree for when literature is background, support, conflict, or not relevant.
+\end{dailybox}
+
+\begin{dailybox}{Day 56: Weekend Interpretation Memo Revision}
+\textbf{Purpose:} Prepare the report outline with evidence-limited interpretation.
+
+\textbf{Learning objectives:} Revise memo, define final report sections, and map each figure to a claim.
+
+\textbf{Prerequisites and materials:} Reviewed interpretation memo, figures, report storyboard, and research log.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1 to 2 hours.
+
+\textbf{Morning concept block:} Not scheduled. Focus on revision.
+
+\textbf{Guided lab or reading discussion:} Reorder interpretation paragraphs to match the visual narrative.
+
+\textbf{Independent project block:} Draft final report outline.
+
+\textbf{Evidence and writing block:} Add citation or source-evidence notes for each outline subsection.
+
+\textbf{Research log prompt:} What is the final report's central argument and its main limitation?
+
+\textbf{End-of-day deliverable:} Revised interpretation memo and final report outline.
+
+\textbf{Quality gate:} Every planned report claim has a source in the outline.
+
+\textbf{Common problems and fixes:} If the outline follows chronology instead of argument, reorder around research question and figures.
+
+\textbf{Optional advanced challenge:} Draft the abstract as a structured four-sentence summary.
+\end{dailybox}
 
 \section{Week 9: Manuscript-Style Research Product}
-\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endhead
-1 & Manuscript structure and argument flow. & Build report outline from figures and evidence memo. & Report outline.\\
-2 & Methods detail and reproducibility. & Write methods from scripts, settings, package versions, and validation outputs. & Methods section v1.\\
-3 & Results without overclaiming. & Write results paragraphs tied to figures and tables. & Results section v1.\\
-4 & Discussion, limitations, and next steps. & Draft discussion and follow-up plan. & Discussion section v1.\\
-5 & Full draft review. & Peer and dsDNA Core review for logic, reproducibility, and claim strength. & Complete draft report.\\
-\bottomrule
-\end{longtable}
+\WeekHeader{9}{Manuscript-style research product}{Students turn analysis into a complete scientific report.}{Report storyboard, methods, results, discussion, full draft, revision audit, and final-draft cleanup.}
 
-\section{Week 10: Presentation and Final Handoff}
-\begin{longtable}{p{0.10\textwidth}p{0.25\textwidth}p{0.28\textwidth}p{0.27\textwidth}}
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Day} & \textbf{Morning} & \textbf{Lab or project block} & \textbf{End-of-day product}\\
-\midrule
-\endhead
-1 & Scientific presentation structure. & Build slide or poster outline around one central result. & Presentation outline.\\
-2 & Visual polishing and narrative flow. & Revise figures, captions, and talking points. & Presentation draft.\\
-3 & Reproducibility and handoff audit. & Run final project check and clean file organization. & Handoff package v1.\\
-4 & Practice presentation and peer review. & Deliver practice talk, answer questions, revise weak points. & Revised final presentation.\\
-5 & Final symposium and archive. & Present, submit final report, and write continuation note. & Complete final research package.\\
-\bottomrule
-\end{longtable}
+\begin{checklistbox}{Week 9 Operating Plan}
+\textbf{Concepts:} Manuscript structure, reproducible methods, results tied to figures, limitations, references, and report revision.
+
+\textbf{uafR/R skills:} Cite package version, functions, settings, saved result objects, validation outputs, and missing-data handling.
+
+\textbf{Required readings or references:} Final report rubric, methods notes, figure captions, literature table, and evidence memo.
+
+\textbf{Required files/scripts/data:} Report draft, figures, tables, saved RDS object, source coverage report, validation summaries, session information.
+
+\textbf{Weekly deliverables:} Report outline, methods v1, results v1, discussion v1, complete draft, revision audit, and final-draft cleanup.
+
+\textbf{Mentor review checkpoint:} Day 61 full draft review.
+
+\textbf{Common failure modes:} Methods too vague, results overclaim, figures not cited, limitations minimized, and references inconsistent.
+
+\textbf{Minimum viable path:} A complete report with cautious claims and reproducible methods.
+
+\textbf{Advanced extension path:} Add supplement-style tables and a reviewer response memo.
+\end{checklistbox}
+
+\begin{dailybox}{Day 57: Report Storyboard}
+\textbf{Purpose:} Build the report argument before writing full prose.
+
+\textbf{Learning objectives:} Define title, abstract structure, introduction logic, methods sections, results order, discussion themes, limitations, and reproducibility statement.
+
+\textbf{Prerequisites and materials:} Report outline, figures, interpretation memo, final report rubric.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes report structure, 90 minutes storyboard examples, 120 minutes project storyboard, 60 minutes abstract sketch, 30 minutes review.
+
+\textbf{Morning concept block:} Explain how a manuscript guides readers from question to evidence to limitation.
+
+\textbf{Guided lab or reading discussion:} Analyze a model report structure and identify where methods, results, and limitations appear.
+
+\textbf{Independent project block:} Build a report storyboard with section-level claims and evidence.
+
+\textbf{Evidence and writing block:} Draft a working title and abstract skeleton.
+
+\textbf{Research log prompt:} What is the central result, and where will it appear?
+
+\textbf{End-of-day deliverable:} Report storyboard.
+
+\textbf{Quality gate:} The storyboard maps each section to specific figures, tables, scripts, or evidence rows.
+
+\textbf{Common problems and fixes:} If the storyboard lists tasks rather than argument, rewrite it around research question and evidence.
+
+\textbf{Optional advanced challenge:} Draft a graphical or poster version of the report flow.
+\end{dailybox}
+
+\begin{dailybox}{Day 58: Methods Section From Scripts and Settings}
+\textbf{Purpose:} Make the report reproducible.
+
+\textbf{Learning objectives:} Write methods from scripts, package versions, settings, filters, validation outputs, and missing-data handling.
+
+\textbf{Prerequisites and materials:} Script folder, session information, query log, matrix settings note, validation outputs, and methods rubric.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes methods standards, 120 minutes guided methods extraction, 120 minutes project methods writing, 60 minutes peer review, 30 minutes revision.
+
+\textbf{Morning concept block:} Explain why methods must name functions and settings, not just software.
+
+\textbf{Guided lab or reading discussion:} Pull method details from scripts and output logs.
+
+\textbf{Independent project block:} Write methods subsections for data source, GC-MS workflow, enrichment, validation, trait matrix, figures, and literature.
+
+\textbf{Evidence and writing block:} Add package version and session information references.
+
+\textbf{Research log prompt:} Which method detail was missing until today?
+
+\textbf{End-of-day deliverable:} Methods section v1.
+
+\textbf{Quality gate:} A reader can identify inputs, functions, settings, filters, and saved outputs.
+
+\textbf{Common problems and fixes:} If methods say ``default settings,'' verify and name the defaults that matter.
+
+\textbf{Optional advanced challenge:} Create a methods supplement table with script names and outputs.
+\end{dailybox}
+
+\begin{dailybox}{Day 59: Results Writing Without Overclaiming}
+\textbf{Purpose:} Tie results to figures and tables while preserving uncertainty.
+
+\textbf{Learning objectives:} Write results paragraphs, cite figure/table numbers, and avoid discussion or mechanism claims in Results.
+
+\textbf{Prerequisites and materials:} Figures, captions, visual narrative outline, results draft, and evidence ladder.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes results standards, 90 minutes guided paragraph revision, 150 minutes project results writing, 45 minutes peer review, 30 minutes revision.
+
+\textbf{Morning concept block:} Explain how results sentences should describe observed patterns and their source.
+
+\textbf{Guided lab or reading discussion:} Revise example results that overstate source-backed metadata.
+
+\textbf{Independent project block:} Write complete Results section v1.
+
+\textbf{Evidence and writing block:} Check every paragraph against figure captions and evidence table.
+
+\textbf{Research log prompt:} Which result is descriptive, and which interpretation belongs in Discussion instead?
+
+\textbf{End-of-day deliverable:} Results section v1.
+
+\textbf{Quality gate:} Every result refers to a figure or table and avoids unsupported verbs.
+
+\textbf{Common problems and fixes:} If a result explains why a pattern occurs, move that sentence to Discussion unless directly supported.
+
+\textbf{Optional advanced challenge:} Add a supplemental result that reports validation or source coverage.
+\end{dailybox}
+
+\begin{dailybox}{Day 60: Discussion, Limitations, Next Steps, and What Not To Claim}
+\textbf{Purpose:} Interpret results with scientific restraint.
+
+\textbf{Learning objectives:} Write discussion paragraphs, limitations, next steps, and explicit non-claims.
+
+\textbf{Prerequisites and materials:} Results v1, interpretation memo, literature table, evidence ladder, and final completion standard.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 90 minutes discussion concept block, 90 minutes limitation examples, 120 minutes project discussion writing, 60 minutes next-step plan, 30 minutes review.
+
+\textbf{Morning concept block:} Explain how limitations increase credibility when they are specific.
+
+\textbf{Guided lab or reading discussion:} Rewrite an overclaimed discussion paragraph into cautious interpretation.
+
+\textbf{Independent project block:} Draft Discussion, Limitations, and Next Steps.
+
+\textbf{Evidence and writing block:} Add an explicit ``what this project does not show'' paragraph.
+
+\textbf{Research log prompt:} What is the most important claim the project should not make?
+
+\textbf{End-of-day deliverable:} Discussion section v1 and non-claim statement.
+
+\textbf{Quality gate:} Discussion includes uncertainty, source limits, and realistic follow-up tests.
+
+\textbf{Common problems and fixes:} If discussion claims causality, mechanism, risk, or clinical relevance, require evidence that specifically supports it or revise.
+
+\textbf{Optional advanced challenge:} Write a reviewer response for a likely criticism.
+\end{dailybox}
+
+\begin{dailybox}{Day 61: Full Draft Peer and Mentor Review}
+\textbf{Purpose:} Find problems while there is still time to fix them.
+
+\textbf{Learning objectives:} Conduct structured review of logic, reproducibility, evidence traceability, figures, and claim strength.
+
+\textbf{Prerequisites and materials:} Complete draft report, figures, methods, evidence table, peer review form, and rubrics.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 60 minutes review criteria, 150 minutes peer review, 120 minutes mentor review or revision planning, 60 minutes response memo, 30 minutes wrap-up.
+
+\textbf{Morning concept block:} Explain that review is part of production, not a final punishment.
+
+\textbf{Guided lab or reading discussion:} Review a sample paragraph and decide what feedback is actionable.
+
+\textbf{Independent project block:} Exchange drafts and complete peer review.
+
+\textbf{Evidence and writing block:} Write a revision plan that prioritizes reproducibility and evidence issues first.
+
+\textbf{Research log prompt:} What feedback will most improve the final package?
+
+\textbf{End-of-day deliverable:} Complete draft report and revision plan.
+
+\textbf{Quality gate:} Review comments identify file, section, claim, figure, or evidence issue specifically.
+
+\textbf{Common problems and fixes:} If feedback is vague, ask for evidence and a concrete revision target.
+
+\textbf{Optional advanced challenge:} Draft a reviewer response table with issue, response, and file changed.
+\end{dailybox}
+
+\begin{dailybox}{Day 62: Weekend Revision Sprint}
+\textbf{Purpose:} Fix the highest-impact report and reproducibility issues.
+
+\textbf{Learning objectives:} Revise references, figure/table consistency, methods details, and reproducibility documentation.
+
+\textbf{Prerequisites and materials:} Revision plan, draft report, project folder, references, and final package audit.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 2 to 3 hours.
+
+\textbf{Morning concept block:} Not scheduled. Begin with the highest-priority revision.
+
+\textbf{Guided lab or reading discussion:} Sort revisions into must fix, should fix, and optional.
+
+\textbf{Independent project block:} Complete must-fix revisions.
+
+\textbf{Evidence and writing block:} Check every figure/table reference and methods setting.
+
+\textbf{Research log prompt:} Which revision most improved reproducibility or evidence strength?
+
+\textbf{End-of-day deliverable:} Revised draft and methods reproducibility audit.
+
+\textbf{Quality gate:} Must-fix evidence and reproducibility issues are resolved or documented.
+
+\textbf{Common problems and fixes:} If time is short, fix methods, figures, and unsupported claims before style.
+
+\textbf{Optional advanced challenge:} Add a concise supplement with validation and source coverage outputs.
+\end{dailybox}
+
+\begin{dailybox}{Day 63: Weekend Final-Draft Cleanup}
+\textbf{Purpose:} Prepare for presentation week with a coherent final draft.
+
+\textbf{Learning objectives:} Clean formatting, references, captions, file names, and Week 10 readiness.
+
+\textbf{Prerequisites and materials:} Revised draft, figures, references, package audit checklist, and research log.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1.5 to 2.5 hours.
+
+\textbf{Morning concept block:} Not scheduled. Focus on cleanup.
+
+\textbf{Guided lab or reading discussion:} Read the draft from title to limitations and mark unclear transitions.
+
+\textbf{Independent project block:} Clean final draft and update package checklist.
+
+\textbf{Evidence and writing block:} Write a Week 10 readiness note.
+
+\textbf{Research log prompt:} What remains before presentation and final package submission?
+
+\textbf{End-of-day deliverable:} Final-draft cleanup and Week 10 readiness checklist.
+
+\textbf{Quality gate:} The report is complete enough for presentation planning.
+
+\textbf{Common problems and fixes:} If figures and captions disagree, fix the caption or regenerate the figure before presentation work.
+
+\textbf{Optional advanced challenge:} Draft slide titles from report section claims.
+\end{dailybox}
+
+\section{Week 10: Presentation, Peer Review, Final Package, and Handoff}
+\WeekHeader{10}{Presentation, peer review, final package, and handoff}{Students communicate the project and leave a reusable research package.}{Final report, presentation/poster, reproducible folder, evidence trail, continuation note, and final checklist.}
+
+\begin{checklistbox}{Week 10 Operating Plan}
+\textbf{Concepts:} Central result, audience, visual narrative, reproducibility audit, presentation practice, final package archive, continuation note, and future work.
+
+\textbf{uafR/R skills:} Run \path{training/scripts/09_reproducibility_check.R}, reload saved result objects, verify figure regeneration, and save session information.
+
+\textbf{Required readings or references:} Presentation rubric, final package rubric, handoff worksheet, final completion standard.
+
+\textbf{Required files/scripts/data:} Final report, figures, saved RDS result, validation outputs, trait matrix, grouping dictionary, evidence trail, presentation, and README.
+
+\textbf{Weekly deliverables:} Presentation outline, presentation draft, reproducibility audit, practice revision, final presentation, final report, project archive, continuation note, and exit reflection.
+
+\textbf{Mentor review checkpoint:} Day 66 final reproducibility audit and Day 68 final submission.
+
+\textbf{Common failure modes:} Slides too technical, final folder disorganized, figures not reproducible, missing continuation note, and unsupported claims in oral presentation.
+
+\textbf{Minimum viable path:} A clear five-to-seven minute presentation and a complete auditable package.
+
+\textbf{Advanced extension path:} Poster, short manuscript submission draft, or handoff project for the next intern.
+\end{checklistbox}
+
+\begin{dailybox}{Day 64: Presentation or Poster Outline}
+\textbf{Purpose:} Build a clear scientific story around one central result.
+
+\textbf{Learning objectives:} Define audience, central claim, slide order, figure choices, and limitation language.
+
+\textbf{Prerequisites and materials:} Final draft report, visual narrative outline, presentation rubric, figures.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 75 minutes presentation structure, 90 minutes guided outline review, 120 minutes project outline, 60 minutes talking points, 30 minutes review.
+
+\textbf{Morning concept block:} Explain why a presentation cannot include every analysis detail.
+
+\textbf{Guided lab or reading discussion:} Compare a report outline to a presentation outline and remove unnecessary detail.
+
+\textbf{Independent project block:} Build a slide or poster outline around one central result.
+
+\textbf{Evidence and writing block:} Draft talking points with source and limitation language.
+
+\textbf{Research log prompt:} What is the one result the audience should remember?
+
+\textbf{End-of-day deliverable:} Presentation or poster outline.
+
+\textbf{Quality gate:} The outline includes question, method, central result, evidence, limitation, and next step.
+
+\textbf{Common problems and fixes:} If there are too many results, choose the one most connected to the research question.
+
+\textbf{Optional advanced challenge:} Create versions for scientific and general audiences.
+\end{dailybox}
+
+\begin{dailybox}{Day 65: Visual Polishing and Story Flow}
+\textbf{Purpose:} Make presentation visuals readable and scientifically precise.
+
+\textbf{Learning objectives:} Revise figure placement, captions, slide titles, story flow, and talking points.
+
+\textbf{Prerequisites and materials:} Presentation outline, final figures, captions, presentation rubric.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 60 minutes visual standards, 120 minutes slide or poster build, 120 minutes peer critique, 60 minutes revision, 30 minutes review.
+
+\textbf{Morning concept block:} Discuss readable labels, restrained color, slide titles as claims, and limitations in spoken explanations.
+
+\textbf{Guided lab or reading discussion:} Review one slide for readability and claim strength.
+
+\textbf{Independent project block:} Build presentation draft.
+
+\textbf{Evidence and writing block:} Write speaker notes that state evidence source and limitation for each result.
+
+\textbf{Research log prompt:} Which slide or poster panel needed the biggest change?
+
+\textbf{End-of-day deliverable:} Presentation draft.
+
+\textbf{Quality gate:} Every visual can be read at presentation size and every claim has evidence.
+
+\textbf{Common problems and fixes:} If slides are text-heavy, convert details to speaker notes or backup slides.
+
+\textbf{Optional advanced challenge:} Add one backup slide with validation or source coverage.
+\end{dailybox}
+
+\begin{dailybox}{Day 66: Final Reproducibility and Handoff Audit}
+\textbf{Purpose:} Ensure the project can be reopened after the intern leaves.
+
+\textbf{Learning objectives:} Run final project check, verify files, confirm saved outputs, and write package status.
+
+\textbf{Prerequisites and materials:} Project folder, \path{training/scripts/09_reproducibility_check.R}, final package audit worksheet, and README.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 60 minutes audit criteria, 150 minutes clean-session rerun, 120 minutes package cleanup, 60 minutes handoff notes, 30 minutes checkpoint.
+
+\textbf{Morning concept block:} Explain that final package quality is measured by whether another person can inspect or rerun the work.
+
+\textbf{Guided lab or reading discussion:} Source the reproducibility check script and run available project checks.
+
+\textbf{Independent project block:} Fix missing files, unclear names, broken script order, and incomplete README sections.
+
+\textbf{Evidence and writing block:} Update final package audit and session information.
+
+\textbf{Research log prompt:} What would block the next student from continuing this work?
+
+\textbf{End-of-day deliverable:} Final handoff package v1 and audit results.
+
+\textbf{Quality gate:} Saved result object, validation outputs, trait matrix, grouping dictionary, figures, report, and README are present and findable.
+
+\textbf{Common problems and fixes:} If a figure cannot be regenerated, either fix the script or clearly label the figure as non-regenerable and explain why.
+
+\textbf{Optional advanced challenge:} Have a peer run the handoff audit independently.
+\end{dailybox}
+
+\begin{dailybox}{Day 67: Practice Presentation and Revision}
+\textbf{Purpose:} Improve oral explanation and prepare for questions.
+
+\textbf{Learning objectives:} Deliver a practice presentation, answer evidence questions, revise weak slides, and prepare concise responses.
+
+\textbf{Prerequisites and materials:} Presentation draft, final report, evidence trail, presentation rubric.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, 60 minutes presentation expectations, 120 minutes practice talks, 120 minutes revision, 60 minutes question prep, 30 minutes review.
+
+\textbf{Morning concept block:} Discuss how to answer questions without making unsupported claims.
+
+\textbf{Guided lab or reading discussion:} Practice answering: What does this evidence support? What does it not support? What would confirm it?
+
+\textbf{Independent project block:} Deliver practice talk and revise slides or poster.
+
+\textbf{Evidence and writing block:} Write answers to five likely questions.
+
+\textbf{Research log prompt:} Which question was hardest to answer, and what evidence is needed?
+
+\textbf{End-of-day deliverable:} Revised final presentation and question-response notes.
+
+\textbf{Quality gate:} Student can answer evidence, limitation, and reproducibility questions directly.
+
+\textbf{Common problems and fixes:} If a spoken answer overclaims, script a safer response and practice it.
+
+\textbf{Optional advanced challenge:} Prepare a one-minute version and a five-minute version of the talk.
+\end{dailybox}
+
+\begin{dailybox}{Day 68: Final Presentation, Final Report, and Package Archive}
+\textbf{Purpose:} Submit and communicate the completed research package.
+
+\textbf{Learning objectives:} Deliver final presentation, submit final report, archive project package, and record final status.
+
+\textbf{Prerequisites and materials:} Final presentation, final report, final package folder, final package audit, and research log.
+
+\textbf{Estimated time budget:} Full internship day: 30 minutes check-in, presentation block as scheduled, 90 minutes final fixes, 90 minutes archive preparation, 60 minutes final submission, 30 minutes closeout.
+
+\textbf{Morning concept block:} Review final claim boundaries and the expectation that questions can be answered with evidence.
+
+\textbf{Guided lab or reading discussion:} Final symposium or presentation session.
+
+\textbf{Independent project block:} Apply last approved fixes to report and package.
+
+\textbf{Evidence and writing block:} Submit final report and final package archive with final checklist.
+
+\textbf{Research log prompt:} What was submitted, where is it stored, and what should not be claimed?
+
+\textbf{End-of-day deliverable:} Final presentation, report, and package archive.
+
+\textbf{Quality gate:} All required completion-standard items are present or explicitly marked not applicable with reason.
+
+\textbf{Common problems and fixes:} If a required file is missing, submit a clear limitation note rather than hiding the gap.
+
+\textbf{Optional advanced challenge:} Draft a short abstract for a campus research showcase.
+\end{dailybox}
+
+\begin{dailybox}{Day 69: Weekend Continuation Note and Unresolved Issue Log}
+\textbf{Purpose:} Make future work realistic and transparent.
+
+\textbf{Learning objectives:} Write continuation note, unresolved issue log, and next-student starting instructions.
+
+\textbf{Prerequisites and materials:} Final package, research log, final report, and handoff worksheet.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1.5 to 2.5 hours.
+
+\textbf{Morning concept block:} Not scheduled. Focus on handoff clarity.
+
+\textbf{Guided lab or reading discussion:} Read the project as if starting it next semester.
+
+\textbf{Independent project block:} Write continuation note with next steps, unresolved issues, file locations, and warnings.
+
+\textbf{Evidence and writing block:} Add an explicit ``do not claim'' list.
+
+\textbf{Research log prompt:} What should the next student do first?
+
+\textbf{End-of-day deliverable:} Continuation note and unresolved issue log.
+
+\textbf{Quality gate:} A future student can identify the next action and the biggest risk.
+
+\textbf{Common problems and fixes:} If the continuation note is only aspirational, add exact files and specific next actions.
+
+\textbf{Optional advanced challenge:} Write a short issue tracker with priority, owner, and evidence needed.
+\end{dailybox}
+
+\begin{dailybox}{Day 70: Weekend Exit Reflection and Final Checklist}
+\textbf{Purpose:} Close the program with reflection, debrief prompts, and final accountability.
+
+\textbf{Learning objectives:} Reflect on skill growth, name final project status, identify future work, and complete final checklist.
+
+\textbf{Prerequisites and materials:} Final package, final checklist, continuation note, and research log.
+
+\textbf{Estimated time budget:} Weekend asynchronous work, 1 to 2 hours.
+
+\textbf{Morning concept block:} Not scheduled. Focus on reflection and final checklist.
+
+\textbf{Guided lab or reading discussion:} Review the product ladder from Week 1 to Week 10 and mark evidence of growth.
+
+\textbf{Independent project block:} Complete final package checklist one last time.
+
+\textbf{Evidence and writing block:} Write exit reflection and mentor debrief prompts.
+
+\textbf{Research log prompt:} What can this project support now, and what remains future work?
+
+\textbf{End-of-day deliverable:} Exit reflection, future-work plan, mentor debrief prompts, and final checklist.
+
+\textbf{Quality gate:} The final reflection names skills gained, evidence limits, and next steps without inflating the project.
+
+\textbf{Common problems and fixes:} If reflection becomes generic, require references to exact outputs, scripts, figures, or decisions.
+
+\textbf{Optional advanced challenge:} Write a recommendation letter-style summary of the student's technical contributions for program records.
+\end{dailybox}

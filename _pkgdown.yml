@@ -13,6 +13,7 @@ navbar:
     - intro
     - reference
     - articles
+    - training
     - tutorials
     - news
     right: github
@@ -23,6 +24,9 @@ navbar:
     reference:
       text: Reference
       href: reference/index.html
+    training:
+      text: Training
+      href: https://github.com/castrattonDSU/uafR/tree/main/training
     github:
       icon: fab fa-github fa-lg
       href: https://github.com/castrattonDSU/uafR/

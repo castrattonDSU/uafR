@@ -43,3 +43,5 @@ training/*.log
 training/*.out
 training/*.toc
 training/*.synctex.gz
+/training/main.pdf
+/training/instructor_guide.pdf

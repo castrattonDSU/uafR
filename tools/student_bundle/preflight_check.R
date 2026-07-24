@@ -1,4 +1,4 @@
-# uafR private student bundle preflight check.
+# uafR offline student bundle preflight check.
 # Run this before installation if a machine has not used uafR before.
 
 script_dir <- (function() {
@@ -45,8 +45,11 @@ add_check(
 )
 
 required_files <- c(
+  "START_HERE.md",
+  "uafR_QUICK_REFERENCE.md",
   "install_uafR_from_bundle.R",
   "update_uafR_from_bundle.R",
+  "verify_bundle_integrity.R",
   "verify_uafR_install.R",
   "run_student_acceptance_test.R",
   "README_STUDENT_INSTALL.md"

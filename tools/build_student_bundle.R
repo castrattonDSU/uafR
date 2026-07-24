@@ -47,6 +47,40 @@ run_command <- function(command, args, wd = getwd()) {
   list(status = status, output = output)
 }
 
+pdf_page_count <- function(path) {
+  if (!file.exists(path)) return(NA_integer_)
+  pdfinfo <- Sys.which("pdfinfo")
+  if (!nzchar(pdfinfo)) return(NA_integer_)
+  info <- tryCatch(
+    system2(pdfinfo, path, stdout = TRUE, stderr = TRUE),
+    error = function(e) character()
+  )
+  page_line <- grep("^Pages:", info, value = TRUE)
+  if (length(page_line) == 0) return(NA_integer_)
+  suppressWarnings(as.integer(sub("^Pages:[[:space:]]*", "", page_line[[1]])))
+}
+
+format_md5 <- function(path) {
+  if (!file.exists(path)) return("missing")
+  unname(tools::md5sum(path))
+}
+
+bundle_file_table <- function(bundle_dir, exclude = "CHECKSUMS.csv") {
+  files <- list.files(bundle_dir, recursive = TRUE, full.names = TRUE,
+                      all.files = FALSE, no.. = TRUE)
+  files <- files[file.info(files)$isdir %in% FALSE]
+  relative <- substring(files, nchar(bundle_dir) + 2L)
+  keep <- !(relative %in% exclude)
+  files <- files[keep]
+  relative <- relative[keep]
+  data.frame(
+    Path = relative,
+    Bytes = unname(file.info(files)$size),
+    MD5 = unname(tools::md5sum(files)),
+    stringsAsFactors = FALSE
+  )
+}
+
 repo_root <- find_repo_root()
 args <- commandArgs(trailingOnly = TRUE)
 output_root <- if (length(args) >= 1 && nzchar(args[[1]])) args[[1]] else "student_bundle"
@@ -61,6 +95,30 @@ zip_path <- file.path(output_root, paste0(bundle_name, ".zip"))
 
 message("Building ", package, " ", version, " student bundle")
 message("Repository: ", repo_root)
+
+rscript_binary <- file.path(
+  R.home("bin"),
+  if (.Platform$OS.type == "windows") "Rscript.exe" else "Rscript"
+)
+manual_builder <- file.path(
+  repo_root,
+  "tools",
+  "build_training_manuals.R"
+)
+message("Regenerating the public student manual")
+manual_build <- run_command(
+  rscript_binary,
+  c("--vanilla", manual_builder, "--student-only"),
+  wd = repo_root
+)
+cat(paste(manual_build$output, collapse = "\n"), "\n")
+if (!identical(manual_build$status, 0L)) {
+  stop(
+    "Student manual build failed. Install latexmk and the required LaTeX ",
+    "packages before building a distribution bundle.",
+    call. = FALSE
+  )
+}
 
 build_dir <- tempfile("uafr-package-build-")
 dir.create(build_dir, recursive = TRUE, showWarnings = FALSE)
@@ -103,10 +161,14 @@ copy_required(file.path(template_dir, "START_HERE.md"),
               file.path(bundle_dir, "START_HERE.md"))
 copy_required(file.path(template_dir, "README_STUDENT_INSTALL.md"),
               file.path(bundle_dir, "README_STUDENT_INSTALL.md"))
+copy_required(file.path(template_dir, "uafR_QUICK_REFERENCE.md"),
+              file.path(bundle_dir, "uafR_QUICK_REFERENCE.md"))
 copy_required(file.path(template_dir, "bundle_helpers.R"),
               file.path(bundle_dir, "bundle_helpers.R"))
 copy_required(file.path(template_dir, "preflight_check.R"),
               file.path(bundle_dir, "preflight_check.R"))
+copy_required(file.path(template_dir, "verify_bundle_integrity.R"),
+              file.path(bundle_dir, "verify_bundle_integrity.R"))
 copy_required(file.path(template_dir, "install_uafR_from_bundle.R"),
               file.path(bundle_dir, "install_uafR_from_bundle.R"))
 copy_required(file.path(template_dir, "update_uafR_from_bundle.R"),
@@ -119,12 +181,15 @@ copy_required(file.path(template_dir, "examples", "test_install.R"),
               file.path(bundle_dir, "examples", "test_install.R"))
 copy_required(tarball, file.path(bundle_dir, "packages", basename(tarball)))
 
-training_pdf <- file.path(repo_root, "training", "main.pdf")
-if (file.exists(training_pdf)) {
-  copy_required(training_pdf, file.path(bundle_dir, "training", "uafR_training_manual.pdf"))
-} else {
-  warning("training/main.pdf was not found. Render the training manual before building a student bundle.")
-}
+training_pdf <- file.path(
+  repo_root,
+  "training",
+  "uafR_training_manual.pdf"
+)
+copy_required(
+  training_pdf,
+  file.path(bundle_dir, "training", "uafR_training_manual.pdf")
+)
 
 copy_dir_files(file.path(repo_root, "training", "scripts"),
                file.path(bundle_dir, "training", "scripts"),
@@ -141,6 +206,10 @@ git_status <- tryCatch(
   run_command("git", c("status", "--short"), wd = repo_root)$output,
   error = function(e) character()
 )
+manual_bundle_pdf <- file.path(bundle_dir, "training", "uafR_training_manual.pdf")
+manual_pages <- pdf_page_count(manual_bundle_pdf)
+manual_pages_label <- ifelse(is.na(manual_pages), "unknown", as.character(manual_pages))
+archive_in_bundle <- file.path(bundle_dir, "packages", basename(tarball))
 manifest <- c(
   paste0("Package: ", package),
   paste0("Version: ", version),
@@ -148,12 +217,19 @@ manifest <- c(
   paste0("R: ", R.version.string),
   paste0("Source commit: ", ifelse(is.na(git_commit), "unknown", git_commit)),
   paste0("Source tree clean: ", ifelse(length(git_status) == 0, "yes", "no")),
+  paste0("Manual pages: ", manual_pages_label),
+  paste0("Package archive MD5: ", format_md5(archive_in_bundle)),
+  paste0("Training manual MD5: ", format_md5(manual_bundle_pdf)),
+  paste0("Full checksum table: CHECKSUMS.csv"),
   "",
   "Bundle contents:",
   "- START_HERE.md: first student checklist",
   "- README_STUDENT_INSTALL.md: detailed student installation directions",
+  "- uafR_QUICK_REFERENCE.md: one-page student command reference",
+  "- CHECKSUMS.csv: file sizes and MD5 checksums for this generated bundle",
   "- packages/: local uafR source package archive",
   "- preflight_check.R: machine readiness check",
+  "- verify_bundle_integrity.R: confirms copied bundle files match CHECKSUMS.csv",
   "- install_uafR_from_bundle.R: student installer",
   "- update_uafR_from_bundle.R: reinstall/update script for newer bundles",
   "- verify_uafR_install.R: post-install verification",
@@ -164,6 +240,11 @@ manifest <- c(
   "- examples/test_install.R: rerun the acceptance test from the examples folder"
 )
 writeLines(manifest, file.path(bundle_dir, "MANIFEST.txt"))
+
+checksum_table <- bundle_file_table(bundle_dir)
+checksum_table <- checksum_table[order(checksum_table$Path), , drop = FALSE]
+utils::write.csv(checksum_table, file.path(bundle_dir, "CHECKSUMS.csv"),
+                 row.names = FALSE)
 
 old <- setwd(output_root)
 on.exit(setwd(old), add = TRUE)

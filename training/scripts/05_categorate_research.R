@@ -3,17 +3,32 @@
 run_categorate_smoke <- function(compounds = c("aspirin", "caffeine"),
                                  cache = TRUE,
                                  throttle = 0.2,
-                                 output_dir = NULL) {
-  if (!requireNamespace("uafR", quietly = TRUE)) {
-    stop("uafR is not installed.", call. = FALSE)
+                                 output_dir = NULL,
+                                 categorate_fun = NULL,
+                                 validation_fun = NULL,
+                                 chemical_library = NULL) {
+  if (is.null(categorate_fun) || is.null(validation_fun) ||
+      is.null(chemical_library)) {
+    if (!requireNamespace("uafR", quietly = TRUE)) {
+      stop("uafR is not installed.", call. = FALSE)
+    }
   }
 
-  library(uafR)
-  data("library_data", package = "uafR")
+  if (is.null(categorate_fun)) {
+    categorate_fun <- uafR::categorate
+  }
+  if (is.null(validation_fun)) {
+    validation_fun <- uafR::validateCategorateResult
+  }
+  if (is.null(chemical_library)) {
+    data_env <- new.env(parent = emptyenv())
+    utils::data("library_data", package = "uafR", envir = data_env)
+    chemical_library <- data_env$library_data
+  }
 
-  result <- categorate(
+  result <- categorate_fun(
     compounds = compounds,
-    chemical_library = library_data,
+    chemical_library = chemical_library,
     input_format = "wide",
     detail = "research",
     cache = cache,
@@ -24,7 +39,24 @@ run_categorate_smoke <- function(compounds = c("aspirin", "caffeine"),
     trait_matrix_max_traits = 100
   )
 
-  validation <- validateCategorateResult(result)
+  required_tables <- c(
+    "SourceCoverage",
+    "ChemicalTraitReport",
+    "ChemicalTraitMatrix"
+  )
+  missing_tables <- setdiff(required_tables, names(result))
+  if (length(missing_tables) > 0) {
+    stop(
+      "categorate smoke result is missing required table(s): ",
+      paste(missing_tables, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  validation <- validation_fun(result)
+  if (!is.list(validation) || is.null(validation$Summary)) {
+    stop("Validation did not return a Summary table.", call. = FALSE)
+  }
   print(validation$Summary)
   print(result$SourceCoverage)
   print(result$ChemicalTraitReport)

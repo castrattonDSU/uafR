@@ -1,19 +1,24 @@
 \documentclass[11pt,oneside]{book}
+\newcommand{\DocumentTitle}{DSU dsDNA Core uafR Undergraduate Research Training Program: Student Manual}
+\newcommand{\DocumentShortTitle}{uafR Student Manual}
 \input{preamble}
 
 \begin{document}
+\pagenumbering{Alph}
 
 \begin{titlepage}
 \pagecolor{DSULightBlue}
 \begin{center}
-\vspace*{0.4in}
-\CoreLogo
+\vspace*{0.08in}
+\CoreLogoBand
 
-\vspace{0.55in}
-{\Huge\bfseries\color{DSURed} DSU dsDNA Core Undergraduate Research Training Program\par}
-\vspace{0.25in}
+\vspace{0.28in}
+{\Huge\bfseries\color{DSURed} DSU dsDNA Core uafR Undergraduate Research Training Program\par}
+\vspace{0.18in}
+{\LARGE\bfseries Student Manual\par}
+\vspace{0.22in}
 {\Large\bfseries Using uafR for Reproducible Chemical and Mass Spectrometry Research\par}
-\vspace{0.35in}
+\vspace{0.25in}
 {\large A 10-week applied research curriculum for undergraduate interns\par}
 
 \vfill
@@ -23,8 +28,10 @@ Students finish this program with a reproducible research project, defensible ch
 
 \vfill
 {\large DSU dsDNA Core\par}
-{\large Version 1.0\par}
-{\large \today\par}
+{\large Version \TrainingVersion\space | Revised \TrainingRevisionDate\par}
+{\large\href{\TrainingRepository}{github.com/castrattonDSU/uafR}\par}
+\vspace{0.12in}
+{\small Curriculum and institutional-mark notice: see \path{training/PUBLICATION_NOTICE.md}.\par}
 \end{center}
 \end{titlepage}
 \nopagecolor
@@ -50,12 +57,11 @@ Students finish this program with a reproducible research project, defensible ch
 \include{chapters/lab_compendium}
 \include{chapters/readings_exercises}
 \include{chapters/project_tracks}
+\include{chapters/completion_standard}
 
 \appendix
 \include{worksheets/worksheets}
 \include{rubrics/rubrics}
-\include{program_notes/program_implementation_notes}
-\include{program_notes/dsdna_core_review_notes}
 \include{chapters/appendix_installation}
 \include{chapters/appendix_tables}
 

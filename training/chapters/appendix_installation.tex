@@ -1,11 +1,51 @@
 \chapter{Installation and Setup Appendix}
 
-\section{Recommended Student Installation}
-The recommended student installation path is a private uafR student bundle distributed by the DSU dsDNA Core program. This keeps the package repository private and gives every student the same RStudio-based setup.
+\section{Choose an Installation Route}
+uafR supports two student installation routes. General users can install the
+current public source from GitHub. Classes and restricted-network settings can
+use a versioned offline student bundle so every participant starts from the
+same package archive and training files.
+
+\subsection{Route A: Public GitHub Installation}
+Use this route when the machine has reliable internet access and the program
+wants the current public version.
+
+\begin{rcode}
+install.packages(c("remotes", "BiocManager"))
+
+BiocManager::install(
+  c("ChemmineR", "fmcsR"),
+  ask = FALSE,
+  update = FALSE
+)
+
+remotes::install_github(
+  "castrattonDSU/uafR",
+  dependencies = c("Depends", "Imports"),
+  upgrade = "never",
+  build_vignettes = FALSE
+)
+
+library(uafR)
+packageVersion("uafR")
+\end{rcode}
+
+After installation, run the repository's offline training smoke test or the
+student acceptance test supplied by the program. Installation from GitHub
+requires internet access for both uafR and its dependencies.
+
+\subsection{Route B: Versioned Offline Student Bundle}
+Use this route when a class needs a fixed, auditable package archive or when
+GitHub access is unavailable. The bundle installs uafR from a local source
+archive and uses CRAN and Bioconductor only for dependencies that are not
+already installed.
 
 The student bundle includes:
 \begin{itemize}
   \item \path{START_HERE.md}, the first checklist to open.
+  \item \path{uafR_QUICK_REFERENCE.md}, the compact command reference.
+  \item \path{CHECKSUMS.csv}, the generated file size and MD5 checksum table.
+  \item \path{verify_bundle_integrity.R}, the checksum verification script.
   \item A local uafR source package archive in \path{packages/}.
   \item \path{preflight_check.R}, the machine readiness check.
   \item \path{install_uafR_from_bundle.R}, the student installer.
@@ -16,7 +56,7 @@ The student bundle includes:
   \item Training scripts and data templates used during the internship.
 \end{itemize}
 
-The installer still needs internet access for CRAN and Bioconductor dependencies. The uafR package itself is installed from the local bundle archive.
+The installer still needs internet access for missing CRAN and Bioconductor dependencies. The uafR package itself is installed from the local bundle archive.
 
 \section{Install From the Student Bundle}
 The installation workflow is:
@@ -26,15 +66,17 @@ The installation workflow is:
   \item Unzip the whole bundle folder.
   \item Open RStudio.
   \item Open \path{START_HERE.md} from the unzipped bundle folder.
+  \item Source \path{verify_bundle_integrity.R}.
   \item Source \path{preflight_check.R}.
   \item If preflight has no failed checks, source \path{install_uafR_from_bundle.R}.
   \item Source \path{run_student_acceptance_test.R}.
-  \item Open \path{training/uafR_training_manual.pdf}.
+  \item Keep \path{uafR_QUICK_REFERENCE.md} nearby and open \path{training/uafR_training_manual.pdf}.
 \end{enumerate}
 
-The three main commands are:
+The main setup commands are:
 
 \begin{rcode}
+source("verify_bundle_integrity.R")
 source("preflight_check.R")
 source("install_uafR_from_bundle.R")
 source("run_student_acceptance_test.R")
@@ -42,14 +84,18 @@ source("run_student_acceptance_test.R")
 
 The installer prints five visible steps: checking the bundle and R library, installing CRAN dependencies, installing Bioconductor dependencies, installing uafR from the local archive, and verifying the installation. The installer writes \path{uafR_install_log.txt} in the bundle folder.
 
-\section{Create a New Student Bundle}
-From the repository root, the program build step is:
+\section{Confirm Bundle Integrity}
+The bundle builder writes \path{CHECKSUMS.csv} with the file size and MD5 checksum for each file in the generated bundle. After a bundle is copied or unzipped, the integrity check confirms that the files still match the build record.
+
+\begin{rcode}
+source("verify_bundle_integrity.R")
+\end{rcode}
+
+It should end with:
 
 \begin{verbatim}
-Rscript tools/build_student_bundle.R
+Bundle integrity result: PASS.
 \end{verbatim}
-
-This creates a versioned bundle folder and zip archive under \path{student_bundle/}. The zip archive can be copied to a USB drive, shared through an approved campus file-transfer method, or unpacked onto classroom machines.
 
 \section{Confirm the Installation Without Live Web Queries}
 The verification script checks package loading, required dependencies, bundled datasets, and the saved standard categorate result. It does not query live web services.
@@ -97,11 +143,30 @@ Sys.setenv(UAFR_STUDENT_LIVE = "1")
 source("run_student_acceptance_test.R")
 \end{rcode}
 
+\section{Species-First Plant Chemistry Extension}
+The bundle includes \path{training/scripts/10_species_phytochemistry.R}. Its
+default example uses clearly labeled simulated curated rows and does not make
+live requests. It demonstrates the normalized plant result, validation,
+evidence filtering, species matrix, candidate score, and export workflow.
+
+\begin{rcode}
+source("training/scripts/10_species_phytochemistry.R")
+plant_example <- run_species_phytochemistry_smoke(
+  output_dir = "results/plant_training_example"
+)
+\end{rcode}
+
+The simulated rows teach package behavior; they are not evidence about a
+student's samples and must not be reported as observed or published plant
+chemistry. Live species discovery is an optional extension after the offline
+workflow is understood.
+
 \section{Troubleshooting}
 \begin{tabularx}{\textwidth}{p{0.24\textwidth}p{0.32\textwidth}Y}
 \toprule
 \textbf{Problem} & \textbf{Likely cause} & \textbf{What to do}\\
 \midrule
+Bundle integrity check fails & One or more files changed, did not copy, or did not unzip correctly. & Delete the unzipped folder and unzip the original bundle again. If it still fails, get a fresh copy of the zip.\\
 Installer cannot find uafR archive & The bundle was not fully unzipped or the \path{packages/} folder was moved. & Unzip the whole bundle again and keep the folder structure unchanged.\\
 Preflight says the R library is not writable & R cannot install packages into the first library path. & Restart RStudio. If the problem remains, set a user library before installing.\\
 Bioconductor dependency fails & Internet access, R version, or Bioconductor access is blocked. & Run \path{preflight_check.R}, update R if it is old, and try again on a network that can reach Bioconductor.\\

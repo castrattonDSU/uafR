@@ -1,4 +1,4 @@
-# uafR private student bundle verification.
+# uafR offline student bundle verification.
 # This script does not query live web services.
 
 script_dir <- (function() {

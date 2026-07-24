@@ -87,6 +87,32 @@ run_check("Offline training workflow", {
   paste0("offline exact-match rows: ", nrow(result$exact))
 })
 
+run_check("Offline species-first training workflow", {
+  workflow_script <- file.path(
+    bundle_dir,
+    "training",
+    "scripts",
+    "10_species_phytochemistry.R"
+  )
+  if (!file.exists(workflow_script)) {
+    stop("Species training script is missing: ", workflow_script,
+         call. = FALSE)
+  }
+  script_env <- new.env(parent = globalenv())
+  sys.source(workflow_script, envir = script_env)
+  result <- script_env$run_species_phytochemistry_smoke(verbose = FALSE)
+  if (!inherits(result, "uaf_plant_phytochemistry")) {
+    stop("Species workflow did not return a plant phytochemistry result.",
+         call. = FALSE)
+  }
+  occurrences <- result$PlantCompoundOccurrences
+  if (!is.data.frame(occurrences) || nrow(occurrences) == 0) {
+    stop("Species workflow returned no simulated occurrence rows.",
+         call. = FALSE)
+  }
+  paste0("simulated curated occurrence rows: ", nrow(occurrences))
+})
+
 run_check("Core package data objects", {
   suppressPackageStartupMessages(library(uafR))
   data_env <- new.env(parent = emptyenv())

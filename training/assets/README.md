@@ -1,12 +1,18 @@
 # Assets
 
-Place the dsDNA Core logo here as `dsdna_core_logo.png`.
+The public manuals use the approved dsDNA Core wordmark at:
 
-Recommended logo source:
+```text
+training/assets/dsdna_core_logo.png
+```
 
-- Transparent PNG when possible.
-- At least 1200 px wide for clean print output.
-- Avoid screenshots or low-resolution exports.
+The source PNG is intentionally high resolution for print output. The LaTeX
+title page preserves its aspect ratio and places the white-backed wordmark in a
+deliberate full-width white band.
 
-The LaTeX manual has a built-in placeholder, so it will compile before the logo
-is added.
+The build fails when the logo is absent; a public manual must never silently
+substitute generic stand-in artwork.
+
+The repository's MIT software license does not grant permission to extract,
+alter, or reuse Delaware State University or dsDNA Core institutional marks.
+See `training/PUBLICATION_NOTICE.md`.
