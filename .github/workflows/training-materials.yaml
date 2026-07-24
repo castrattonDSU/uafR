@@ -58,7 +58,9 @@ jobs:
           fancyhdr
           titlesec
           tcolorbox
+          tikzfill
           listings
+          listingsutf8
           hyperref
           url
 
