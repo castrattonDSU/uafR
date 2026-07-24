@@ -320,7 +320,7 @@ main = function() {
   }
   if (!is.null(release_manifest)) {
     release = list(
-      workflow = "uafR_private_release_candidate",
+      workflow = "uafR_release_candidate",
       package = package,
       package_version = version,
       git_commit = git_commit,

@@ -336,7 +336,7 @@
   and document when large-file hashing is intentionally skipped.
 - Established schema version `1.0.0`, development package version metadata,
   package citation guidance, and a conservative third-party provider-source
-  notice for private release preparation.
+  notice for release preparation.
 - Restored compatibility between `categorate()` output, bundled categorate data,
   `exactoThese()`, examples, and tests.
 - Fixed external-standard calibration coefficient handling in `standardifyIt()`.

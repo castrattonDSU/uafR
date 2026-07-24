@@ -72,7 +72,7 @@ panel_release_fixture = function(root) {
   writeBin(charToRaw("offline checked source tarball fixture"), tarball)
   manifest = file.path(root, "uafR_release_manifest.json")
   jsonlite::write_json(list(
-    workflow = "uafR_private_release_candidate",
+    workflow = "uafR_release_candidate",
     package = "uafR", package_version = version,
     git_commit = paste(rep("a", 40L), collapse = ""),
     dirty_state_check = "clean",
