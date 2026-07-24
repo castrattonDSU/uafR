@@ -26,6 +26,7 @@
     <li><a class="dropdown-item" href="../articles/plant-phytochemistry-offline.html">Offline Plant Phytochemistry Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/plant-phytochemistry-live.html">Live and Large Plant Phytochemistry Queries</a></li>
   </ul></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/castrattonDSU/uafR/tree/main/training">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/castrattonDSU/uafR/" aria-label="GitHub repository"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
@@ -43,7 +44,8 @@
 <h2 class="pkg-version" data-toc-text="0.4.0.9000" id="uafr-0409000-development">uafR 0.4.0.9000 (development)<a class="anchor" aria-label="anchor" href="#uafr-0409000-development"></a></h2>
 <div class="section level3">
 <h3 id="major-improvements-0-4-0-9000">Major improvements<a class="anchor" aria-label="anchor" href="#major-improvements-0-4-0-9000"></a></h3>
-<ul><li>PubChem record-mode enrichment now filters requested headings and sources while traversing PUG-View records rather than materializing every unrelated annotation first. Large LOTUS classification responses are parsed with preallocated, vectorized structures, eliminating quadratic post-processing while retaining every source-backed hierarchy returned for the compound.</li>
+<ul><li>Published separate, versioned student and instructor editions of the 10-week DSU dsDNA Core uafR curriculum with the official wordmark, public GitHub and offline-bundle installation routes, species-first plant training support, automated LaTeX builds, offline smoke tests, and public-content checks.</li>
+<li>PubChem record-mode enrichment now filters requested headings and sources while traversing PUG-View records rather than materializing every unrelated annotation first. Large LOTUS classification responses are parsed with preallocated, vectorized structures, eliminating quadratic post-processing while retaining every source-backed hierarchy returned for the compound.</li>
 <li>Resumable enrichment health checks now accept source-backed InChIKey/SMILES identities that have no PubChem CID. Source-provided CIDs must still resolve, every query must retain an explicit PubChem outcome, and properties remain required for every resolved CID.</li>
 <li>KEGG FIND queries now transliterate Greek characters, remove leading optical-rotation markers, and convert unsupported punctuation into safe keyword terms before requesting the KEGG REST API. Any remaining per-name HTTP 400 response is retained as an auditable rejected search candidate instead of failing an otherwise valid multi-compound enrichment batch.</li>
 <li>Production plant panels now bound rich <code>detail = "research"</code> enrichment to a configurable, deterministic evidence-priority sample (1,000 compounds by default). Selection first attempts one eligible structure-resolved compound per represented species, then fills remaining capacity by direct-species and source-support strength. Every deferred identity remains in the discovery result and exclusion audit, with a selection summary that reports species coverage; <code>Inf</code> remains an explicit, review-required opt-in for smaller runs.</li>

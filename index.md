@@ -729,10 +729,23 @@ earliest plant-workflow prototypes.
 ## Documentation and support
 
 - Function reference: <https://castrattonDSU.github.io/uafR/>
-- Public training materials:
-  [`training/`](https://castrattonDSU.github.io/uafR/training/)
+- Public training home:
+  <https://github.com/castrattonDSU/uafR/tree/main/training>
+- 10-week student manual:
+  <https://github.com/castrattonDSU/uafR/blob/main/training/uafR_training_manual.pdf>
+- Instructor and mentor guide:
+  <https://github.com/castrattonDSU/uafR/blob/main/training/uafR_instructor_guide.pdf>
+- Offline classroom bundle instructions:
+  <https://github.com/castrattonDSU/uafR/blob/main/tools/student_bundle/README_STUDENT_INSTALL.md>
 - Issues and bug reports: <https://github.com/castrattonDSU/uafR/issues>
 - Source code: <https://github.com/castrattonDSU/uafR>
+
+The manuals, scripts, worksheets, and rubrics are public so students can
+see the complete learning and evaluation pathway. Instructor
+facilitation and answer guidance are published as a separate companion
+guide and are not embedded in the student PDF. The package can be
+installed from public GitHub or distributed in a versioned offline
+classroom bundle.
 
 ## Citation
 
@@ -745,4 +758,7 @@ When using uafR, cite:
 
 ## License
 
-uafR is released under the MIT License.
+uafR software is released under the MIT License. That license does not
+grant permission to reuse DSU or dsDNA Core institutional marks.
+Curriculum reuse and mark restrictions are described in
+<https://github.com/castrattonDSU/uafR/blob/main/training/PUBLICATION_NOTICE.md>.
