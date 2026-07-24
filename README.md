@@ -1,4 +1,4 @@
-# uafR
+# uafR <a href="https://castrattonDSU.github.io/uafR/"><img src="man/figures/logo.svg" align="right" height="139" alt="uafR evidence-prism hex logo" /></a>
 
 [![R-CMD-check](https://github.com/castrattonDSU/uafR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/castrattonDSU/uafR/actions/workflows/R-CMD-check.yaml)
 [![PLOS ONE](https://img.shields.io/badge/PLOS%20ONE-10.1371%2Fjournal.pone.0306202-0A7BBB)](https://doi.org/10.1371/journal.pone.0306202)

@@ -2,6 +2,10 @@ url: https://castrattonDSU.github.io/uafR/
 
 template:
   bootstrap: 5
+  opengraph:
+    image:
+      src: man/figures/opengraph.png
+      alt: uafR evidence-prism logo and wordmark
 
 navbar:
   structure:
