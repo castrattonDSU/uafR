@@ -1,0 +1,205 @@
+\usepackage[letterpaper,margin=0.85in,headheight=15pt]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[table]{xcolor}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{multicol}
+
+\definecolor{DSURed}{HTML}{EE3124}
+\definecolor{DSUBlue}{HTML}{0099CC}
+\definecolor{DSUDarkBlue}{HTML}{005A7A}
+\definecolor{DSUBlack}{HTML}{151515}
+\definecolor{DSULightBlue}{HTML}{E6F5FA}
+\definecolor{DSULightRed}{HTML}{FDE8E6}
+\definecolor{DSULightGray}{HTML}{F4F6F7}
+\definecolor{DSUMidGray}{HTML}{5F666A}
+\definecolor{WiccedGreen}{HTML}{2C7A4B}
+\definecolor{WiccedLightGreen}{HTML}{E9F5EE}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=DSURed,
+  citecolor=DSUDarkBlue,
+  urlcolor=DSUDarkBlue,
+  pdftitle={Project WiCCED uafR Water Quality and Machine Learning Training Manual},
+  pdfauthor={DSU dsDNA Core and ONE Health Laboratory}
+}
+
+\setlist[itemize]{leftmargin=1.3em,itemsep=0.22em,topsep=0.22em}
+\setlist[enumerate]{leftmargin=1.5em,itemsep=0.22em,topsep=0.22em}
+\renewcommand{\arraystretch}{1.16}
+\setlength{\parskip}{0.52em}
+\setlength{\parindent}{0pt}
+\emergencystretch=2em
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textcolor{DSURed}{DSU dsDNA Core}}
+\rhead{\textcolor{DSUMidGray}{WiCCED Water Quality Training}}
+\cfoot{\thepage}
+
+\titleformat{\chapter}
+  {\Huge\bfseries\color{DSURed}}
+  {\thechapter}{0.75em}{}
+\titleformat{\section}
+  {\Large\bfseries\color{DSURed}}
+  {\thesection}{0.6em}{}
+\titleformat{\subsection}
+  {\large\bfseries\color{DSUBlack}}
+  {\thesubsection}{0.55em}{}
+
+\lstdefinestyle{RStyle}{
+  language=R,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{DSURed}\bfseries,
+  commentstyle=\color{DSUMidGray},
+  stringstyle=\color{DSUDarkBlue},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  frame=single,
+  rulecolor=\color{DSULightBlue},
+  backgroundcolor=\color{DSULightGray},
+  framerule=0.4pt,
+  xleftmargin=0.5em,
+  xrightmargin=0.5em
+}
+\lstnewenvironment{rcode}{\lstset{style=RStyle}}{}
+
+\newtcolorbox{programbox}[2][]{
+  enhanced,
+  breakable,
+  colback=DSULightBlue,
+  colframe=DSUBlue,
+  coltitle=white,
+  title={#2},
+  fonttitle=\bfseries,
+  boxrule=0.6pt,
+  arc=2mm,
+  left=1.0em,
+  right=1.0em,
+  top=0.75em,
+  bottom=0.75em,
+  #1
+}
+
+\newtcolorbox{wiccedbox}[2][]{
+  enhanced,
+  breakable,
+  colback=WiccedLightGreen,
+  colframe=WiccedGreen,
+  coltitle=white,
+  title={#2},
+  fonttitle=\bfseries,
+  boxrule=0.6pt,
+  arc=2mm,
+  left=1.0em,
+  right=1.0em,
+  top=0.75em,
+  bottom=0.75em,
+  #1
+}
+
+\newtcolorbox{cautionbox}[2][]{
+  enhanced,
+  breakable,
+  colback=DSULightRed,
+  colframe=DSURed,
+  coltitle=DSUBlack,
+  title={#2},
+  fonttitle=\bfseries,
+  boxrule=0.6pt,
+  arc=2mm,
+  left=1.0em,
+  right=1.0em,
+  top=0.75em,
+  bottom=0.75em,
+  #1
+}
+
+\newtcolorbox{dailybox}[2][]{
+  enhanced,
+  breakable,
+  colback=white,
+  colframe=DSUBlue,
+  coltitle=white,
+  title={#2},
+  fonttitle=\bfseries,
+  boxrule=0.6pt,
+  arc=2mm,
+  left=0.9em,
+  right=0.9em,
+  top=0.65em,
+  bottom=0.65em,
+  #1
+}
+
+\newtcolorbox{rubricbox}[2][]{
+  enhanced,
+  breakable,
+  colback=white,
+  colframe=DSUMidGray,
+  coltitle=white,
+  title={#2},
+  fonttitle=\bfseries,
+  boxrule=0.6pt,
+  arc=2mm,
+  left=0.9em,
+  right=0.9em,
+  top=0.65em,
+  bottom=0.65em,
+  #1
+}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\file}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+
+\newcommand{\CoreLogo}{%
+  \IfFileExists{../training/assets/dsdna_core_logo.png}{%
+    \includegraphics[width=1.25in]{../training/assets/dsdna_core_logo.png}%
+  }{%
+    \fcolorbox{DSURed}{DSULightBlue}{%
+      \parbox[c][1.0in][c]{1.35in}{\centering\bfseries\color{DSURed}dsDNA\\Core\\Logo}%
+    }%
+  }%
+}
+
+\newcommand{\WeekHeader}[5]{%
+  \begin{wiccedbox}{Week #1: #2}
+  \textbf{Project milestone:} #3
+
+  \textbf{Primary product:} #4
+
+  \textbf{Main tool emphasis:} #5
+  \end{wiccedbox}
+}
+
+\newcommand{\DayPlan}[8]{%
+  \begin{dailybox}{Day #1: #2}
+  \textbf{Time design:} #3
+
+  \textbf{Purpose:} #4
+
+  \textbf{Tools and materials:} #5
+
+  \textbf{Work blocks:} #6
+
+  \textbf{End-of-day product:} #7
+
+  \textbf{Quality gate:} #8
+  \end{dailybox}
+}

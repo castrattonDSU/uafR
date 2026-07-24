@@ -1,0 +1,149 @@
+\chapter{uafR Workflows for Water-Quality Research}
+
+uafR belongs in this water-quality program when chemical screening evidence is available or when a chemical query list needs structured public-database context. The package is especially useful for GC-MS workflows and source-backed chemical trait extraction. It should be used cautiously and documented as one evidence layer, not as the entire water-quality analysis.
+
+\section{Verified Function Surface}
+
+The following function names and output families were verified from the repository source, documentation, tests, or existing training scripts before inclusion:
+\begin{itemize}
+  \item \code{spreadOut()} for reshaping and summarizing GC-MS hit-table output.
+  \item \code{mzExacto()} for extracting selected chemicals from \code{spreadOut()} output.
+  \item \code{exactoThese()} for building query lists from \code{categorate()} output.
+  \item \code{categorate(detail = "research")} for research-grade chemical enrichment.
+  \item \code{validateCategorateResult()} for result validation.
+  \item \code{chemicalTraitMatrix()} for source-backed trait matrices.
+  \item \code{chemicalTraitEvidence()} for evidence trails behind traits and matrix keys.
+  \item \code{chemicalTraitOntology()} and \code{chemicalTraitOntologyMatrix()} for controlled trait terms when available.
+  \item \code{pubchemProfile()} for targeted PubChem identity/property profiles.
+\end{itemize}
+
+\section{Workflow Decision Tree}
+
+\begin{programbox}{When to Use uafR}
+Use uafR if the project has GC-MS hit tables, a defensible list of candidate chemicals, or a need to turn chemical names into source-backed descriptors. Do not use uafR as a substitute for salinity, dissolved oxygen, nutrient, bacterial, or field-sensor measurements.
+\end{programbox}
+
+\begin{longtable}{p{0.28\textwidth}p{0.32\textwidth}p{0.30\textwidth}}
+\toprule
+\textbf{Project situation} & \textbf{Recommended uafR action} & \textbf{Required caution} \\
+\midrule
+GC-MS hit table exists and column names match expected format & Use \code{spreadOut()} followed by \code{mzExacto()} for selected compounds. & Treat matches as tentative unless confirmed by standards and method evidence. \\
+Chemical names exist but no sample-level GC-MS evidence exists & Use \code{pubchemProfile()} or a small \code{categorate()} query for source context only. & Do not imply sample presence. \\
+Many compounds need grouping for exploratory comparison & Use \code{categorate(detail = "research")} and \code{chemicalTraitMatrix()} after validation. & Use cached, throttled, small batches and document source coverage. \\
+Traits are needed for model features & Use \code{chemicalTraitEvidence()} and a grouping dictionary before modeling. & Do not include narrative fields or unsupported traits as features. \\
+No chemical data or chemical question exists & Write a not-applicable note. & Do not force chemical analysis into a water-quality project. \\
+\bottomrule
+\end{longtable}
+
+\section{Simulated GC-MS Teaching Workflow}
+
+The manual includes a simulated WiCCED-themed GC-MS hit table in the \file{data/} folder. It is not a real environmental dataset. It is designed to teach the mechanics and interpretation value of uafR-style GC-MS processing while staying scientifically honest.
+
+The simulated table contains the required uafR columns: \code{Component.RT}, \code{Component.Area}, \code{Base.Peak.MZ}, \code{File.Name}, \code{Compound.Name}, and \code{Match.Factor}. It also includes sample-context columns so students can connect the chemical patterns to water-quality scenarios. The pattern includes taste/odor candidates, agricultural screening candidates, urban/stormwater markers, marsh/aquaculture organic-matter signals, plant-associated volatile background, and duplicate detections that require aggregation.
+
+From the \file{training_wicced_water_quality/} folder, run:
+
+\begin{rcode}
+Rscript scripts/03_uafr_chemical_screening_template.R
+\end{rcode}
+
+The default mode is offline and deterministic. It validates the uafR-compatible columns, creates a spread object with the same major structure used downstream by uafR, aggregates exact-name matches for the simulated query compounds, computes relative abundance within each sample, and writes summary files.
+
+Expected outputs in \file{results/} are:
+\begin{itemize}
+  \item \file{wicced_simulated_spread.rds}
+  \item \file{wicced_simulated_exact_matches.csv}
+  \item \file{wicced_simulated_long_abundance.csv}
+  \item \file{wicced_simulated_sample_group_summary.csv}
+  \item \file{wicced_simulated_compound_evidence_notes.csv}
+  \item \file{wicced_simulated_gcms_pipeline_summary.txt}
+\end{itemize}
+
+Students should inspect whether duplicate \code{Caffeine} detections in the urban stormwater sample were aggregated, whether relative abundance sums to 1 within each sample, and whether chemical patterns differ by sample context. The correct conclusion is not that those compounds occur in Delaware water. The correct conclusion is that the pipeline can convert a GC-MS hit table into auditable, sample-level chemical evidence that could guide real follow-up work.
+
+\begin{cautionbox}{Live uafR Mode}
+The script also accepts a final \code{live} argument that calls real \code{spreadOut()} and \code{mzExacto()} when uafR is installed or loadable and web services are available. Live mode may query PubChem/NCI and should be used only as a small smoke test with clear documentation. The offline simulated mode is the required training path.
+\end{cautionbox}
+
+\section{Research Enrichment Template}
+
+Live enrichment can be slow, dependency-sensitive, and affected by public service availability. The safe pattern is a tiny smoke test, cached output, and validation before scaling.
+
+\begin{rcode}
+library(uafR)
+
+data("library_data", package = "uafR")
+
+compounds <- c("caffeine", "atrazine")
+
+result <- categorate(
+  compounds = compounds,
+  chemical_library = library_data,
+  detail = "research",
+  cache = TRUE,
+  throttle = 0.2,
+  trait_matrix_profile = "core",
+  trait_matrix_min_confidence = "medium",
+  trait_matrix_max_traits = 100
+)
+
+validation <- validateCategorateResult(result)
+names(result)
+result$ValidationSummary
+result$SourceCoverage
+head(result$ChemicalTraits)
+
+saveRDS(result, file = "results/categorate_research_small.rds")
+\end{rcode}
+
+This code is verified as a package-level pattern, but it should be treated as a live-query template. If a machine lacks network access or required chemical back-end packages, students should inspect a saved result object instead of forcing a live run.
+
+\section{Trait Evidence Before Analysis}
+
+Trait matrices are useful only when the student understands where the columns came from. Before any trait enters a figure, clustering, or model, the evidence should be traceable.
+
+\begin{rcode}
+traits <- chemicalTraitMatrix(
+  result,
+  profile = "core",
+  mode = "binary",
+  min_confidence = "medium",
+  max_traits = 100
+)
+
+evidence <- chemicalTraitEvidence(result, min_confidence = "medium")
+
+head(traits)
+head(evidence)
+write.csv(traits, "results/chemical_trait_matrix.csv", row.names = FALSE)
+write.csv(evidence, "results/chemical_trait_evidence.csv", row.names = FALSE)
+\end{rcode}
+
+The trait evidence table should be used to fill the Trait Grouping Dictionary. The student should record source table, source field, evidence text or identifier, extraction rule, confidence, allowed values, and caveat.
+
+\section{Water-Quality Integration Pattern}
+
+If chemical traits are used with water-quality measurements, the join must be explicit. The student must be able to answer:
+\begin{itemize}
+  \item What sample, bottle, extract, or file links the chemical data to the water-quality row?
+  \item Were chemical features measured from the same sample, site, date, or treatment?
+  \item Are abundance values raw peak areas, relative areas, standardized values, or presence/absence indicators?
+  \item Are unresolved compounds retained as missing, excluded, or summarized separately?
+  \item Could the chemical feature reveal the target variable in a way that creates leakage?
+\end{itemize}
+
+If these questions cannot be answered, chemical traits should remain an evidence appendix rather than model features.
+
+\section{Required Documentation}
+
+Every uafR-including project should include:
+\begin{itemize}
+  \item Input file inventory.
+  \item Query settings log.
+  \item Saved raw result object.
+  \item Validation output.
+  \item Source coverage report.
+  \item Evidence table for retained traits.
+  \item Not-applicable notes for excluded tables or unsupported sources.
+  \item A claim-limit memo that states what cannot be concluded.
+\end{itemize}

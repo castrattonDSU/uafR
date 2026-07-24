@@ -1,0 +1,94 @@
+\chapter{Project WiCCED Water-Quality Context}
+
+Project WiCCED Salt focuses on water in the complex coastal environment of Delaware. The project space includes saltwater intrusion, freshwater-resource vulnerability, drinking water, farmland, coastal ecosystems, infrastructure, wetland migration, aquaculture, stakeholder decision-making, and workforce development. The student training program therefore treats water-quality data as both environmental evidence and decision-relevant information.
+
+\section{Project Space}
+
+The WiCCED project emphasizes saltwater intrusion as a serious risk to Delaware's drinking water, farmland, coastal ecosystems, and infrastructure. The research plan spans urban and suburban systems, rural systems, and natural systems. It includes physical-risk mapping, water and soil salinization, groundwater and surface-water context, stormwater and wastewater infrastructure, salinity effects on organisms, salt-tolerant crops, aquaculture and benthic fauna, marsh migration, water-quality ecosystem services, and stakeholder response.
+
+This manual translates that project space into student-scale research. A student project should be narrower than the full WiCCED portfolio. Good student projects ask questions such as:
+\begin{itemize}
+  \item Which measured variables best separate higher-salinity and lower-salinity sampling contexts in a teaching or project dataset?
+  \item How do missingness, season, site, and method affect the apparent relationship between salinity and dissolved oxygen?
+  \item Can a simple model predict whether a sample belongs to a high-salinity class using only variables available before interpretation?
+  \item Do tentative organic chemical features from GC-MS align with source-backed chemical traits that could guide follow-up sampling?
+  \item Which sites, dates, or sample groups require the most caution because source coverage, missing data, or model uncertainty is high?
+\end{itemize}
+
+\section{Water-Quality Variables}
+
+Water quality is not a single measurement. It is a structured set of chemical, physical, biological, spatial, temporal, and methodological observations. A WiCCED-aligned student should be able to define each variable before modeling it.
+
+\begin{longtable}{p{0.22\textwidth}p{0.34\textwidth}p{0.34\textwidth}}
+\toprule
+\textbf{Variable family} & \textbf{Research use} & \textbf{Interpretation caution} \\
+\midrule
+Salinity, conductivity, chloride & Directly relevant to saltwater intrusion, mixing gradients, aquaculture stress, and infrastructure exposure. & Instrument calibration, tidal stage, depth, season, rainfall, and groundwater influence can change interpretation. \\
+Temperature & Controls oxygen solubility, biological activity, and seasonal structure. & Temperature can be a confounder in almost every water-quality model. \\
+Dissolved oxygen & Important for aquatic-life stress and ecosystem condition. & Low dissolved oxygen can reflect temperature, stratification, organic matter, respiration, time of day, or measurement issues. \\
+pH and alkalinity & Relevant to aquatic chemistry, organism stress, and carbon-system interpretation. & pH readings depend on calibration, temperature compensation, and sample handling. \\
+Turbidity and clarity & Useful for sediment, runoff, algal conditions, and visual water quality. & High turbidity does not identify the source of particles by itself. \\
+Nitrogen and phosphorus species & Link to nutrient enrichment, eutrophication, runoff, and management questions. & Units, detection limits, filtered/unfiltered status, and analytical method must be recorded. \\
+Chlorophyll and algal indicators & Useful for productivity and bloom-related questions. & Pigment readings are indirect and can vary by method, community composition, and degradation. \\
+Bacteria and biological indicators & Relevant to human use, shellfish areas, and ecosystem health. & Single measurements can be episodic; sampling conditions and holding time matter. \\
+Organic chemical features & Can support contaminant screening, source tracing, or organic-matter interpretation when analyzed carefully. & Tentative GC-MS matches are not confirmed identities without standards and appropriate confirmation. \\
+Spatial and land-context variables & Connect water data to watershed, marsh, aquaculture, agriculture, infrastructure, and land-use questions. & Spatial proxies can leak site identity into models and can be mistaken for causal mechanisms. \\
+\bottomrule
+\end{longtable}
+
+\section{How uafR Fits}
+
+uafR is useful when the project includes GC-MS chemical screening or chemical-name lists that require structured source evidence. In this manual, uafR is not presented as a replacement for water-quality sensors, nutrient chemistry, microbiology, or field QA/QC. Instead, uafR supports a specific layer of the project:
+\begin{itemize}
+  \item Processing GC-MS hit tables with \code{spreadOut()}, \code{mzExacto()}, and \code{exactoThese()}.
+  \item Enriching chemical query lists with \code{categorate(detail = "research")}.
+  \item Auditing source coverage with \code{validateCategorateResult()} and validation tables.
+  \item Converting source-backed annotations into analysis-ready traits with \code{chemicalTraitMatrix()} and \code{chemicalTraitEvidence()}.
+  \item Using \code{pubchemProfile()} for targeted PubChem profiles when a small property-focused query is more appropriate than a full categorate run.
+\end{itemize}
+
+\begin{cautionbox}{uafR Boundary}
+uafR can help summarize tentative chemical evidence and public database records. It cannot confirm the presence of a compound in a water sample, quantify exposure, identify toxicity at a site, or replace field/lab water-quality methods. Confirmed chemical identity requires appropriate analytical confirmation, standards, retention-time evidence, spectra, and method validation.
+\end{cautionbox}
+
+\section{How Machine Learning Fits}
+
+Machine learning is useful in this program when it answers a question that cannot be handled well by simple inspection alone. It may help predict a water-quality indicator, classify samples into interpretable status groups, identify unusual observations, compare feature sets, or support prioritization for follow-up sampling.
+
+Machine learning is not useful if the variable definitions are unclear, the data are too small for the model being used, the split leaks future or site identity, the model is not compared to a simple baseline, or the output is interpreted as causal proof. Every model in this program must have:
+\begin{itemize}
+  \item A clearly defined prediction target.
+  \item A feature table created before the target is interpreted.
+  \item A split plan that protects against leakage.
+  \item A baseline model.
+  \item Metrics appropriate to the target.
+  \item A model card documenting data, features, performance, uncertainty, and limits.
+\end{itemize}
+
+\section{Co-Advised Research Identity}
+
+The co-advised training space is intentionally interdisciplinary. Dr. Ozbay's expertise connects the program to water resources, aquaculture, aquatic ecology and health, habitat restoration, Eastern oyster and blue crab systems, and nutrient/runoff stressors. Dr. Stratton's expertise connects the program to data science, uafR, cheminformatics, chemical ecology, coding, artificial intelligence, and machine learning. Students should learn to keep both sides visible: environmental meaning and computational rigor.
+
+\section{Student-Safe Claim Templates}
+
+\begin{longtable}{p{0.22\textwidth}p{0.34\textwidth}p{0.34\textwidth}}
+\toprule
+\textbf{Evidence type} & \textbf{Can support} & \textbf{Cannot support by itself} \\
+\midrule
+Water-quality sensor or lab value & A measured condition at a time, place, depth, and method. & Long-term trend, regulatory conclusion, or mechanism without design support. \\
+Tentative GC-MS match & A candidate chemical feature for follow-up and source-backed annotation. & Confirmed identity or concentration. \\
+PubChem or KEGG annotation & Known public database information about a compound record. & Presence, activity, toxicity, or pathway function in the sample. \\
+uafR trait matrix & A reproducible source-backed feature table for grouping or modeling. & Biological mechanism unless validated by independent evidence. \\
+Machine-learning prediction & Pattern learned under the recorded training/test design. & Causation, field deployment readiness, or generalization beyond tested data. \\
+Literature match & A peer-reviewed comparison point. & Proof that the same mechanism applies to the student's dataset. \\
+\bottomrule
+\end{longtable}
+
+Recommended wording:
+\begin{itemize}
+  \item ``The data are consistent with a salinity gradient under the measured conditions.''
+  \item ``The model prioritized conductivity and temperature under this split; these variables should be interpreted as predictive features, not confirmed causal drivers.''
+  \item ``The uafR output provides a source-backed trait for the queried compound; the sample-level presence of that compound remains tentative.''
+  \item ``This result motivates targeted confirmation rather than final environmental interpretation.''
+\end{itemize}
+

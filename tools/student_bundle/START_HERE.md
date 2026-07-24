@@ -8,15 +8,17 @@ Use this folder to install and test uafR on a student machine.
 2. Install the current version of RStudio Desktop from <https://posit.co/download/rstudio-desktop/>.
 3. Unzip this whole bundle folder. Do not run scripts from inside the zip preview.
 4. Open RStudio.
-5. In RStudio, open `preflight_check.R` from this folder and click **Source**.
-6. If preflight has no failed checks, open `install_uafR_from_bundle.R` and click **Source**.
-7. When installation finishes, open `run_student_acceptance_test.R` and click **Source**.
-8. Open `training/uafR_training_manual.pdf` and begin the training program.
+5. In RStudio, open `verify_bundle_integrity.R` from this folder and click **Source**.
+6. Open `preflight_check.R` from this folder and click **Source**.
+7. If preflight has no failed checks, open `install_uafR_from_bundle.R` and click **Source**.
+8. When installation finishes, open `run_student_acceptance_test.R` and click **Source**.
+9. Keep `uafR_QUICK_REFERENCE.md` nearby and open `training/uafR_training_manual.pdf`.
 
 ## What Each Script Does
 
 | Script | When to run it | What it checks or changes |
 |---|---|---|
+| `verify_bundle_integrity.R` | After unzipping | Confirms copied files match the generated `CHECKSUMS.csv` file. |
 | `preflight_check.R` | Before installing | Checks R, RStudio, internet access, the bundle files, the R library, and required dependencies. |
 | `install_uafR_from_bundle.R` | First install | Installs dependencies, installs uafR from `packages/`, and verifies the result. |
 | `verify_uafR_install.R` | Any time | Confirms that uafR loads and package data are available. |
@@ -33,6 +35,11 @@ Acceptance test result: PASS.
 
 If a script fails, read the message printed at the bottom of the Console. Each
 script also writes a log file in this folder.
+
+## Quick Reference
+
+Open `uafR_QUICK_REFERENCE.md` for a compact list of setup commands, the
+offline training workflow, the live database smoke test, and common fixes.
 
 ## Optional Live Database Test
 

@@ -7,26 +7,25 @@
 chemicalTraitOntology(traits, min_confidence = 0, include_unmapped = FALSE)
 }
 \arguments{
-\item{traits}{A \code{ChemicalTraits} data frame or a categorate result list
-that contains \code{ChemicalTraits}.}
+\item{traits}{A `ChemicalTraits` data frame or a categorate result list that
+contains `ChemicalTraits`.}
 
 \item{min_confidence}{Minimum confidence score for included traits. Accepts a
-numeric score or \code{"low"}, \code{"medium"}, or \code{"high"}.}
+numeric score or `"low"`, `"medium"`, or `"high"`.}
 
-\item{include_unmapped}{Logical. If \code{TRUE}, unmapped discrete traits are
-kept under \code{OntologyDomain = "unmapped"} for auditing. Defaults to
-\code{FALSE}.}
+\item{include_unmapped}{Logical. If `TRUE`, unmapped discrete traits are kept
+under `OntologyDomain = "unmapped"` for auditing. Defaults to `FALSE`.}
 }
 \value{
-A data frame with controlled ontology domains, groups, terms, external
-identifiers when available, source trait keys, source evidence, and confidence
-metadata.
+A data frame with controlled ontology domains, groups, terms,
+external identifiers when available, source trait keys, source evidence, and
+confidence metadata.
 }
 \description{
-\code{chemicalTraitOntology()} converts extracted \code{ChemicalTraits} into a
-conservative, source-backed ontology table. The function only maps whitelisted
-\code{TraitType}/\code{TraitGroup} combinations whose values are already
-discrete in \code{ChemicalTraits}; it does not infer new biology or parse long
+`chemicalTraitOntology()` converts extracted `ChemicalTraits` into a
+conservative, source-backed ontology table. The function only maps
+whitelisted `TraitType`/`TraitGroup` combinations whose values are already
+discrete in `ChemicalTraits`; it does not infer new biology or parse long
 descriptive text.
 }
 \examples{
@@ -34,4 +33,5 @@ descriptive text.
 result = categorate(compounds, library_data, detail = "research")
 ontology = chemicalTraitOntology(result, min_confidence = "medium")
 }
+
 }

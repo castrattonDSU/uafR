@@ -1,0 +1,19 @@
+term,plain_language_definition,why_it_matters
+target,The value the model tries to predict,The target defines the question the model can answer
+feature,A variable used as an input to the model,Features must be measured and available before prediction
+row,"One sample, observation, or record in the modeling table",Rows define the evidence unit for modeling
+train set,Rows used to fit the model,The model learns patterns from these rows
+test set,Rows held back until evaluation,This estimates how the model works on data it did not fit
+baseline model,A simple model used for comparison,Complex models must beat a simple standard to be useful
+regression,A model for predicting a number,Used for salinity or dissolved oxygen style targets
+classification,A model for predicting a category,Used for high versus lower salinity style targets
+leakage,Information in features that unfairly reveals the target,Leakage makes models look better than they are
+RMSE,Root mean squared error in the target unit,Large errors are penalized strongly
+MAE,Mean absolute error in the target unit,Easy to explain as average error size
+confusion matrix,Counts of correct and incorrect class predictions,Shows false positives and false negatives
+sensitivity,True-positive rate,Useful when missing high-risk samples is costly
+specificity,True-negative rate,Useful when false alarms are costly
+model card,A short record of data features split metrics and limits,Prevents black-box or undocumented model claims
+residual,Observed value minus predicted value,Helps diagnose where regression models miss
+class balance,How many rows are in each class,A high accuracy can be misleading when one class dominates
+external validation,Testing on genuinely new data,Needed before operational use

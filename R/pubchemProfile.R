@@ -25,6 +25,32 @@
 #' query for which assay-description metadata is fetched when `profile` is
 #' `"bioactivity"` or `"full"`. Active, numeric, and target-bearing assays are
 #' prioritized. Set to `0` to skip assay-description requests.
+#' @param include_annotations Logical. If `TRUE`, fetch PubChem PUG-View
+#' annotation sections selected by `profile`, `sections`, and `sources`. Set to
+#' `FALSE` when only identity and property fields are needed.
+#' @param include_synonyms Logical. If `TRUE`, fetch PubChem synonyms for
+#' resolved CIDs. Identity-only production runs can set this to `FALSE` to
+#' avoid an unnecessary request while retaining identity and property fields.
+#' @param annotation_request_mode One of `"filtered"` or `"record"`.
+#' `"filtered"` makes one PUG-View request per requested heading and source.
+#' `"record"` retrieves one complete PUG-View record per CID and filters the
+#' parsed record locally. The latter is intended for large resumable runs and
+#' can substantially reduce request counts, at the cost of larger responses.
+#' @param service_busy_limit Number of consecutive HTTP 429/503 responses
+#' allowed before a `uaf_pubchem_service_busy` condition stops the request.
+#' Use `Inf` to preserve the general interactive default.
+#' @param request_event_fun Optional callback receiving one list per PubChem
+#' request/cache event. Intended for operational monitoring.
+#' @param max_attempts Optional maximum attempts per uncached request.
+#' @param fail_on_retry_exhausted Logical. If `TRUE`, exhausted retryable or
+#' transport failures raise a `uaf_pubchem_request_failed` condition instead
+#' of being treated as an ordinary no-hit. Production batch workflows should
+#' enable this so temporary service failures remain retryable.
+#' @param query_overrides Optional named character vector or two-column data
+#' frame mapping each displayed compound name to a source-backed PubChem query,
+#' such as `"cid:2519"` or a full InChIKey. The displayed `Query` remains the
+#' compound name. Overrides do not fabricate identity and should come from a
+#' reviewed source record.
 #' @param request_fun Optional function used to retrieve a URL. This is intended
 #' for tests and advanced users. It should return either JSON text or a parsed
 #' list.
@@ -34,7 +60,11 @@
 #' `spectra`, `safety`, `experimental`, `bioactivity`,
 #' `bioassay_details`, and `provenance`. Annotation-derived tables include raw
 #' `Value`, normalized `CleanValue`, parsed `ValueNumeric`, and normalized
-#' `UnitClean` columns when those fields can be extracted. The `bioactivity`
+#' `UnitClean` columns when those fields can be extracted. The `identity` table
+#' includes the exact `QueriedName` sent to PubChem and marks conservative
+#' deterministic alias matches, such as Greek-letter transliterations and
+#' trailing-punctuation cleanup, with `MatchStatus = "resolved_alias"`. The
+#' `bioactivity`
 #' table stores one PubChem BioAssay summary row per assay with activity
 #' outcome, assay name/type, target identifiers, and numeric activity values
 #' when PubChem reports them. The `bioassay_details` table stores bounded
@@ -59,15 +89,29 @@ pubchemProfile = function(compounds,
                           cache_dir = NULL,
                           throttle = 0.2,
                           assay_detail_limit = 50,
+                          include_annotations = TRUE,
+                          include_synonyms = TRUE,
+                          annotation_request_mode = c("filtered", "record"),
+                          service_busy_limit = Inf,
+                          request_event_fun = NULL,
+                          max_attempts = NULL,
+                          fail_on_retry_exhausted = FALSE,
+                          query_overrides = NULL,
                           request_fun = NULL) {
   profile = match.arg(profile)
+  annotation_request_mode = match.arg(annotation_request_mode)
   compounds = .uaf_clean_compounds(compounds)
   fetch = .pubchem_fetcher(cache = cache,
                            cache_dir = cache_dir,
                            throttle = throttle,
-                           request_fun = request_fun)
+                           request_fun = request_fun,
+                           service_busy_limit = service_busy_limit,
+                           event_fun = request_event_fun,
+                           max_attempts = max_attempts,
+                           fail_on_retry_exhausted = fail_on_retry_exhausted)
 
-  identity = .pubchem_resolve_cids(compounds, fetch)
+  query_overrides = .pubchem_query_override_map(query_overrides, compounds)
+  identity = .pubchem_resolve_cids(compounds, fetch, query_overrides)
   cids = identity$CID[!is.na(identity$CID)]
   cid_query = stats::setNames(identity$Query[!is.na(identity$CID)],
                               paste0(identity$CID[!is.na(identity$CID)]))
@@ -79,22 +123,42 @@ pubchemProfile = function(compounds,
     cid_query = cid_query
   )
 
-  synonyms = .pubchem_fetch_synonyms(cids = cids,
-                                     fetch = fetch,
-                                     cid_query = cid_query)
+  synonyms = if (isTRUE(include_synonyms)) {
+    .pubchem_fetch_synonyms(cids = cids,
+                           fetch = fetch,
+                           cid_query = cid_query)
+  } else {
+    .pubchem_empty_table(c("Query", "CID", "Synonym", "SourceURL"))
+  }
 
-  headings = unique(c(.pubchem_profile_headings(profile), sections))
-  heading_annotations = .pubchem_fetch_annotations(cids = cids,
-                                                   headings = headings,
-                                                   fetch = fetch,
-                                                   cid_query = cid_query)
-  source_names = unique(c(.pubchem_profile_sources(profile), sources))
-  source_annotations = .pubchem_fetch_source_annotations(
-    cids = cids,
-    sources = source_names,
-    fetch = fetch,
-    cid_query = cid_query
-  )
+  if (isTRUE(include_annotations)) {
+    headings = unique(c(.pubchem_profile_headings(profile), sections))
+    source_names = unique(c(.pubchem_profile_sources(profile), sources))
+    if (identical(annotation_request_mode, "record")) {
+      record_annotations = .pubchem_fetch_annotation_records(
+        cids = cids, fetch = fetch, cid_query = cid_query,
+        headings = headings, sources = source_names
+      )
+      heading_annotations = .pubchem_select_annotation_headings(
+        record_annotations, headings
+      )
+      source_annotations = .pubchem_select_annotation_sources(
+        record_annotations, source_names
+      )
+    } else {
+      heading_annotations = .pubchem_fetch_annotations(
+        cids = cids, headings = headings, fetch = fetch,
+        cid_query = cid_query
+      )
+      source_annotations = .pubchem_fetch_source_annotations(
+        cids = cids, sources = source_names, fetch = fetch,
+        cid_query = cid_query
+      )
+    }
+  } else {
+    heading_annotations = .pubchem_empty_table(.pubchem_annotation_cols())
+    source_annotations = .pubchem_empty_table(.pubchem_annotation_cols())
+  }
   taxonomy = .pubchem_fetch_taxonomy_records(source_annotations, fetch)
   classifications = .pubchem_fetch_classification_records(source_annotations,
                                                           fetch)
@@ -138,6 +202,7 @@ pubchemProfile = function(compounds,
                                              bioactivity = bioactivity,
                                              bioassay_details = bioassay_details),
     profile = profile,
+    annotation_request_mode = annotation_request_mode,
     retrieved_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")
   )
   class(out) = c("uaf_pubchem_profile", class(out))
@@ -186,7 +251,11 @@ print.uaf_pubchem_profile = function(x, ...) {
   "https://pubchem.ncbi.nlm.nih.gov/rest"
 }
 
-.pubchem_fetcher = function(cache, cache_dir, throttle, request_fun) {
+.pubchem_fetcher = function(cache, cache_dir, throttle, request_fun,
+                            service_busy_limit = Inf,
+                            event_fun = NULL,
+                            max_attempts = NULL,
+                            fail_on_retry_exhausted = FALSE) {
   if (is.null(cache_dir)) {
     cache_dir = .pubchem_default_cache_dir()
   }
@@ -194,48 +263,420 @@ print.uaf_pubchem_profile = function(x, ...) {
   force(cache_dir)
   force(throttle)
   force(request_fun)
+  force(service_busy_limit)
+  force(event_fun)
+  force(max_attempts)
+  force(fail_on_retry_exhausted)
+
+  service_busy_limit = suppressWarnings(as.numeric(service_busy_limit))
+  if (length(service_busy_limit) != 1L || is.na(service_busy_limit) ||
+      service_busy_limit < 1) {
+    stop("`service_busy_limit` must be a positive number or Inf.",
+         call. = FALSE)
+  }
+  state = new.env(parent = emptyenv())
+  state$consecutive_service_busy = 0L
+
+  notify = function(event, url, status_code = NA_integer_, attempt = NA_integer_,
+                    attempts = NA_integer_, cache_hit = FALSE,
+                    detail = NA_character_) {
+    if (!is.function(event_fun)) return(invisible(FALSE))
+    payload = list(
+      phase = "pubchem_request",
+      event = event,
+      event_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"),
+      url = url,
+      status_code = status_code,
+      attempt = attempt,
+      attempts = attempts,
+      cache_hit = isTRUE(cache_hit),
+      consecutive_service_busy = state$consecutive_service_busy,
+      detail = detail
+    )
+    tryCatch(event_fun(payload), error = function(error) {
+      warning("PubChem progress callback failed: ", conditionMessage(error),
+              call. = FALSE)
+      invisible(FALSE)
+    })
+    invisible(TRUE)
+  }
 
   function(url) {
-    cache_file = file.path(cache_dir, paste0(.pubchem_url_hash(url), ".json"))
-    if (isTRUE(cache) && file.exists(cache_file)) {
+    cache_stem = file.path(cache_dir, .pubchem_url_hash(url))
+    cache_file = paste0(cache_stem, ".json")
+    cache_url_file = paste0(cache_stem, ".url")
+    cache_bound_to_request = isTRUE(cache) && file.exists(cache_file) &&
+      file.exists(cache_url_file) && identical(
+        paste(readLines(cache_url_file, warn = FALSE, encoding = "UTF-8"),
+              collapse = "\n"),
+        enc2utf8(url)
+      )
+    if (cache_bound_to_request) {
       txt = paste(readLines(cache_file, warn = FALSE, encoding = "UTF-8"),
                   collapse = "\n")
+      state$consecutive_service_busy = 0L
+      notify("cache_hit", url, status_code = 200L, cache_hit = TRUE)
       return(jsonlite::fromJSON(txt, simplifyVector = FALSE))
     }
 
-    result = tryCatch({
+    attempts = if (!is.null(max_attempts)) {
+      suppressWarnings(as.integer(max_attempts))
+    } else if (is.null(request_fun)) {
+      .pubchem_env_integer("UAFR_PUBCHEM_MAX_ATTEMPTS", 8L)
+    } else {
+      1L
+    }
+    if (length(attempts) != 1L || is.na(attempts) || attempts < 1L) {
+      stop("`max_attempts` must be a positive integer when supplied.",
+           call. = FALSE)
+    }
+    effective_throttle = if (is.null(request_fun)) {
+      max(throttle, .pubchem_env_number("UAFR_PUBCHEM_MIN_DELAY", 1))
+    } else {
+      throttle
+    }
+    last_error = NA_character_
+    last_status = NA_integer_
+    for (attempt in seq_len(attempts)) {
       if (is.null(request_fun)) {
-        con = base::url(url, open = "rb")
-        on.exit(close(con), add = TRUE)
-        txt = paste(readLines(con, warn = FALSE, encoding = "UTF-8"),
-                    collapse = "\n")
-        if (isTRUE(cache)) {
-          dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-          writeLines(txt, cache_file, useBytes = TRUE)
+        .pubchem_rate_wait(effective_throttle)
+      }
+      notify("request_attempt", url, attempt = attempt, attempts = attempts)
+      fetched = tryCatch({
+        if (is.null(request_fun)) {
+          .pubchem_http_get(url)
+        } else {
+          request_result = request_fun(url)
+          if (is.character(request_result)) {
+            list(ok = TRUE,
+                 status_code = 200L,
+                 text = paste(request_result, collapse = "\n"),
+                 headers = list())
+          } else {
+            list(ok = TRUE,
+                 status_code = 200L,
+                 parsed_direct = request_result,
+                 headers = list())
+          }
         }
-        if (!is.na(throttle) && throttle > 0) Sys.sleep(throttle)
-        jsonlite::fromJSON(txt, simplifyVector = FALSE)
-      } else {
-        request_result = request_fun(url)
-        if (is.character(request_result)) {
-          txt = paste(request_result, collapse = "\n")
+      }, error = function(error) {
+        last_error <<- conditionMessage(error)
+        last_status <<- .pubchem_status_from_error(last_error)
+        list(ok = FALSE,
+             status_code = last_status,
+             text = NA_character_,
+             headers = list(),
+             error = last_error)
+      })
+
+      if (isTRUE(fetched$ok)) {
+        if (!is.null(fetched$parsed_direct)) {
+          state$consecutive_service_busy = 0L
+          notify("request_success", url, status_code = fetched$status_code,
+                 attempt = attempt, attempts = attempts)
+          return(fetched$parsed_direct)
+        }
+        parsed = tryCatch(
+          jsonlite::fromJSON(fetched$text, simplifyVector = FALSE),
+          error = function(error) {
+            last_error <<- conditionMessage(error)
+            NULL
+          }
+        )
+        if (!is.null(parsed)) {
           if (isTRUE(cache)) {
             dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
-            writeLines(txt, cache_file, useBytes = TRUE)
+            .pubchem_atomic_write_text(fetched$text, cache_file)
+            .pubchem_atomic_write_text(enc2utf8(url), cache_url_file)
           }
-          jsonlite::fromJSON(txt, simplifyVector = FALSE)
-        } else {
-          request_result
+          if (is.null(request_fun)) {
+            .pubchem_rate_record(fetched$headers, effective_throttle)
+          }
+          state$consecutive_service_busy = 0L
+          notify("request_success", url, status_code = fetched$status_code,
+                 attempt = attempt, attempts = attempts)
+          return(parsed)
         }
+        state$consecutive_service_busy = 0L
+        last_status = fetched$status_code
+      } else {
+        if (!is.null(fetched$error) && length(fetched$error) > 0 &&
+            !all(is.na(fetched$error))) {
+          last_error = fetched$error
+        }
+        last_status = fetched$status_code
       }
-    }, error = function(error) {
-      warning("PubChem request failed: ", conditionMessage(error),
-              "\nURL: ", url, call. = FALSE)
-      NULL
-    })
 
-    result
+      service_busy = !is.na(last_status) &&
+        as.integer(last_status) %in% c(429L, 503L)
+      if (service_busy) {
+        state$consecutive_service_busy =
+          state$consecutive_service_busy + 1L
+        notify("service_busy_response", url, status_code = last_status,
+               attempt = attempt, attempts = attempts,
+               detail = "PubChem returned HTTP 429 or 503.")
+        if (is.finite(service_busy_limit) &&
+            state$consecutive_service_busy >= service_busy_limit) {
+          delay = .pubchem_retry_delay(
+            attempt = attempt,
+            status_code = last_status,
+            headers = fetched$headers,
+            throttle = effective_throttle
+          )
+          .pubchem_set_next_request_time(delay)
+          notify("service_busy_limit_reached", url,
+                 status_code = last_status, attempt = attempt,
+                 attempts = attempts,
+                 detail = paste("Pause before retrying for at least",
+                                round(delay, 1), "seconds."))
+          condition = structure(
+            list(
+              message = paste0(
+                "PubChem service-busy circuit breaker opened after ",
+                state$consecutive_service_busy,
+                " consecutive HTTP 429/503 responses. Cached successes are ",
+                "preserved; pause and resume later with the same cache."
+              ),
+              call = NULL,
+              status_code = as.integer(last_status),
+              url = url,
+              consecutive_service_busy = state$consecutive_service_busy,
+              retry_after_seconds = delay
+            ),
+            class = c("uaf_pubchem_service_busy", "error", "condition")
+          )
+          stop(condition)
+        }
+      } else {
+        state$consecutive_service_busy = 0L
+      }
+
+      if (!.pubchem_should_retry(last_status) || attempt >= attempts) {
+        break
+      }
+      delay = .pubchem_retry_delay(
+        attempt = attempt,
+        status_code = last_status,
+        headers = fetched$headers,
+        throttle = effective_throttle
+      )
+      .pubchem_log_retry(url = url,
+                         attempt = attempt,
+                         attempts = attempts,
+                         status_code = last_status,
+                         delay = delay)
+      .pubchem_set_next_request_time(delay)
+      if (is.null(request_fun)) Sys.sleep(delay)
+    }
+
+    if (!is.na(last_status) && identical(as.integer(last_status), 404L)) {
+      state$consecutive_service_busy = 0L
+      notify("request_no_hit", url, status_code = 404L,
+             attempt = attempts, attempts = attempts)
+      return(NULL)
+    }
+    notify("request_exhausted", url, status_code = last_status,
+           attempt = attempts, attempts = attempts, detail = last_error)
+    strict_failure = isTRUE(fail_on_retry_exhausted) &&
+      (is.na(last_status) || .pubchem_should_retry(last_status) ||
+         identical(as.integer(last_status), 200L))
+    if (strict_failure) {
+      status_text = if (is.na(last_status)) "without an HTTP status" else
+        paste("with HTTP status", as.integer(last_status))
+      condition = structure(
+        list(
+          message = paste0(
+            "PubChem request failed after ", attempts, " attempt(s) ",
+            status_text, ". Cached successes are preserved; resume the same ",
+            "batch later rather than recording this as a chemical no-hit."
+          ),
+          call = NULL,
+          status_code = as.integer(last_status),
+          url = url,
+          attempts = attempts,
+          detail = last_error
+        ),
+        class = c("uaf_pubchem_request_failed", "error", "condition")
+      )
+      stop(condition)
+    }
+    if (!is.na(last_status) && .pubchem_should_retry(last_status)) {
+      warning("PubChem request failed after ", attempts, " attempt(s)",
+              " with HTTP status ", last_status, ". This usually means ",
+              "PubChem is rate-limiting or temporarily busy; rerun later and ",
+              "keep cache enabled.\nURL: ", url, call. = FALSE)
+    } else {
+      warning("PubChem request failed after ", attempts, " attempt(s): ",
+              last_error, "\nURL: ", url, call. = FALSE)
+    }
+    NULL
   }
+}
+
+.pubchem_rate_state = new.env(parent = emptyenv())
+.pubchem_rate_state$next_request_time = as.POSIXct(0, origin = "1970-01-01")
+
+.pubchem_http_get = function(url) {
+  if (requireNamespace("curl", quietly = TRUE)) {
+    handle = curl::new_handle(
+      useragent = .pubchem_user_agent(),
+      timeout = .pubchem_env_number("UAFR_PUBCHEM_TIMEOUT", 60),
+      connecttimeout = .pubchem_env_number("UAFR_PUBCHEM_CONNECT_TIMEOUT", 20)
+    )
+    curl::handle_setheaders(handle,
+                            Accept = "application/json",
+                            `Accept-Encoding` = "gzip, deflate")
+    response = curl::curl_fetch_memory(url, handle = handle)
+    headers = curl::parse_headers_list(response$headers)
+    text = rawToChar(response$content)
+    return(list(ok = response$status_code >= 200 &&
+                  response$status_code < 300,
+                status_code = response$status_code,
+                text = text,
+                headers = headers,
+                error = if (response$status_code >= 200 &&
+                            response$status_code < 300) {
+                  NA_character_
+                } else {
+                  paste("HTTP status", response$status_code)
+                }))
+  }
+
+  con = base::url(url, open = "rb")
+  on.exit(close(con), add = TRUE)
+  text = paste(readLines(con, warn = FALSE, encoding = "UTF-8"),
+               collapse = "\n")
+  list(ok = TRUE,
+       status_code = 200L,
+       text = text,
+       headers = list(),
+       error = NA_character_)
+}
+
+.pubchem_user_agent = function() {
+  version = tryCatch(as.character(utils::packageVersion("uafR")),
+                     error = function(error) "development")
+  Sys.getenv(
+    "UAFR_PUBCHEM_USER_AGENT",
+    paste0("uafR/", version,
+           " (https://github.com/castrattonDSU/uafR)")
+  )
+}
+
+.pubchem_rate_wait = function(throttle) {
+  now = Sys.time()
+  next_time = .pubchem_rate_state$next_request_time
+  if (!inherits(next_time, "POSIXct")) {
+    next_time = as.POSIXct(0, origin = "1970-01-01")
+  }
+  wait = as.numeric(difftime(next_time, now, units = "secs"))
+  if (is.finite(wait) && wait > 0) Sys.sleep(wait)
+  throttle = max(throttle, 0, na.rm = TRUE)
+  .pubchem_rate_state$next_request_time = Sys.time() + throttle
+}
+
+.pubchem_rate_record = function(headers, throttle) {
+  control = .pubchem_header_value(headers, "x-throttling-control")
+  delay = throttle
+  if (!is.na(control)) {
+    control_lower = tolower(control)
+    if (grepl("black", control_lower, fixed = TRUE)) {
+      delay = max(delay, .pubchem_env_number("UAFR_PUBCHEM_BLACK_DELAY", 300))
+    } else if (grepl("red", control_lower, fixed = TRUE)) {
+      delay = max(delay, .pubchem_env_number("UAFR_PUBCHEM_RED_DELAY", 60))
+    } else if (grepl("yellow", control_lower, fixed = TRUE)) {
+      delay = max(delay, .pubchem_env_number("UAFR_PUBCHEM_YELLOW_DELAY", 10))
+    }
+  }
+  .pubchem_set_next_request_time(delay)
+}
+
+.pubchem_set_next_request_time = function(delay) {
+  delay = max(delay, 0, na.rm = TRUE)
+  target = Sys.time() + delay
+  current = .pubchem_rate_state$next_request_time
+  if (!inherits(current, "POSIXct") || target > current) {
+    .pubchem_rate_state$next_request_time = target
+  }
+}
+
+.pubchem_should_retry = function(status_code) {
+  if (length(status_code) != 1 || is.na(status_code)) return(TRUE)
+  as.integer(status_code) %in% c(408L, 425L, 429L, 500L, 502L, 503L, 504L)
+}
+
+.pubchem_retry_delay = function(attempt, status_code, headers, throttle) {
+  retry_after = suppressWarnings(as.numeric(
+    .pubchem_header_value(headers, "retry-after")
+  ))
+  if (length(retry_after) == 1 && is.finite(retry_after) &&
+      retry_after > 0) {
+    return(retry_after)
+  }
+  base = if (!is.na(status_code) &&
+             as.integer(status_code) %in% c(429L, 503L)) {
+    .pubchem_env_number("UAFR_PUBCHEM_BUSY_BACKOFF", 60)
+  } else {
+    .pubchem_env_number("UAFR_PUBCHEM_BASE_BACKOFF", 10)
+  }
+  max_delay = .pubchem_env_number("UAFR_PUBCHEM_MAX_BACKOFF", 900)
+  delay = min(max_delay, max(base, throttle) * 2^(attempt - 1))
+  jitter = stats::runif(1, min = 0, max = min(5, delay * 0.1))
+  delay + jitter
+}
+
+.pubchem_log_retry = function(url, attempt, attempts, status_code, delay) {
+  verbose = Sys.getenv("UAFR_PUBCHEM_VERBOSE", "TRUE")
+  if (!tolower(verbose) %in% c("true", "t", "1", "yes", "y")) {
+    return(invisible(FALSE))
+  }
+  status_label = if (length(status_code) == 1 && !is.na(status_code)) {
+    paste0("HTTP ", status_code)
+  } else {
+    "request error"
+  }
+  message("PubChem retry backoff: ", status_label,
+          "; attempt ", attempt, "/", attempts,
+          "; waiting ", round(delay, 1), " seconds before retrying ",
+          .pubchem_shorten_url(url))
+  invisible(TRUE)
+}
+
+.pubchem_shorten_url = function(url, width = 120) {
+  url = as.character(url)
+  if (nchar(url) <= width) return(url)
+  paste0(substr(url, 1, width - 3), "...")
+}
+
+.pubchem_header_value = function(headers, name) {
+  if (!is.list(headers) || length(headers) < 1) return(NA_character_)
+  names_lower = tolower(names(headers))
+  hit = which(names_lower == tolower(name))
+  if (length(hit) < 1) return(NA_character_)
+  as.character(headers[[hit[[1]]]])
+}
+
+.pubchem_status_from_error = function(message) {
+  if (is.na(message)) return(NA_integer_)
+  status = sub(".*HTTP status was ['\"]?([0-9]{3}).*", "\\1", message)
+  if (identical(status, message)) {
+    status = sub(".*HTTP status ([0-9]{3}).*", "\\1", message)
+  }
+  if (identical(status, message)) return(NA_integer_)
+  suppressWarnings(as.integer(status))
+}
+
+.pubchem_env_number = function(name, default) {
+  value = Sys.getenv(name, unset = NA_character_)
+  value = suppressWarnings(as.numeric(value))
+  if (length(value) != 1 || !is.finite(value)) return(default)
+  value
+}
+
+.pubchem_env_integer = function(name, default) {
+  value = .pubchem_env_number(name, default)
+  if (!is.finite(value)) return(default)
+  as.integer(value)
 }
 
 .pubchem_default_cache_dir = function() {
@@ -248,35 +689,166 @@ print.uaf_pubchem_profile = function(x, ...) {
 }
 
 .pubchem_url_hash = function(url) {
-  ints = utf8ToInt(url)
-  val = sum((ints * seq_along(ints)) %% .Machine$integer.max)
-  paste0(nchar(url), "_", sprintf("%08x", as.integer(val %% .Machine$integer.max)))
+  if (length(url) != 1L || is.na(url) || !nzchar(url)) {
+    stop("PubChem cache URLs must be one non-empty string.", call. = FALSE)
+  }
+  temp_file = tempfile("uafr_pubchem_url_")
+  on.exit(unlink(temp_file, force = TRUE), add = TRUE)
+  writeBin(charToRaw(enc2utf8(as.character(url))), temp_file)
+  paste0("v2_", unname(tools::md5sum(temp_file)[[1]]))
+}
+
+.pubchem_atomic_write_text = function(text, path) {
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  temp_file = tempfile(paste0(basename(path), "."), tmpdir = dirname(path))
+  on.exit(unlink(temp_file, force = TRUE), add = TRUE)
+  writeLines(enc2utf8(as.character(text)), temp_file, useBytes = TRUE)
+  if (!file.rename(temp_file, path)) {
+    stop("Could not atomically write PubChem cache file: ", path,
+         call. = FALSE)
+  }
+  invisible(path)
 }
 
 .pubchem_encode_path = function(x) {
   utils::URLencode(x, reserved = TRUE)
 }
 
-.pubchem_resolve_cids = function(compounds, fetch) {
+.pubchem_resolve_cids = function(compounds, fetch, query_overrides = NULL) {
   rows = lapply(compounds, function(compound) {
-    url = paste0(.pubchem_base_url(), "/pug/compound/name/",
-                 .pubchem_encode_path(compound), "/cids/JSON")
-    json = fetch(url)
-    cid = tryCatch(json$IdentifierList$CID[[1]], error = function(error) NA)
-    cid = .uaf_first_non_empty_text(cid)
+    override = .uaf_first_non_empty_text(query_overrides[[compound]])
+    aliases = unique(.uaf_non_empty(c(
+      override, .pubchem_query_aliases(compound)
+    )))
+    cid = NA_character_
+    url = NA_character_
+    queried_name = NA_character_
+    query_endpoint = NA_character_
+    for (alias in aliases) {
+      cid_alias = .pubchem_cid_alias(alias)
+      endpoint = if (!is.na(cid_alias)) {
+        "cid"
+      } else if (.uaf_is_inchikey(alias)) {
+        "inchikey"
+      } else {
+        "name"
+      }
+      query_value = if (identical(endpoint, "cid")) cid_alias else alias
+      url = paste0(.pubchem_base_url(), "/pug/compound/", endpoint, "/",
+                   .pubchem_encode_path(query_value), "/cids/JSON")
+      if (identical(endpoint, "cid")) {
+        cid = cid_alias
+      } else {
+        json = fetch(url)
+        cid = tryCatch(json$IdentifierList$CID[[1]],
+                       error = function(error) NA)
+        cid = .uaf_first_non_empty_text(cid)
+      }
+      queried_name = alias
+      query_endpoint = endpoint
+      if (!is.na(cid)) break
+    }
+    used_override = !is.na(override) && identical(queried_name, override)
+    match_status = if (is.na(cid)) {
+      "not_found"
+    } else if (used_override && identical(query_endpoint, "inchikey")) {
+      "resolved_source_inchikey"
+    } else if (used_override && identical(query_endpoint, "cid")) {
+      "resolved_source_cid"
+    } else if (identical(query_endpoint, "inchikey")) {
+      ifelse(identical(queried_name, compound), "resolved_inchikey",
+             "resolved_inchikey_alias")
+    } else if (identical(query_endpoint, "cid")) {
+      ifelse(identical(queried_name, compound), "resolved_cid",
+             "resolved_cid_alias")
+    } else if (identical(queried_name, compound)) {
+      "resolved"
+    } else {
+      "resolved_alias"
+    }
     data.frame(Query = compound,
                CID = suppressWarnings(as.integer(cid)),
-               MatchStatus = ifelse(is.na(cid), "not_found", "resolved"),
+               MatchStatus = match_status,
+               QueriedName = queried_name,
                SourceURL = url,
                stringsAsFactors = FALSE)
   })
   do.call(rbind, rows)
 }
 
+.pubchem_query_override_map = function(x, compounds) {
+  out = stats::setNames(rep(NA_character_, length(compounds)), compounds)
+  if (is.null(x)) return(out)
+  if (is.data.frame(x)) {
+    if (ncol(x) < 2) {
+      stop("`query_overrides` data frames require query and override columns.",
+           call. = FALSE)
+    }
+    query_col = intersect(c("Query", "query", "compound_name"), names(x))
+    override_col = intersect(c("PubChemQuery", "pubchem_query", "override"),
+                             names(x))
+    query_col = if (length(query_col) > 0) query_col[[1]] else names(x)[[1]]
+    override_col = if (length(override_col) > 0) override_col[[1]] else
+      names(x)[[2]]
+    values = as.character(x[[override_col]])
+    names(values) = as.character(x[[query_col]])
+    x = values
+  }
+  if (!is.character(x) || is.null(names(x))) {
+    stop("`query_overrides` must be a named character vector or data frame.",
+         call. = FALSE)
+  }
+  x_names = names(x)
+  x = .uaf_squish_text(x)
+  names(x) = .uaf_squish_text(x_names)
+  x = x[!is.na(names(x)) & names(x) != "" & !duplicated(names(x))]
+  hit = intersect(names(out), names(x))
+  out[hit] = x[hit]
+  out
+}
+
+.pubchem_cid_alias = function(x) {
+  x = .uaf_squish_text(x)
+  if (is.na(x) || x == "") return(NA_character_)
+  x = sub("^cid\\s*[:=]\\s*", "", x, ignore.case = TRUE, perl = TRUE)
+  if (!grepl("^[0-9]+$", x)) return(NA_character_)
+  x
+}
+
+.pubchem_query_aliases = function(compound) {
+  compound = .uaf_squish_text(compound)
+  if (is.na(compound) || compound == "") return(character())
+  aliases = c(compound)
+  no_terminal_punctuation = gsub("[,;:.]+$", "", compound, perl = TRUE)
+  aliases = c(aliases, no_terminal_punctuation)
+  aliases = c(aliases, .pubchem_transliterate_name(no_terminal_punctuation))
+  aliases = c(aliases, .pubchem_transliterate_name(compound))
+  aliases = c(aliases, gsub("[<>]", "", aliases, perl = TRUE))
+  unique(.uaf_non_empty(.uaf_squish_text(aliases)))
+}
+
+.pubchem_transliterate_name = function(x) {
+  x = .uaf_squish_text(x)
+  plus_minus = intToUtf8(0x00b1)
+  x = gsub(plus_minus, "+/-", x, fixed = TRUE)
+  greek = stats::setNames(
+    c("alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta",
+      "theta", "lambda", "mu", "pi", "sigma", "omega"),
+    vapply(c(0x03b1, 0x03b2, 0x03b3, 0x03b4, 0x03b5, 0x03b6,
+             0x03b7, 0x03b8, 0x03bb, 0x03bc, 0x03c0, 0x03c3,
+             0x03c9), intToUtf8, character(1))
+  )
+  for (pattern in names(greek)) {
+    x = gsub(pattern, greek[[pattern]], x, fixed = TRUE)
+  }
+  x
+}
+
 .pubchem_profile_properties = function(profile) {
   minimal = c("Title", "MolecularFormula", "MolecularWeight",
               "IUPACName", "InChI", "InChIKey", "CanonicalSMILES",
-              "IsomericSMILES", "ExactMass", "MonoisotopicMass")
+              "IsomericSMILES", "SMILES", "ConnectivitySMILES",
+              "ExactMass", "MonoisotopicMass")
   descriptors = c("XLogP", "TPSA", "Complexity", "Charge",
                   "HBondDonorCount", "HBondAcceptorCount",
                   "RotatableBondCount", "HeavyAtomCount",
@@ -333,18 +905,16 @@ print.uaf_pubchem_profile = function(x, ...) {
   chunks = split(cids, ceiling(seq_along(cids) / 100))
   rows = list()
   for (chunk in chunks) {
-    cid_string = paste(chunk, collapse = ",")
-    prop_string = paste(properties, collapse = ",")
-    url = paste0(.pubchem_base_url(), "/pug/compound/cid/",
-                 cid_string, "/property/", prop_string, "/JSON")
-    json = fetch(url)
-    records = tryCatch(json$PropertyTable$Properties, error = function(error) NULL)
-    if (is.null(records)) next
-    for (record in records) {
+    fetched = .pubchem_fetch_property_chunk(chunk = chunk,
+                                            properties = properties,
+                                            fetch = fetch)
+    if (length(fetched) < 1) next
+    for (item in fetched) {
+      record = item$record
       row = as.list(stats::setNames(rep(NA_character_, length(cols)), cols))
       row$CID = suppressWarnings(as.integer(record$CID))
       row$Query = unname(cid_query[paste0(row$CID)])
-      row$SourceURL = url
+      row$SourceURL = item$url
       for (property in properties) {
         row[[property]] = .pubchem_scalar(record[[property]])
       }
@@ -355,6 +925,24 @@ print.uaf_pubchem_profile = function(x, ...) {
   out = do.call(rbind, rows)
   row.names(out) = NULL
   out
+}
+
+.pubchem_fetch_property_chunk = function(chunk, properties, fetch) {
+  prop_string = paste(properties, collapse = ",")
+  fetch_once = function(cids) {
+    cid_string = paste(cids, collapse = ",")
+    url = paste0(.pubchem_base_url(), "/pug/compound/cid/",
+                 cid_string, "/property/", prop_string, "/JSON")
+    json = fetch(url)
+    records = tryCatch(json$PropertyTable$Properties,
+                       error = function(error) NULL)
+    if (is.null(records)) return(list())
+    lapply(records, function(record) list(record = record, url = url))
+  }
+  out = fetch_once(chunk)
+  if (length(out) > 0 || length(chunk) <= 1) return(out)
+  out = unlist(lapply(chunk, fetch_once), recursive = FALSE)
+  if (length(out) < 1) list() else out
 }
 
 .pubchem_fetch_synonyms = function(cids, fetch, cid_query) {
@@ -417,6 +1005,105 @@ print.uaf_pubchem_profile = function(x, ...) {
   out = do.call(rbind, rows)
   row.names(out) = NULL
   .pubchem_dedupe_annotations(out)
+}
+
+.pubchem_fetch_annotation_records = function(cids, fetch, cid_query,
+                                              headings = NULL,
+                                              sources = NULL) {
+  cols = .pubchem_annotation_cols()
+  if (length(cids) < 1) return(.pubchem_empty_table(cols))
+
+  rows = list()
+  for (cid in cids) {
+    url = paste0(.pubchem_base_url(), "/pug_view/data/compound/",
+                 cid, "/JSON")
+    json = fetch(url)
+    parsed = .pubchem_parse_pugview(
+      json = json,
+      cid = cid,
+      query = unname(cid_query[paste0(cid)]),
+      heading = "Full PubChem record",
+      pubchem_url = url,
+      include_headings = headings,
+      include_sources = sources
+    )
+    if (nrow(parsed) > 0) rows[[length(rows) + 1L]] = parsed
+  }
+  if (length(rows) < 1) return(.pubchem_empty_table(cols))
+  out = do.call(rbind, rows)
+  row.names(out) = NULL
+  .pubchem_dedupe_annotations(out)
+}
+
+.pubchem_select_annotation_headings = function(annotations, headings) {
+  cols = .pubchem_annotation_cols()
+  if (!is.data.frame(annotations) || nrow(annotations) < 1 ||
+      length(.uaf_non_empty(headings)) < 1) {
+    return(.pubchem_empty_table(cols))
+  }
+  context = .pubchem_annotation_match_text(
+    annotations, c("HeadingPath", "Name")
+  )
+  requested = unique(.pubchem_match_normalize(headings))
+  requested = requested[!is.na(requested) & requested != ""]
+  keep = vapply(context, function(value) {
+    any(vapply(requested, function(term) grepl(term, value, fixed = TRUE),
+               logical(1)))
+  }, logical(1))
+  annotations[keep, , drop = FALSE]
+}
+
+.pubchem_select_annotation_sources = function(annotations, sources) {
+  cols = .pubchem_annotation_cols()
+  if (!is.data.frame(annotations) || nrow(annotations) < 1 ||
+      length(.uaf_non_empty(sources)) < 1) {
+    return(.pubchem_empty_table(cols))
+  }
+  context = .pubchem_annotation_match_text(
+    annotations, c("Source", "SourceURL", "HeadingPath")
+  )
+  aliases = unique(unlist(lapply(sources, .pubchem_source_match_aliases),
+                          use.names = FALSE))
+  aliases = aliases[!is.na(aliases) & aliases != ""]
+  keep = vapply(context, function(value) {
+    any(vapply(aliases, function(term) grepl(term, value, fixed = TRUE),
+               logical(1)))
+  }, logical(1))
+  annotations[keep, , drop = FALSE]
+}
+
+.pubchem_annotation_match_text = function(annotations, columns) {
+  columns = intersect(columns, names(annotations))
+  if (length(columns) < 1) return(rep("", nrow(annotations)))
+  values = lapply(annotations[columns], function(column) {
+    column = .pubchem_match_normalize(column)
+    column[is.na(column)] = ""
+    column
+  })
+  do.call(paste, c(values, sep = " "))
+}
+
+.pubchem_match_normalize = function(x) {
+  x = tolower(.uaf_squish_text(x))
+  x = gsub("[^a-z0-9]+", " ", x, perl = TRUE)
+  trimws(gsub("\\s+", " ", x, perl = TRUE))
+}
+
+.pubchem_source_match_aliases = function(source) {
+  normalized = .pubchem_match_normalize(source)
+  aliases = normalized
+  if (grepl("lotus", normalized, fixed = TRUE)) aliases = c(aliases, "lotus")
+  if (grepl("fema|flavor and extract manufacturers", normalized,
+            perl = TRUE)) {
+    aliases = c(aliases, "fema", "flavor and extract manufacturers")
+  }
+  if (grepl("fda|spl", normalized, perl = TRUE)) {
+    aliases = c(aliases, "fda spl")
+  }
+  if (grepl("mesh|medical subject headings", normalized, perl = TRUE)) {
+    aliases = c(aliases, "mesh", "medical subject headings")
+  }
+  unique(.uaf_non_empty(aliases))
 }
 
 .pubchem_fetch_source_annotations = function(cids, sources, fetch, cid_query) {
@@ -620,8 +1307,9 @@ print.uaf_pubchem_profile = function(x, ...) {
   )
   if (length(hierarchies) < 1) return(.pubchem_empty_table(cols))
 
-  rows = list()
-  for (hierarchy in hierarchies) {
+  rows = vector("list", length(hierarchies))
+  for (hierarchy_index in seq_along(hierarchies)) {
+    hierarchy = hierarchies[[hierarchy_index]]
     root_info = hierarchy$Information
     nodes = .pubchem_classification_node_rows(hierarchy$Node)
     if (nrow(nodes) < 1) next
@@ -643,7 +1331,7 @@ print.uaf_pubchem_profile = function(x, ...) {
     path_terms = rev(.uaf_non_empty(leaf_to_root$ClassName))
     class_path = .pubchem_collapse(path_terms)
 
-    rows[[length(rows) + 1]] = data.frame(
+    rows[[hierarchy_index]] = data.frame(
       Query = link$Query,
       CID = link$CID,
       Source = .uaf_first_non_empty_text(link$Source,
@@ -674,6 +1362,7 @@ print.uaf_pubchem_profile = function(x, ...) {
     )
   }
 
+  rows = rows[lengths(rows) > 0]
   if (length(rows) < 1) return(.pubchem_empty_table(cols))
   out = do.call(rbind, rows)
   row.names(out) = NULL
@@ -689,9 +1378,9 @@ print.uaf_pubchem_profile = function(x, ...) {
   )
   if (length(node_list) < 1) return(.pubchem_empty_table(cols))
 
-  rows = lapply(node_list, function(node) {
+  parsed = lapply(node_list, function(node) {
     info = node$Information
-    data.frame(
+    list(
       NodeID = .uaf_first_non_empty_text(node$NodeID, info$NodeID),
       ParentNodeID = .uaf_first_non_empty_text(node$ParentID,
                                                node$ParentNodeID,
@@ -703,13 +1392,21 @@ print.uaf_pubchem_profile = function(x, ...) {
       CompoundCount = .pubchem_classification_count(info, "Compound"),
       TaxonomyCount = .pubchem_classification_count(info, "Taxonomy"),
       DOICount = .pubchem_classification_count(info, "DOI"),
-      PubMedCount = .pubchem_classification_count(info, "PubMed"),
-      stringsAsFactors = FALSE
+      PubMedCount = .pubchem_classification_count(info, "PubMed")
     )
   })
-  out = do.call(rbind, rows)
-  row.names(out) = NULL
-  out
+  data.frame(
+    NodeID = vapply(parsed, `[[`, character(1), "NodeID"),
+    ParentNodeID = vapply(parsed, `[[`, character(1), "ParentNodeID"),
+    HNID = vapply(parsed, `[[`, character(1), "HNID"),
+    ClassName = vapply(parsed, `[[`, character(1), "ClassName"),
+    Match = vapply(parsed, `[[`, logical(1), "Match"),
+    CompoundCount = vapply(parsed, `[[`, integer(1), "CompoundCount"),
+    TaxonomyCount = vapply(parsed, `[[`, integer(1), "TaxonomyCount"),
+    DOICount = vapply(parsed, `[[`, integer(1), "DOICount"),
+    PubMedCount = vapply(parsed, `[[`, integer(1), "PubMedCount"),
+    stringsAsFactors = FALSE
+  )
 }
 
 .pubchem_classification_leaf_order = function(nodes, match_index) {
@@ -874,7 +1571,9 @@ print.uaf_pubchem_profile = function(x, ...) {
                         use.names = FALSE))
 }
 
-.pubchem_parse_pugview = function(json, cid, query, heading, pubchem_url) {
+.pubchem_parse_pugview = function(json, cid, query, heading, pubchem_url,
+                                  include_headings = NULL,
+                                  include_sources = NULL) {
   cols = .pubchem_annotation_cols()
   if (is.null(json) || is.null(json$Record)) return(.pubchem_empty_table(cols))
 
@@ -886,7 +1585,9 @@ print.uaf_pubchem_profile = function(x, ...) {
                                  query = query,
                                  heading = heading,
                                  references = references,
-                                 pubchem_url = pubchem_url)
+                                 pubchem_url = pubchem_url,
+                                 include_headings = include_headings,
+                                 include_sources = include_sources)
   if (length(rows) < 1) return(.pubchem_empty_table(cols))
   out = do.call(rbind, rows)
   row.names(out) = NULL
@@ -894,14 +1595,17 @@ print.uaf_pubchem_profile = function(x, ...) {
 }
 
 .pubchem_parse_sections = function(sections, path, cid, query, heading,
-                                   references, pubchem_url) {
+                                   references, pubchem_url,
+                                   include_headings = NULL,
+                                   include_sources = NULL) {
   if (is.null(sections)) return(list())
   if (!is.list(sections) || (!is.null(sections$TOCHeading) || !is.null(sections$Information))) {
     sections = list(sections)
   }
 
-  rows = list()
-  for (section in sections) {
+  rows = vector("list", length(sections))
+  for (section_index in seq_along(sections)) {
+    section = sections[[section_index]]
     section_heading = .pubchem_scalar(section$TOCHeading)
     section_path = c(path, section_heading)
     section_path = section_path[!is.na(section_path) & section_path != ""]
@@ -913,8 +1617,9 @@ print.uaf_pubchem_profile = function(x, ...) {
                                            heading_path = paste(section_path,
                                                                 collapse = " > "),
                                            references = references,
-                                           pubchem_url = pubchem_url)
-    rows = c(rows, info_rows)
+                                           pubchem_url = pubchem_url,
+                                           include_headings = include_headings,
+                                           include_sources = include_sources)
 
     child_rows = .pubchem_parse_sections(section$Section,
                                          path = section_path,
@@ -922,55 +1627,117 @@ print.uaf_pubchem_profile = function(x, ...) {
                                          query = query,
                                          heading = heading,
                                          references = references,
-                                         pubchem_url = pubchem_url)
-    rows = c(rows, child_rows)
+                                         pubchem_url = pubchem_url,
+                                         include_headings = include_headings,
+                                         include_sources = include_sources)
+    rows[[section_index]] = c(info_rows, child_rows)
   }
-  rows
+  rows = rows[lengths(rows) > 0]
+  if (length(rows) < 1) list() else do.call(c, rows)
 }
 
 .pubchem_parse_information = function(information, cid, query, heading,
-                                      heading_path, references, pubchem_url) {
+                                      heading_path, references, pubchem_url,
+                                      include_headings = NULL,
+                                      include_sources = NULL) {
   if (is.null(information)) return(list())
   if (!is.list(information) || !is.null(information$Value)) {
     information = list(information)
   }
 
-  rows = list()
-  for (info in information) {
+  requested_headings = unique(.pubchem_match_normalize(include_headings))
+  requested_headings = requested_headings[
+    !is.na(requested_headings) & requested_headings != ""
+  ]
+  requested_sources = unique(unlist(
+    lapply(include_sources, .pubchem_source_match_aliases),
+    use.names = FALSE
+  ))
+  requested_sources = requested_sources[
+    !is.na(requested_sources) & requested_sources != ""
+  ]
+  filter_requested = length(requested_headings) > 0 ||
+    length(requested_sources) > 0
+
+  rows = vector("list", length(information))
+  for (info_index in seq_along(information)) {
+    info = information[[info_index]]
     name = .pubchem_scalar(info$Name)
     ref_number = .pubchem_scalar(info$ReferenceNumber)
     reference = references[[paste0(ref_number)]]
+    source = .pubchem_reference_field(reference, "Source")
+    source_url = .pubchem_reference_field(reference, "URL")
+    if (filter_requested && !.pubchem_annotation_requested(
+      heading_path = heading_path,
+      name = name,
+      source = source,
+      source_url = source_url,
+      requested_headings = requested_headings,
+      requested_sources = requested_sources
+    )) next
     values = .pubchem_value_rows(info$Value)
     if (length(values) < 1) {
-      values = list(list(value = NA_character_, unit = NA_character_))
+      values = list(list(
+        value = NA_character_,
+        unit = NA_character_,
+        markup_text = NA_character_,
+        markup_url = NA_character_,
+        markup_extra = NA_character_
+      ))
     }
 
-    for (value in values) {
-      measurement = .uaf_parse_measurement(value$value)
-      unit_clean = .uaf_first_non_empty_text(value$unit,
+    value_rows = vector("list", length(values))
+    for (value_index in seq_along(values)) {
+      value = values[[value_index]]
+      value_text = .pubchem_scalar(value$value)
+      value_unit = .pubchem_scalar(value$unit)
+      measurement = .uaf_parse_measurement(value_text)
+      unit_clean = .uaf_first_non_empty_text(value_unit,
                                              measurement$UnitClean[[1]])
-      rows[[length(rows) + 1]] = data.frame(
+      value_rows[[value_index]] = data.frame(
         Query = query,
         CID = suppressWarnings(as.integer(cid)),
         Heading = heading,
         HeadingPath = heading_path,
         Name = name,
-        Value = value$value,
-        CleanValue = .uaf_squish_text(value$value),
+        Value = value_text,
+        CleanValue = .uaf_squish_text(value_text),
         ValueNumeric = measurement$ValueNumeric[[1]],
-        Unit = value$unit,
+        Unit = value_unit,
         UnitClean = unit_clean,
-        MarkupText = value$markup_text,
-        MarkupURL = value$markup_url,
-        MarkupExtra = value$markup_extra,
-        Source = .pubchem_reference_field(reference, "Source"),
-        SourceURL = .pubchem_reference_field(reference, "URL"),
+        MarkupText = .pubchem_scalar(value$markup_text),
+        MarkupURL = .pubchem_scalar(value$markup_url),
+        MarkupExtra = .pubchem_scalar(value$markup_extra),
+        Source = source,
+        SourceURL = source_url,
         PubChemURL = pubchem_url,
         stringsAsFactors = FALSE
       )
     }
+    rows[[info_index]] = value_rows
   }
-  rows
+  rows = rows[lengths(rows) > 0]
+  if (length(rows) < 1) list() else do.call(c, rows)
+}
+
+.pubchem_annotation_requested = function(heading_path, name, source,
+                                          source_url, requested_headings,
+                                          requested_sources) {
+  heading_context = .pubchem_match_normalize(paste(heading_path, name))
+  source_context = .pubchem_match_normalize(
+    paste(source, source_url, heading_path)
+  )
+  heading_match = length(requested_headings) > 0 && any(vapply(
+    requested_headings,
+    function(term) grepl(term, heading_context, fixed = TRUE),
+    logical(1)
+  ))
+  source_match = length(requested_sources) > 0 && any(vapply(
+    requested_sources,
+    function(term) grepl(term, source_context, fixed = TRUE),
+    logical(1)
+  ))
+  heading_match || source_match
 }
 
 .pubchem_reference_map = function(references) {

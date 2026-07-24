@@ -7,23 +7,23 @@
 chemicalDataDictionary(tables = NULL)
 }
 \arguments{
-\item{tables}{Optional character vector of table names to return. If
-\code{NULL}, all documented enriched output tables are returned.}
+\item{tables}{Optional character vector of table names to return. If `NULL`,
+all documented enriched output tables are returned.}
 }
 \value{
-A data frame with table names, column names, expected types, required flags,
-semantic roles, allowed values, and descriptions.
+A data frame with table names, column names, expected types, required
+flags, semantic roles, allowed values, and descriptions.
 }
 \description{
-\code{chemicalDataDictionary()} returns the expected table and column contracts
-for the main \code{categorate(detail = "research")} and
-\code{categorate(detail = "full")} outputs. It is intended for users who need
-to understand, export, validate, or join enriched chemical data without
-guessing what each table contains.
+`chemicalDataDictionary()` returns the expected table and column contracts for
+the main `categorate(detail = "research")` and `categorate(detail = "full")`
+outputs. It is intended for users who need to understand, export, validate,
+or join enriched chemical data without guessing what each table contains.
 }
 \examples{
 \dontrun{
 dictionary = chemicalDataDictionary()
 chemicalDataDictionary("ChemicalTraitReport")
 }
+
 }

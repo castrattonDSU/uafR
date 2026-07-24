@@ -7,15 +7,15 @@
 chemicalMeasurementSummary(x)
 }
 \arguments{
-\item{x}{A categorate result containing \code{ChemicalMeasurements}, or a
-\code{ChemicalMeasurements} data frame.}
+\item{x}{A categorate result containing `ChemicalMeasurements`, or a
+`ChemicalMeasurements` data frame.}
 }
 \value{
 A data frame with one row per compound-property combination.
 }
 \description{
-\code{chemicalMeasurementSummary()} condenses \code{ChemicalMeasurements} into
-one row per compound and property using standardized units where possible. It is
+`chemicalMeasurementSummary()` condenses `ChemicalMeasurements` into one row
+per compound and property using standardized units where possible. It is
 designed for filtering and plotting measurement behavior without manually
 parsing source units or evidence text.
 }
@@ -24,4 +24,5 @@ parsing source units or evidence text.
 result = categorate(compounds, library_data, detail = "research")
 chemicalMeasurementSummary(result)
 }
+
 }

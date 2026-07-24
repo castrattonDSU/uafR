@@ -1,7 +1,7 @@
 Type: Package
 Package: uafR
-Title: Automates Mass Spectrometry Data Processing
-Version: 0.2.0
+Title: Reproducible Chemical Enrichment and Plant Chemistry Workflows
+Version: 0.4.0.9000
 Authors@R: c(
     person("Chase", 
           "Stratton", 
@@ -23,35 +23,32 @@ Authors@R: c(
           "Murrell", 
           role = "aut", 
           email = "murrell@landinstitute.org"))
-Description: This R package automates chemical processing for tentative chemical identities in mass spectrometry workflows. It includes a powerful set of functions that make chemical interpretations accurate and efficient.
+Author: Chase Stratton [aut, cre],
+    Yvonne Thompson [aut],
+    Konilo Zio [aut],
+    William Morrison [aut],
+    Ebony Murrell [aut]
+Maintainer: Chase Stratton <cstratton@desu.edu>
+Description: Provides reproducible workflows for tentative mass-spectrometry
+    annotations, public-database chemical enrichment, species-first plant
+    phytochemistry evidence, comparable chemistry, structural similarity, and
+    validated research handoff bundles. Source diagnostics, evidence grades,
+    identity review, and scientific guardrails preserve uncertainty and
+    provenance for downstream analysis.
 License: MIT + file LICENSE
 URL: https://github.com/castrattonDSU/uafR,
-    https://castrattonDSU.github.io/uafR/
+        https://castrattonDSU.github.io/uafR/
 BugReports: https://github.com/castrattonDSU/uafR/issues
-Depends:
-    R (>= 4.2)
-Imports: 
-    ChemmineR,
-    fmcsR,
-    jsonlite,
-    methods,
-    stats,
-    utils,
-    webchem
-Suggests: 
-    knitr,
-    openxlsx,
-    rmarkdown,
-    spelling,
-    testthat (>= 3.0.0),
-    writexl
-Remotes:
-    bioc::ChemmineR,
-    bioc::fmcsR
-VignetteBuilder: 
-    knitr
+Depends: R (>= 4.2)
+Imports: ChemmineR, fmcsR, jsonlite, methods, stats, utils, webchem
+Suggests: curl, knitr, openxlsx, rmarkdown, spelling, testthat (>=
+        3.0.0), writexl
+Remotes: bioc::ChemmineR, bioc::fmcsR
+VignetteBuilder: knitr
 Config/testthat/edition: 3
 Encoding: UTF-8
 Language: en-US
 LazyData: true
-RoxygenNote: 7.2.3
+RoxygenNote: 8.0.0
+NeedsCompilation: no
+Packaged: 2026-07-17 16:20:09 UTC; chasestratton

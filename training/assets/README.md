@@ -8,5 +8,5 @@ Recommended logo source:
 - At least 1200 px wide for clean print output.
 - Avoid screenshots or low-resolution exports.
 
-The LaTeX manual has a built-in placeholder, so it will compile before the logo
+The LaTeX manual has a built-in fallback box, so it will compile before the logo
 is added.

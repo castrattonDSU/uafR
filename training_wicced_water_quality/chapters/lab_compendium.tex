@@ -1,0 +1,182 @@
+\chapter{Lab Compendium}
+
+Each lab is designed to produce a reusable project artifact. Labs can be run with real approved data, the teaching data included with this manual, or a saved uafR example. When real data are not ready, the teaching-data path should be used rather than delaying the skill.
+
+\section{Lab 1: WiCCED Chemical and Water-Quality Question Triage}
+\begin{programbox}{Objective}
+Turn a broad interest into a feasible 8-week water-quality research question.
+\end{programbox}
+\textbf{Inputs:} WiCCED context notes, Project Brief worksheet, evidence map, and research log.
+
+\textbf{Procedure:} Write three broad interests. For each, name the sample unit, response variable, candidate predictors, data source, and likely evidence limit. Reject questions that require unavailable data, direct causation, or confirmed chemical identity without standards. Select one minimum viable project and one advanced extension.
+
+\textbf{Expected output:} Approved Project Brief v1.
+
+\textbf{Quality gate:} The question can be answered with available or teaching data in eight weeks and has a clear claim boundary.
+
+\textbf{Troubleshooting:} If the question is too broad, reduce the system, time range, variable count, or claim strength. If the data are unavailable, switch to teaching data and write a continuation note for the real data.
+
+\section{Lab 2: Reproducible Project Build}
+\textbf{Objective:} Build a project folder that can be handed to another student.
+
+\textbf{Inputs:} \file{scripts/00_setup_check.R}, \file{scripts/01_project_setup.R}, RStudio, and chosen project root.
+
+\textbf{Procedure:} Run the setup check. Run the project setup script in a selected folder. Inspect the created directories. Add a README section for project question, data rules, script order, and current status. Restart R and rerun the setup check.
+
+\textbf{Expected output:} Project skeleton, README, setup log, and session note.
+
+\textbf{Quality gate:} No step depends on unstated console objects or hidden local paths.
+
+\section{Lab 3: Water-Quality Data Dictionary}
+\textbf{Objective:} Define every column before analysis.
+
+\textbf{Inputs:} Teaching or project data, Variable Dictionary worksheet, and QA/QC notes.
+
+\textbf{Procedure:} Record column name, plain-language definition, unit, type, source, method, missing-value code, expected range, and interpretation caveat. Mark target variables and predictors separately.
+
+\textbf{Expected output:} Water-quality data dictionary v1.
+
+\textbf{Quality gate:} Every model feature can be traced to a dictionary row.
+
+\section{Lab 4: Field and Lab QA/QC Audit}
+\textbf{Objective:} Flag suspicious water-quality records without destroying raw data.
+
+\textbf{Inputs:} \file{scripts/02_water_quality_qaqc.R}, data dictionary, QA/QC Flag Log worksheet.
+
+\textbf{Procedure:} Run the QA/QC script on the teaching data. Review range checks for salinity, conductivity, dissolved oxygen, pH, turbidity, nitrate, chlorophyll, and temperature. Adapt rules only after documenting why. Save a flagged copy and summary.
+
+\textbf{Expected output:} QA/QC flags CSV and summary CSV.
+
+\textbf{Quality gate:} Raw values remain recoverable and every flag has a rule.
+
+\section{Lab 5: Database Source Audit}
+\textbf{Objective:} Learn what each source contributes before using database fields.
+
+\textbf{Inputs:} Database Evidence Map worksheet, uafR documentation, and one selected chemical or water-quality source.
+
+\textbf{Procedure:} For each source, record source type, query term, returned identifiers or fields, what it can support, what it cannot support, and how it could enter analysis.
+
+\textbf{Expected output:} Database Evidence Map v1.
+
+\textbf{Quality gate:} No source is listed only as ``useful''; each has a specific evidence role.
+
+\section{Lab 6: Simulated Core uafR-Compatible Workflow}
+\textbf{Objective:} Practice GC-MS hit-table validation, spreading, exact-match aggregation, and abundance interpretation without live web services.
+
+\textbf{Inputs:} the simulated GC-MS hit table, simulated query list, simulated compound reference, simulated sample metadata, \file{scripts/03_uafr_chemical_screening_template.R}, and research log. All four simulated data files live in the \file{data/} folder.
+
+\textbf{Procedure:} Run the script from the manual folder. Inspect the raw hit table and verify the six required uafR columns. Open the exact-match output and confirm that duplicate urban-stormwater \code{Caffeine} detections are aggregated. Open the long-abundance output and confirm that relative abundance sums to 1 within each sample. Compare the sample-group summary across freshwater, agricultural, urban, transition, marsh, and aquaculture contexts.
+
+\textbf{Expected output:} Simulated spread RDS, exact-match abundance table, long relative-abundance table, group summary, compound evidence notes, and workflow summary.
+
+\textbf{Quality gate:} The student can explain the input columns, the aggregation step, the relative-abundance calculation, the context patterns, and why the simulated results are not evidence about real Delaware waters.
+
+\section{Lab 7: Research Enrichment Smoke Test}
+\textbf{Objective:} Safely plan or run a tiny \code{categorate(detail = "research")} enrichment.
+
+\textbf{Inputs:} Query Settings Log, \code{library_data}, saved result if available, and cache/throttle settings.
+
+\textbf{Procedure:} Choose one to three compounds. Record query spelling, cache directory, throttle, profile, and purpose. If live services are available, run a small query. If not, inspect a saved result object. Validate the result before interpretation.
+
+\textbf{Expected output:} Query settings log, validation summary, and source coverage note.
+
+\textbf{Quality gate:} The student inspects validation outputs before any traits are used.
+
+\section{Lab 8: Evidence Court}
+\textbf{Objective:} Trace claims back to source evidence.
+
+\textbf{Inputs:} uafR result or saved example, \code{chemicalTraitEvidence()}, Evidence Court worksheet.
+
+\textbf{Procedure:} Select five candidate traits or claims. For each, record source table, source field, evidence text or identifier, confidence, allowed interpretation, and forbidden interpretation.
+
+\textbf{Expected output:} Evidence Court table.
+
+\textbf{Quality gate:} Every retained claim has source-backed evidence and a caveat.
+
+\section{Lab 9: ML Feature Table Build}
+\textbf{Objective:} Build the modeling table from approved variables only.
+
+\textbf{Inputs:} Cleaned data, feature inventory, optional chemical trait matrix, train/test split plan, \file{scripts/04_ml_01_build_feature_table.R}, and \file{ml_resources/ml_workflow_checklist.csv}.
+
+\textbf{Procedure:} Run the feature-table script on the teaching data. Open the feature table, feature dictionary, split plan, training rows, and testing rows. Confirm that targets are not used as predictors. Confirm that conductivity is excluded from the beginner salinity model as a leakage-caution exercise. For project data, modify only after the teaching outputs are understood.
+
+\textbf{Expected output:} Feature table, feature dictionary, split plan, training rows, and testing rows.
+
+\textbf{Quality gate:} No feature is included without source, transformation rule, and leakage status.
+
+\section{Lab 10: Beginner ML Ladder}
+\textbf{Objective:} Fit defensible first models, compare them to simple baselines, and create a model card.
+
+\textbf{Inputs:} the ML exploration script, model-training script, diagnostics/model-card script, feature table, split plan, glossary, troubleshooting guide, and model-card field guide.
+
+\textbf{Procedure:} Run the exploration script and answer the exploration questions. Run the training script and compare regression to a mean-only baseline and classification to a majority-class baseline. Run the diagnostics script and inspect prediction plots, residuals, class predictions, coefficients, diagnostic summary, and model card.
+
+\textbf{Expected output:} Exploration plots, feature summaries, metrics CSVs, predictions CSV, coefficients CSV, diagnostic plots, diagnostic summary, interpretation guide, and model-card draft.
+
+\textbf{Quality gate:} The model is evaluated on held-out data and limitations are recorded.
+
+\section{Lab 11: Leakage and Validation Drill}
+\textbf{Objective:} Detect invalid model evaluation before final interpretation and run the advanced ML extension only after the beginner ladder is understood.
+
+\textbf{Inputs:} Feature table, split plan, model-card draft, leakage checklist, advanced ML guide, blocked-validation script, sensitivity/permutation script, and advanced report script.
+
+\textbf{Procedure:} First, confirm that the beginner outputs can be explained without reading from the screen. Then search for duplicate rows, repeated site/date structure, post-outcome variables, target-derived predictors, and features chosen after inspecting the outcome. Run the advanced validation script and compare time-holdout results to leave-one-site-out results. Run the sensitivity script and inspect whether conductivity or context features change performance. Run the advanced report script and open the decision gate before changing the preferred model.
+
+\textbf{Expected output:} Leakage audit memo, advanced validation folds, split-comparison table, feature-set sensitivity table, permutation-importance table, advanced model review, and decision gate.
+
+\textbf{Quality gate:} The final split tests the kind of generalization the project claims, and any conductivity or context improvement is treated as a review item rather than automatic model approval.
+
+\section{Lab 12: Source Coverage Missingness Audit}
+\textbf{Objective:} Show where evidence is strong, weak, or absent.
+
+\textbf{Inputs:} Missingness report, uafR source coverage if available, water-quality data dictionary.
+
+\textbf{Procedure:} Calculate missingness by variable and group. For chemical evidence, summarize source coverage by compound. Build a heatmap or summary table.
+
+\textbf{Expected output:} Source coverage and missingness summary.
+
+\textbf{Quality gate:} Missing data are discussed before model or figure claims.
+
+\section{Lab 13: Matrix Sparsity Sensitivity Analysis}
+\textbf{Objective:} Test whether sparse features are useful or misleading.
+
+\textbf{Inputs:} Feature table, optional trait matrix, beginner model outputs, advanced sensitivity outputs, and model card.
+
+\textbf{Procedure:} Count feature prevalence and missingness. Define a pre-model exclusion threshold. Use the advanced sensitivity outputs to decide whether a sparse or leakage-prone feature changes results for a defensible reason. Rerun one model with sparse features removed only after recording the rule.
+
+\textbf{Expected output:} Sensitivity note and revised model card.
+
+\textbf{Quality gate:} Exclusions are justified before comparing performance.
+
+\section{Lab 14: Figure Clinic}
+\textbf{Objective:} Improve figures so they communicate evidence honestly.
+
+\textbf{Inputs:} Draft figures, caption checklist, peer review form, and source evidence.
+
+\textbf{Procedure:} Review each figure for purpose, axes, units, sample counts, missingness, grouping, color, caption claim, and caveat. Revise at least two figures.
+
+\textbf{Expected output:} Revised figure package.
+
+\textbf{Quality gate:} Captions state what the figure supports and what it does not.
+
+\section{Lab 15: Reviewer Response Exercise}
+\textbf{Objective:} Practice responding to scientific critique.
+
+\textbf{Inputs:} Draft report, peer review form, and model card.
+
+\textbf{Procedure:} Receive three reviewer-style comments: one about data, one about model validity, and one about claim strength. Write a response and revise the report or note why revision is not appropriate.
+
+\textbf{Expected output:} Reviewer response table.
+
+\textbf{Quality gate:} Responses point to concrete edits, files, or evidence.
+
+\section{Lab 16: Final Package Recovery Exercise}
+\textbf{Objective:} Confirm that the final project can survive handoff.
+
+\textbf{Inputs:} Final project folder, README, scripts, data, results, figures, and final audit worksheet.
+
+\textbf{Procedure:} Start from a clean R session. Follow README steps. Confirm outputs exist. Record missing files, broken paths, or unclear instructions. Fix what can be fixed and document what remains.
+
+\textbf{Expected output:} Final package audit and continuation note.
+
+\textbf{Quality gate:} A future student can rerun the project or understand exactly why a step cannot be rerun.

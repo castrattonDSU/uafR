@@ -12,13 +12,29 @@ uafR package itself is installed from the local archive in `packages/`.
 1. Unzip the whole bundle folder.
 2. Open RStudio.
 3. Open `START_HERE.md` for the short checklist.
-4. Source `preflight_check.R`.
-5. If preflight has no failed checks, source `install_uafR_from_bundle.R`.
-6. Source `run_student_acceptance_test.R`.
-7. Open `training/uafR_training_manual.pdf`.
+4. Source `verify_bundle_integrity.R`.
+5. Source `preflight_check.R`.
+6. If preflight has no failed checks, source `install_uafR_from_bundle.R`.
+7. Source `run_student_acceptance_test.R`.
+8. Keep `uafR_QUICK_REFERENCE.md` nearby and open `training/uafR_training_manual.pdf`.
 
 Do not run scripts from inside a zip preview window. The folder must be fully
 unzipped so R can see the `packages/`, `training/`, and `examples/` folders.
+
+## Confirm the Bundle Was Copied Correctly
+
+The generated bundle includes `CHECKSUMS.csv`, which lists the file size and
+MD5 checksum for every file in the bundle at build time. After unzipping, run:
+
+```r
+source("verify_bundle_integrity.R")
+```
+
+When it finishes, the Console should say:
+
+```text
+Bundle integrity result: PASS.
+```
 
 ## Install
 
@@ -79,6 +95,11 @@ Sys.setenv(UAFR_STUDENT_LIVE = "1")
 source("run_student_acceptance_test.R")
 ```
 
+## Quick Reference
+
+Open `uafR_QUICK_REFERENCE.md` for a compact command list covering setup,
+offline training, the live smoke test, updates, and common troubleshooting.
+
 ## Update From a New Bundle
 
 When a newer bundle is distributed, unzip the new bundle and source:
@@ -118,6 +139,7 @@ quick_result$ChemicalTraitReport
 
 | Problem | Likely cause | What to do |
 |---|---|---|
+| Bundle integrity check fails. | One or more files changed, did not copy, or did not unzip correctly. | Delete the unzipped folder and unzip the original bundle again. If it still fails, get a fresh copy of the zip. |
 | The script cannot find the package archive. | The bundle was not fully unzipped, or the `packages/` folder was moved. | Unzip the whole bundle again and keep the folder structure unchanged. |
 | Preflight says the R library is not writable. | R cannot install packages into the first library path. | Restart RStudio. If it still fails, ask for help setting a user library. |
 | Bioconductor packages fail to install. | Internet access, R version, or Bioconductor access is blocked. | Run `preflight_check.R`, update R if it is old, and try again on a network that can reach Bioconductor. |

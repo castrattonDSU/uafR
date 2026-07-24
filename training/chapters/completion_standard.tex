@@ -1,0 +1,66 @@
+\chapter{Program Completion Standard}
+
+The program is complete when the student leaves behind a research package that is understandable, auditable, and useful for the next step. A strong final package does not need to prove a dramatic biological result. It must preserve the evidence chain from chemical list to uafR output, from output to matrix or figure, and from figure to cautious interpretation.
+
+\section{Required Final Package}
+\begin{longtable}{p{0.28\textwidth}p{0.33\textwidth}p{0.29\textwidth}}
+\toprule
+\textbf{Required item} & \textbf{What it must contain} & \textbf{Acceptance question}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Required item} & \textbf{What it must contain} & \textbf{Acceptance question}\\
+\midrule
+\endhead
+Reproducible R project folder & README, scripts, data folders, outputs, figures, logs, and docs. & Can a reviewer find the starting point and script order?\\
+Cleaned chemical query list & Original names, cleaned query names, identifiers where available, inclusion rules, exclusions, and ambiguity notes. & Could another student rebuild the query list?\\
+Saved uafR result object & RDS file or equivalent saved object from the final enrichment workflow. & Is the enriched evidence preserved without rerunning live services?\\
+Validation summaries & \texttt{ValidationSummary}, \texttt{TableQuality}, \texttt{SourceDiagnostics}, and notes from \texttt{validateCategorateResult()}. & Was interpretation delayed until validation was reviewed?\\
+Source coverage report & Coverage by chemical and source family, failed or empty sources, and missingness consequences. & Are source gaps visible in interpretation?\\
+Trait table or matrix & Final \texttt{ChemicalTraitMatrix} or grouped chemical table with settings documented. & Are matrix settings and confidence choices reproducible?\\
+Grouping dictionary & Source table, source field, extraction rule, allowed values, confidence rule, and caveat for each variable. & Can variables be rebuilt from source evidence?\\
+Publication-style figures or tables & At least three scripted figures or tables with captions naming source objects and limitations. & Do figures answer clear questions without overclaiming?\\
+Manuscript-style report & Title, abstract, introduction, methods, results, discussion, limitations, reproducibility statement, and references. & Could the report support internal review or a draft publication section?\\
+Presentation or poster & Clear research question, workflow, central result, evidence, limitation, and next step. & Can the student explain the project to a scientific audience?\\
+Research log & Dated entries for weekdays and weekend work, including commands, outputs, decisions, errors, and evidence. & Can the decision history be reconstructed?\\
+Session information & R version, package versions, uafR source or bundle version, and platform details. & Can package state be checked later?\\
+Final package audit & Completed audit worksheet and clean-session rerun status. & Has the package been tested from a fresh starting point?\\
+Continuation note & First next step, unresolved issues, recommended follow-up, and archive location. & Can a future student continue without interviewing the author?\\
+\bottomrule
+\end{longtable}
+
+\section{Claims That Require Explicit Boundaries}
+Every final package must include a short statement of what the project does not show. This statement protects the student and the program from overclaiming. It should be adapted to the project, but it must address all relevant boundaries:
+
+\begin{itemize}
+  \item Tentative GC-MS matches are not confirmed identities unless standards or equivalent confirmatory evidence were used.
+  \item Database records do not prove that a compound is present in the student's sample.
+  \item Source annotations do not automatically become analysis variables until they are cleaned and documented.
+  \item KEGG pathway context does not demonstrate pathway activity, flux, or regulation.
+  \item Hazard annotations support screening, not risk assessment without exposure and dose context.
+  \item Natural product occurrence in another organism does not prove occurrence in the student's organism.
+  \item Bioactivity or pharmacology annotations do not prove mechanism, efficacy, clinical relevance, or safety.
+  \item Sparse matrices may support exploration but not strong grouping claims without sensitivity checks.
+\end{itemize}
+
+\section{Final Acceptance Review}
+\begin{checklistbox}{Final Review Questions}
+\begin{enumerate}
+  \item What is the research question, and where is it stated in the project?
+  \item Which script creates the final saved uafR result object?
+  \item Which validation and source coverage outputs were reviewed before interpretation?
+  \item Which variables appear in the final grouping dictionary, and where did they come from?
+  \item Which three figures or tables carry the main results?
+  \item Which claim is strongest, and which evidence supports it?
+  \item Which claim is most uncertain, and how is that uncertainty written?
+  \item Which chemicals or sources were excluded, unmatched, sparse, or weakly supported?
+  \item Can the final figures be regenerated from a clean R session?
+  \item What should the next student do first?
+\end{enumerate}
+\end{checklistbox}
+
+\section{Minimum Passing Package}
+The minimum passing package is intentionally smaller than the advanced package but not less rigorous. It includes a reproducible folder, 8 to 15 chemicals or a program-approved case dataset, saved uafR output, validation and source coverage notes, one final matrix or grouped table, two to three figures or tables, a short manuscript-style report, a presentation, research log, and continuation note. It must still preserve tentative identity language, missingness, source limitations, and reproducibility.
+
+\section{High-Impact Package}
+A high-impact package adds a stronger literature bridge, sensitivity analysis, external peer review response, advanced figure set, and a follow-up design that could support standards-based confirmation, targeted quantification, new sample collection, or a manuscript section. High-impact packages are still cautious: they are stronger because their evidence trail is better, not because their claims are louder.

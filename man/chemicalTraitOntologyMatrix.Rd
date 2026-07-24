@@ -12,30 +12,30 @@ chemicalTraitOntologyMatrix(
 )
 }
 \arguments{
-\item{ontology}{A \code{ChemicalTraitOntology} data frame, a categorate result,
-or a \code{ChemicalTraits} data frame.}
+\item{ontology}{A `ChemicalTraitOntology` data frame, a categorate result, or
+a `ChemicalTraits` data frame.}
 
-\item{mode}{Matrix value mode. \code{"binary"} stores 0/1 presence,
-\code{"count"} stores ontology-row counts, and \code{"confidence"} stores the
-maximum confidence score for each compound-ontology pair.}
+\item{mode}{Matrix value mode. `"binary"` stores 0/1 presence, `"count"`
+stores ontology-row counts, and `"confidence"` stores the maximum confidence
+score for each compound-ontology pair.}
 
 \item{min_confidence}{Minimum confidence score for included ontology rows.
-Accepts a numeric score or \code{"low"}, \code{"medium"}, or \code{"high"}.}
+Accepts a numeric score or `"low"`, `"medium"`, or `"high"`.}
 
 \item{max_terms}{Maximum number of ontology columns to include, ranked by
 prevalence and confidence.}
 }
 \value{
-A data frame with \code{Query}, \code{CID}, and one column per selected
+A data frame with `Query`, `CID`, and one column per selected
 ontology key.
 }
 \description{
-\code{chemicalTraitOntologyMatrix()} converts \code{ChemicalTraitOntology}, a
-categorate result, or a \code{ChemicalTraits} table into a wide matrix whose
+`chemicalTraitOntologyMatrix()` converts `ChemicalTraitOntology`, a
+categorate result, or a `ChemicalTraits` table into a wide matrix whose
 columns are controlled ontology keys. This gives researchers a more stable
 analysis surface than source-specific trait names while preserving source
-identifiers, raw evidence, and confidence metadata in \code{ChemicalTraits} and
-\code{ChemicalTraitOntology}.
+identifiers, raw evidence, and confidence metadata in `ChemicalTraits` and
+`ChemicalTraitOntology`.
 }
 \examples{
 \dontrun{
@@ -43,4 +43,5 @@ result = categorate(compounds, library_data, detail = "research")
 ontology_matrix = chemicalTraitOntologyMatrix(result,
                                               min_confidence = "medium")
 }
+
 }

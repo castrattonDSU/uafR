@@ -31,6 +31,9 @@ docs/
 Rplots.pdf
 /student_bundle/
 /uafR_student_bundle_*.zip
+/training_bundles/
+lotus_cache/
+*_cache/
 training/**/*.aux
 training/*.bbl
 training/*.blg
