@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">uafR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -15,10 +15,19 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/uafR.html">Descriptive Walkthrough</a></li>
-<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Function Documentation</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/uafR.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Getting started</h6></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Plant phytochemistry</h6></li>
+    <li><a class="dropdown-item" href="../articles/plant-phytochemistry-offline.html">Offline Plant Phytochemistry Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/plant-phytochemistry-live.html">Live and Large Plant Phytochemistry Queries</a></li>
+  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
-      </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/castrattonDSU/uafR/" aria-label="github"><span class="fa fab fa-github fa-lg"></span></a></li>
+      </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/castrattonDSU/uafR/" aria-label="GitHub repository"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -30,9 +39,111 @@
     </div>
 
     <div class="section level2">
-      <h2 id="all-functions">All functions<a class="anchor" aria-label="anchor" href="#all-functions"></a></h2>
+      <h2 id="orientation-and-contracts">Orientation and contracts<a class="anchor" aria-label="anchor" href="#orientation-and-contracts"></a></h2>
+
+      <div class="section-desc"><p>Choose a workflow and inspect stable schemas, provider contracts, and scientific cautions.</p></div>
+
+      <dl></dl></div><div class="section level2">
 
 
+
+
+      <dl><dt>
+
+          <code><a href="uafRWorkflowGuide.html">uafRWorkflowGuide()</a></code>
+
+        </dt>
+        <dd>uafR workflow guide</dd>
+
+        <dt>
+
+          <code><a href="uafRApiStability.html">uafRApiStability()</a></code>
+
+        </dt>
+        <dd>uafR API stability table</dd>
+
+        <dt>
+
+          <code><a href="uafRSchemaMetadata.html">uafRSchemaMetadata()</a></code>
+
+        </dt>
+        <dd>uafR schema metadata</dd>
+
+        <dt>
+
+          <code><a href="uafRProviderContracts.html">uafRProviderContracts()</a></code>
+
+        </dt>
+        <dd>uafR provider contracts</dd>
+
+        <dt>
+
+          <code><a href="standardizeProviderDiagnostics.html">standardizeProviderDiagnostics()</a></code>
+
+        </dt>
+        <dd>Standardize provider diagnostics</dd>
+
+        <dt>
+
+          <code><a href="uafRClaimGuidance.html">uafRClaimGuidance()</a></code>
+
+        </dt>
+        <dd>uafR claim guidance</dd>
+
+        <dt>
+
+          <code><a href="chemicalDataDictionary.html">chemicalDataDictionary()</a></code>
+
+        </dt>
+        <dd>Describe categorate output schemas</dd>
+      </dl></div><div class="section level2">
+      <h2 id="core-gc-ms-processing">Core GC-MS processing<a class="anchor" aria-label="anchor" href="#core-gc-ms-processing"></a></h2>
+
+      <div class="section-desc"><p>Prepare hit tables, select exact-mass candidates, subset annotations, and standardize peak areas.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="spreadOut.html">spreadOut()</a></code>
+
+        </dt>
+        <dd>spreadOut</dd>
+
+        <dt>
+
+          <code><a href="mzExacto.html">mzExacto()</a></code>
+
+        </dt>
+        <dd>mzExacto</dd>
+
+        <dt>
+
+          <code><a href="exactoThese.html">exactoThese()</a></code>
+
+        </dt>
+        <dd>exactoThese</dd>
+
+        <dt>
+
+          <code><a href="standardifyIt.html">standardifyIt()</a></code>
+
+        </dt>
+        <dd>standardifyIt</dd>
+
+        <dt>
+
+          <code><a href="personalLib.html">personalLib()</a></code>
+
+        </dt>
+        <dd>Formatting user's personal library</dd>
+      </dl></div><div class="section level2">
+      <h2 id="compound-enrichment-and-chemical-traits">Compound enrichment and chemical traits<a class="anchor" aria-label="anchor" href="#compound-enrichment-and-chemical-traits"></a></h2>
+
+      <div class="section-desc"><p>Retrieve and validate source-backed compound annotations, traits, measurements, and similarity summaries.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -48,31 +159,59 @@
 
         <dt>
 
-          <code><a href="chemicalDataDictionary.html">chemicalDataDictionary()</a></code>
+          <code><a href="pubchemProfile.html">pubchemProfile()</a></code>
 
         </dt>
-        <dd>Describe categorate output schemas</dd>
+        <dd>Build a detailed PubChem profile for query chemicals</dd>
 
         <dt>
 
-          <code><a href="chemicalMeasurementSummary.html">chemicalMeasurementSummary()</a></code>
+          <code><a href="keggProfile.html">keggProfile()</a></code>
 
         </dt>
-        <dd>Summarize standardized chemical measurements</dd>
+        <dd>Build a detailed KEGG profile for query chemicals</dd>
 
         <dt>
 
-          <code><a href="chemicalTraitEvidence.html">chemicalTraitEvidence()</a></code>
+          <code><a href="validateCategorateResult.html">validateCategorateResult()</a></code>
 
         </dt>
-        <dd>Trace trait and ontology keys back to source evidence</dd>
+        <dd>Validate enriched categorate results</dd>
 
         <dt>
 
-          <code><a href="chemicalTraitMatrix.html">chemicalTraitMatrix()</a></code>
+          <code><a href="exportCategorateWorkbook.html">exportCategorateWorkbook()</a></code>
 
         </dt>
-        <dd>Build a matrix from normalized chemical traits</dd>
+        <dd>Export enriched categorate results for review and sharing</dd>
+
+        <dt>
+
+          <code><a href="runCategorateEnrichmentBatches.html">runCategorateEnrichmentBatches()</a></code>
+
+        </dt>
+        <dd>Run resumable categorate enrichment batches</dd>
+
+        <dt>
+
+          <code><a href="readCategorateBatchDirectory.html">readCategorateBatchDirectory()</a></code>
+
+        </dt>
+        <dd>Read a directory of resumable categorate batch files</dd>
+
+        <dt>
+
+          <code><a href="summarizeCategorateBatches.html">summarizeCategorateBatches()</a></code>
+
+        </dt>
+        <dd>Summarize resumable categorate batches</dd>
+
+        <dt>
+
+          <code><a href="combineCategorateTables.html">combineCategorateTables()</a></code>
+
+        </dt>
+        <dd>Combine data frames from categorate batch results</dd>
 
         <dt>
 
@@ -90,6 +229,27 @@
 
         <dt>
 
+          <code><a href="chemicalTraitMatrix.html">chemicalTraitMatrix()</a></code>
+
+        </dt>
+        <dd>Build a matrix from normalized chemical traits</dd>
+
+        <dt>
+
+          <code><a href="chemicalTraitEvidence.html">chemicalTraitEvidence()</a></code>
+
+        </dt>
+        <dd>Trace trait and ontology keys back to source evidence</dd>
+
+        <dt>
+
+          <code><a href="chemicalTraitSummary.html">chemicalTraitSummary()</a></code>
+
+        </dt>
+        <dd>Summarize normalized chemical traits</dd>
+
+        <dt>
+
           <code><a href="chemicalTraitReport.html">chemicalTraitReport()</a></code>
 
         </dt>
@@ -104,31 +264,530 @@
 
         <dt>
 
-          <code><a href="chemicalTraitSummary.html">chemicalTraitSummary()</a></code>
+          <code><a href="chemicalMeasurementSummary.html">chemicalMeasurementSummary()</a></code>
 
         </dt>
-        <dd>Summarize normalized chemical traits</dd>
+        <dd>Summarize standardized chemical measurements</dd>
+      </dl></div><div class="section level2">
+      <h2 id="species-first-plant-phytochemistry">Species-first plant phytochemistry<a class="anchor" aria-label="anchor" href="#species-first-plant-phytochemistry"></a></h2>
+
+      <div class="section-desc"><p>Discover, standardize, enrich, summarize, validate, and export plant-compound evidence.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="resolvePlantPhytochemistry.html">resolvePlantPhytochemistry()</a></code>
+
+        </dt>
+        <dd>Species-first plant phytochemistry resolver</dd>
 
         <dt>
 
-          <code><a href="exactoThese.html">exactoThese()</a></code>
+          <code><a href="plantPhytochemistrySchema.html">plantPhytochemistrySchema()</a></code>
 
         </dt>
-        <dd>exactoThese</dd>
+        <dd>Describe plant phytochemistry output schemas</dd>
 
         <dt>
+
+          <code><a href="validatePlantPhytochemistryResult.html">validatePlantPhytochemistryResult()</a></code>
+
+        </dt>
+        <dd>Validate plant phytochemistry results</dd>
+
+        <dt>
+
+          <code><a href="standardizePlantCompoundIntake.html">standardizePlantCompoundIntake()</a></code>
+
+        </dt>
+        <dd>Standardize curated plant-compound intake</dd>
+
+        <dt>
+
+          <code><a href="standardizePlantMetadata.html">standardizePlantMetadata()</a></code>
+
+        </dt>
+        <dd>Standardize plant metadata for chemistry projects</dd>
+
+        <dt>
+
+          <code><a href="enrichPlantCompounds.html">enrichPlantCompounds()</a></code>
+
+        </dt>
+        <dd>Enrich plant compounds with existing uafR compound workflows</dd>
+
+        <dt>
+
+          <code><a href="summarizePlantPhytochemistry.html">summarizePlantPhytochemistry()</a></code>
+
+        </dt>
+        <dd>Summarize plant phytochemistry</dd>
+
+        <dt>
+
+          <code><a href="plantPhytochemistryMatrix.html">plantPhytochemistryMatrix()</a></code>
+
+        </dt>
+        <dd>Build plant phytochemistry matrices</dd>
+
+        <dt>
+
+          <code><a href="joinPlantChemistryMetadata.html">joinPlantChemistryMetadata()</a></code>
+
+        </dt>
+        <dd>Join plant chemistry summaries to metadata</dd>
+
+        <dt>
+
+          <code><a href="scorePlantChemistryCandidates.html">scorePlantChemistryCandidates()</a></code>
+
+        </dt>
+        <dd>Score plant chemistry candidates</dd>
+
+        <dt>
+
+          <code><a href="exportPlantPhytochemistryWorkbook.html">exportPlantPhytochemistryWorkbook()</a></code>
+
+        </dt>
+        <dd>Export plant phytochemistry result tables</dd>
+
+        <dt>
+
+          <code><a href="mergePlantPhytochemistryResults.html">mergePlantPhytochemistryResults()</a></code>
+
+        </dt>
+        <dd>Merge plant phytochemistry discovery results</dd>
+
+        <dt>
+
+          <code><a href="runPlantPhytochemistryBatch.html">runPlantPhytochemistryBatch()</a></code>
+
+        </dt>
+        <dd>Run a staged plant phytochemistry batch workflow</dd>
+
+        <dt>
+
+          <code><a href="runPlantPhytochemistryPilot.html">runPlantPhytochemistryPilot()</a></code>
+
+        </dt>
+        <dd>Run a plant phytochemistry pilot workflow</dd>
+
+        <dt>
+
+          <code><a href="runPlantChemistryPanel.html">runPlantChemistryPanel()</a></code>
+
+        </dt>
+        <dd>Run a resumable plant chemistry production panel</dd>
+
+        <dt>
+
+          <code><a href="plantPhytochemistryPilotPanel.html">plantPhytochemistryPilotPanel()</a></code>
+
+        </dt>
+        <dd>Recommended plant panels for phytochemistry pilot runs</dd>
+
+        <dt>
+
+          <code><a href="plantPhytochemistryQAReport.html">plantPhytochemistryQAReport()</a></code>
+
+        </dt>
+        <dd>Summarize pilot readiness checks</dd>
+      </dl></div><div class="section level2">
+      <h2 id="plant-providers-and-biological-context">Plant providers and biological context<a class="anchor" aria-label="anchor" href="#plant-providers-and-biological-context"></a></h2>
+
+      <div class="section-desc"><p>Build and query local LOTUS/NPASS indexes and audit source-backed plant-part, tissue, and method context.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="plantProviderAvailability.html">plantProviderAvailability()</a></code>
+
+        </dt>
+        <dd>Inspect plant-provider readiness</dd>
+
+        <dt>
+
+          <code><a href="standardizeLotusIndex.html">standardizeLotusIndex()</a></code>
+
+        </dt>
+        <dd>Standardize a local LOTUS species-compound index</dd>
+
+        <dt>
+
+          <code><a href="buildLotusIndex.html">buildLotusIndex()</a></code>
+
+        </dt>
+        <dd>Build a compact local LOTUS index</dd>
+
+        <dt>
+
+          <code><a href="queryLotusIndex.html">queryLotusIndex()</a></code>
+
+        </dt>
+        <dd>Query a local LOTUS index for plant phytochemistry records</dd>
+
+        <dt>
+
+          <code><a href="buildNpassIndex.html">buildNpassIndex()</a></code>
+
+        </dt>
+        <dd>Build a local NPASS species-metabolite index</dd>
+
+        <dt>
+
+          <code><a href="queryNpassIndex.html">queryNpassIndex()</a></code>
+
+        </dt>
+        <dd>Query a local NPASS species-metabolite index</dd>
+
+        <dt>
+
+          <code><a href="enrichPlantContextEvidence.html">enrichPlantContextEvidence()</a></code>
+
+        </dt>
+        <dd>Enrich plant context evidence from source-backed literature text</dd>
+
+        <dt>
+
+          <code><a href="plantContextEvidence.html">plantContextEvidence()</a></code>
+
+        </dt>
+        <dd>Extract biological context evidence from plant occurrence rows</dd>
+
+        <dt>
+
+          <code><a href="plantProviderContextAudit.html">plantProviderContextAudit()</a></code>
+
+        </dt>
+        <dd>Audit provider-specific biological-context coverage</dd>
+      </dl></div><div class="section level2">
+      <h2 id="evidence-and-identity-review">Evidence and identity review<a class="anchor" aria-label="anchor" href="#evidence-and-identity-review"></a></h2>
+
+      <div class="section-desc"><p>Grade occurrence evidence, isolate review queues, and replay plant or compound identity decisions.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="plantOccurrenceEvidenceDictionary.html">plantOccurrenceEvidenceDictionary()</a></code>
+
+        </dt>
+        <dd>Evidence grade dictionary</dd>
+
+        <dt>
+
+          <code><a href="plantOccurrenceEvidenceGrade.html">plantOccurrenceEvidenceGrade()</a></code>
+
+        </dt>
+        <dd>Grade plant-compound occurrence evidence</dd>
+
+        <dt>
+
+          <code><a href="filterPlantEvidenceDirect.html">filterPlantEvidenceDirect()</a></code>
+
+        </dt>
+        <dd>Filter direct plant evidence</dd>
+
+        <dt>
+
+          <code><a href="filterPlantEvidenceComparable.html">filterPlantEvidenceComparable()</a></code>
+
+        </dt>
+        <dd>Filter comparable plant evidence</dd>
+
+        <dt>
+
+          <code><a href="filterPlantEvidenceReviewRequired.html">filterPlantEvidenceReviewRequired()</a></code>
+
+        </dt>
+        <dd>Filter plant evidence requiring review</dd>
+
+        <dt>
+
+          <code><a href="filterPlantPhytochemistryEvidence.html">filterPlantPhytochemistryEvidence()</a></code>
+
+        </dt>
+        <dd>Filter plant phytochemistry occurrence evidence</dd>
+
+        <dt>
+
+          <code><a href="plantPhytochemistryReviewTable.html">plantPhytochemistryReviewTable()</a></code>
+
+        </dt>
+        <dd>Create a plant phytochemistry evidence review table</dd>
+
+        <dt>
+
+          <code><a href="applyPlantPhytochemistryReview.html">applyPlantPhytochemistryReview()</a></code>
+
+        </dt>
+        <dd>Apply reviewed plant phytochemistry evidence decisions</dd>
+
+        <dt>
+
+          <code><a href="resolvePlantCompoundIdentities.html">resolvePlantCompoundIdentities()</a></code>
+
+        </dt>
+        <dd>Resolve plant compound identities with a fast PubChem pass</dd>
+
+        <dt>
+
+          <code><a href="plantCompoundIdentityReviewTable.html">plantCompoundIdentityReviewTable()</a></code>
+
+        </dt>
+        <dd>Create a plant compound identity review table</dd>
+
+        <dt>
+
+          <code><a href="applyPlantCompoundIdentityReview.html">applyPlantCompoundIdentityReview()</a></code>
+
+        </dt>
+        <dd>Apply reviewed plant compound identity decisions</dd>
+
+        <dt>
+
+          <code><a href="standardizeCompoundIdentityAudit.html">standardizeCompoundIdentityAudit()</a></code>
+
+        </dt>
+        <dd>Standardize a compound identity audit table</dd>
+
+        <dt>
+
+          <code><a href="validateCompoundIdentityAudit.html">validateCompoundIdentityAudit()</a></code>
+
+        </dt>
+        <dd>Validate a compound identity audit table</dd>
+
+        <dt>
+
+          <code><a href="exportCompoundIdentityReviewTemplate.html">exportCompoundIdentityReviewTemplate()</a></code>
+
+        </dt>
+        <dd>Export a compound identity review template</dd>
+
+        <dt>
+
+          <code><a href="applyCompoundIdentityReview.html">applyCompoundIdentityReview()</a></code>
+
+        </dt>
+        <dd>Apply compound identity review decisions</dd>
+      </dl></div><div class="section level2">
+      <h2 id="comparable-chemistry-and-tanimoto-similarity">Comparable chemistry and Tanimoto similarity<a class="anchor" aria-label="anchor" href="#comparable-chemistry-and-tanimoto-similarity"></a></h2>
+
+      <div class="section-desc"><p>Classify like-with-like chemistry and calculate structure-based compound and plant summaries.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="chemistryComparisonDictionary.html">chemistryComparisonDictionary()</a></code>
+
+        </dt>
+        <dd>Chemistry comparison dictionary</dd>
+
+        <dt>
+
+          <code><a href="standardizeChemistryClassificationOverrides.html">standardizeChemistryClassificationOverrides()</a></code>
+
+        </dt>
+        <dd>Standardize chemistry classification overrides</dd>
+
+        <dt>
+
+          <code><a href="applyChemistryClassificationOverrides.html">applyChemistryClassificationOverrides()</a></code>
+
+        </dt>
+        <dd>Apply chemistry classification overrides</dd>
+
+        <dt>
+
+          <code><a href="plantChemistryComparability.html">plantChemistryComparability()</a></code>
+
+        </dt>
+        <dd>Classify plant chemistry into comparable analysis scopes</dd>
+
+        <dt>
+
+          <code><a href="plantComparableChemistryMatrix.html">plantComparableChemistryMatrix()</a></code>
+
+        </dt>
+        <dd>Build matrices from comparable plant chemistry scopes</dd>
+
+        <dt>
+
+          <code><a href="preparePlantTanimotoInput.html">preparePlantTanimotoInput()</a></code>
+
+        </dt>
+        <dd>Prepare plant chemistry for structure-based Tanimoto analysis</dd>
+
+        <dt>
+
+          <code><a href="chemicalTanimotoSimilarity.html">chemicalTanimotoSimilarity()</a></code>
+
+        </dt>
+        <dd>Pairwise PubChem fingerprint Tanimoto similarity for chemicals</dd>
+
+        <dt>
+
+          <code><a href="plantChemicalTanimotoSimilarity.html">plantChemicalTanimotoSimilarity()</a></code>
+
+        </dt>
+        <dd>Plant-labeled PubChem fingerprint Tanimoto similarity</dd>
+
+        <dt>
+
+          <code><a href="plantComparableTanimotoSummary.html">plantComparableTanimotoSummary()</a></code>
+
+        </dt>
+        <dd>Summarize plant-pair Tanimoto by comparable chemistry</dd>
+
+        <dt>
+
+          <code><a href="estimateTanimotoOutput.html">estimateTanimotoOutput()</a></code>
+
+        </dt>
+        <dd>Estimate Tanimoto output size</dd>
+      </dl></div><div class="section level2">
+      <h2 id="project-bundles-and-analysis-exports">Project bundles and analysis exports<a class="anchor" aria-label="anchor" href="#project-bundles-and-analysis-exports"></a></h2>
+
+      <div class="section-desc"><p>Run reproducible local projects and create portable, validated handoff bundles and feature matrices.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="runPlantChemistryProject.html">runPlantChemistryProject()</a></code>
+
+        </dt>
+        <dd>Run a reusable plant chemistry project workflow</dd>
+
+        <dt>
+
+          <code><a href="exportPlantChemistryAnalysisBundle.html">exportPlantChemistryAnalysisBundle()</a></code>
+
+        </dt>
+        <dd>Export a plant chemistry analysis bundle from batch outputs</dd>
+
+        <dt>
+
+          <code><a href="finalizePlantChemistryAnalysisBundle.html">finalizePlantChemistryAnalysisBundle()</a></code>
+
+        </dt>
+        <dd>Finalize a plant chemistry analysis bundle</dd>
+
+        <dt>
+
+          <code><a href="validatePlantChemistryAnalysisBundle.html">validatePlantChemistryAnalysisBundle()</a></code>
+
+        </dt>
+        <dd>Validate a plant chemistry analysis bundle</dd>
+
+        <dt>
+
+          <code><a href="exportPlantChemistryFeatureSet.html">exportPlantChemistryFeatureSet()</a></code>
+
+        </dt>
+        <dd>Export model-ready plant chemistry feature tables</dd>
+      </dl></div><div class="section level2">
+      <h2 id="large-run-planning-cache-and-recovery">Large-run planning, cache, and recovery<a class="anchor" aria-label="anchor" href="#large-run-planning-cache-and-recovery"></a></h2>
+
+      <div class="section-desc"><p>Plan, inspect, pause, validate, and retry cache-first plant chemistry runs.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="planPlantChemistryRun.html">planPlantChemistryRun()</a></code>
+
+        </dt>
+        <dd>Plan a large plant chemistry run</dd>
+
+        <dt>
+
+          <code><a href="inspectUafRCache.html">inspectUafRCache()</a></code>
+
+        </dt>
+        <dd>Inspect a uafR cache directory</dd>
+
+        <dt>
+
+          <code><a href="summarizeUafRCache.html">summarizeUafRCache()</a></code>
+
+        </dt>
+        <dd>Summarize a uafR cache directory</dd>
+
+        <dt>
+
+          <code><a href="validatePlantChemistryRunManifest.html">validatePlantChemistryRunManifest()</a></code>
+
+        </dt>
+        <dd>Validate a plant chemistry run manifest</dd>
+
+        <dt>
+
+          <code><a href="writePlantChemistryRetryQueue.html">writePlantChemistryRetryQueue()</a></code>
+
+        </dt>
+        <dd>Write a plant chemistry retry queue</dd>
+
+        <dt>
+
+          <code><a href="rerunFailedPlantQueries.html">rerunFailedPlantQueries()</a></code>
+
+        </dt>
+        <dd>Rerun failed plant chemistry query batches</dd>
+      </dl></div><div class="section level2">
+      <h2 id="external-workflow-integrations">External workflow integrations<a class="anchor" aria-label="anchor" href="#external-workflow-integrations"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="exportAiNsectMolOlfInputs.html">exportAiNsectMolOlfInputs()</a></code>
+
+        </dt>
+        <dd>Export aiNsect molecular-olfaction inputs from wide EO GC-MS tables</dd>
+      </dl></div><div class="section level2">
+      <h2 id="example-datasets">Example datasets<a class="anchor" aria-label="anchor" href="#example-datasets"></a></h2>
+
+      <div class="section-desc"><p>Bundled data used in documentation and offline examples.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
 
           <code><a href="ExternalStandard_data.html">ExternalStandard_data</a></code>
 
         </dt>
         <dd>Sample Data Set for External Standards</dd>
-
-        <dt>
-
-          <code><a href="exportCategorateWorkbook.html">exportCategorateWorkbook()</a></code>
-
-        </dt>
-        <dd>Export enriched categorate results for review and sharing</dd>
 
         <dt>
 
@@ -146,52 +805,10 @@
 
         <dt>
 
-          <code><a href="keggProfile.html">keggProfile()</a></code>
-
-        </dt>
-        <dd>Build a detailed KEGG profile for query chemicals</dd>
-
-        <dt>
-
-          <code><a href="mzExacto.html">mzExacto()</a></code>
-
-        </dt>
-        <dd>mzExacto</dd>
-
-        <dt>
-
-          <code><a href="personalLib.html">personalLib()</a></code>
-
-        </dt>
-        <dd>Formatting user's personal library</dd>
-
-        <dt>
-
           <code><a href="published_data.html">published_data</a></code>
 
         </dt>
         <dd>Supplemental data set for Tables 1 and 2 in publication</dd>
-
-        <dt>
-
-          <code><a href="pubchemProfile.html">pubchemProfile()</a></code>
-
-        </dt>
-        <dd>Build a detailed PubChem profile for query chemicals</dd>
-
-        <dt>
-
-          <code><a href="spreadOut.html">spreadOut()</a></code>
-
-        </dt>
-        <dd>spreadOut</dd>
-
-        <dt>
-
-          <code><a href="standardifyIt.html">standardifyIt()</a></code>
-
-        </dt>
-        <dd>standardifyIt</dd>
 
         <dt>
 
@@ -227,19 +844,13 @@
 
         </dt>
         <dd>Supplemental data set for Figure 1 in publication</dd>
-
-        <dt>
-
-          <code><a href="validateCategorateResult.html">validateCategorateResult()</a></code>
-
-        </dt>
-        <dd>Validate enriched categorate results</dd>
       </dl></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by <a href="https://landinstitute.org/about-us/staff/chase-stratton/" class="external-link">Chase Stratton</a>, <a href="https://landinstitute.org/about-us/staff/yvonne-thompson/" class="external-link">Yvonne Thompson</a>, Konilo Zio, <a href="https://www.researchgate.net/profile/William-Morrison" class="external-link">William Morrison</a>, <a href="https://landinstitute.org/about-us/staff/ebony-murrell/" class="external-link">Ebony Murrell</a>.</p>
+  <p>Developed by Chase Stratton, <a href="https://landinstitute.org/about-us/staff/yvonne-thompson/" class="external-link">Yvonne Thompson</a>, Konilo Zio, <a href="https://www.researchgate.net/profile/William-Morrison" class="external-link">William Morrison</a>, <a href="https://landinstitute.org/about-us/staff/ebony-murrell/" class="external-link">Ebony Murrell</a>.</p>
 </div>
 
 <div class="pkgdown-footer-right">

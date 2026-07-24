@@ -1,6 +1,6 @@
 # Supplemental data set for Tables 1 and 2 in publication
 
-A data frame containing raw output from Agilent's Unknowns Analysis.
+A data frame containing raw output from Agilent's Unknowns Analysis
 
 ## Usage
 

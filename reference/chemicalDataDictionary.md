@@ -1,10 +1,10 @@
 # Describe categorate output schemas
 
-`chemicalDataDictionary()` returns the expected table and column
-contracts for the main `categorate(detail = "research")` and
-`categorate(detail = "full")` outputs. It is intended for users who need
-to understand, export, validate, or join enriched chemical data without
-guessing what each table contains.
+\`chemicalDataDictionary()\` returns the expected table and column
+contracts for the main \`categorate(detail = "research")\` and
+\`categorate(detail = "full")\` outputs. It is intended for users who
+need to understand, export, validate, or join enriched chemical data
+without guessing what each table contains.
 
 ## Usage
 
@@ -16,7 +16,7 @@ chemicalDataDictionary(tables = NULL)
 
 - tables:
 
-  Optional character vector of table names to return. If `NULL`, all
+  Optional character vector of table names to return. If \`NULL\`, all
   documented enriched output tables are returned.
 
 ## Value

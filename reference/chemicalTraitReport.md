@@ -1,10 +1,10 @@
 # Build a researcher-facing chemical trait report
 
-`chemicalTraitReport()` summarizes the normalized trait system into one
-compact row per compound. It combines trait counts, ontology domains,
-evidence coverage, source databases, high-confidence terms, external
-IDs, and nearest ontology neighbors so results are easier to inspect
-before filtering, clustering, modeling, or exporting.
+\`chemicalTraitReport()\` summarizes the normalized trait system into
+one compact row per compound. It combines trait counts, ontology
+domains, evidence coverage, source databases, high-confidence terms,
+external IDs, and nearest ontology neighbors so results are easier to
+inspect before filtering, clustering, modeling, or exporting.
 
 ## Usage
 
@@ -16,13 +16,13 @@ chemicalTraitReport(x, min_confidence = 0, top_n = 8, neighbor_count = 3)
 
 - x:
 
-  A categorate result, a `ChemicalTraitOntology` data frame, or a
-  `ChemicalTraits` data frame.
+  A categorate result, a \`ChemicalTraitOntology\` data frame, or a
+  \`ChemicalTraits\` data frame.
 
 - min_confidence:
 
   Minimum confidence score for included rows. Accepts a numeric score or
-  `"low"`, `"medium"`, or `"high"`.
+  \`"low"\`, \`"medium"\`, or \`"high"\`.
 
 - top_n:
 
@@ -32,7 +32,7 @@ chemicalTraitReport(x, min_confidence = 0, top_n = 8, neighbor_count = 3)
 - neighbor_count:
 
   Maximum number of nearest ontology neighbors to include per compound.
-  Set to `0` to skip neighbor summaries.
+  Set to \`0\` to skip neighbor summaries.
 
 ## Value
 

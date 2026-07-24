@@ -2,9 +2,7 @@
 
 ## Authors
 
-- **[Chase
-  Stratton](https://landinstitute.org/about-us/staff/chase-stratton/)**.
-  Author, maintainer.
+- **Chase Stratton**. Author, maintainer.
 
 - **[Yvonne
   Thompson](https://landinstitute.org/about-us/staff/yvonne-thompson/)**.
@@ -23,16 +21,16 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/castrattonDSU/uafR/blob/main/DESCRIPTION)
+[`inst/CITATION`](https://github.com/castrattonDSU/uafR/blob/main/inst/CITATION)
 
 Stratton C, Thompson Y, Zio K, Morrison W, Murrell E (2026). *uafR:
-Automates Mass Spectrometry Data Processing*. R package version 0.2.0,
-<https://github.com/castrattonDSU/uafR>.
+Reproducible Chemical Enrichment and Plant Chemistry Workflows*. R
+package version 0.4.0.9000, <https://github.com/castrattonDSU/uafR>.
 
     @Manual{,
-      title = {uafR: Automates Mass Spectrometry Data Processing},
+      title = {uafR: Reproducible Chemical Enrichment and Plant Chemistry Workflows},
       author = {Chase Stratton and Yvonne Thompson and Konilo Zio and William Morrison and Ebony Murrell},
       year = {2026},
-      note = {R package version 0.2.0},
+      note = {R package version 0.4.0.9000},
       url = {https://github.com/castrattonDSU/uafR},
     }

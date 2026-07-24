@@ -1,9 +1,9 @@
 # Summarize standardized chemical measurements
 
-`chemicalMeasurementSummary()` condenses `ChemicalMeasurements` into one
-row per compound and property using standardized units where possible.
-It is designed for filtering and plotting measurement behavior without
-manually parsing source units or evidence text.
+\`chemicalMeasurementSummary()\` condenses \`ChemicalMeasurements\` into
+one row per compound and property using standardized units where
+possible. It is designed for filtering and plotting measurement behavior
+without manually parsing source units or evidence text.
 
 ## Usage
 
@@ -15,8 +15,8 @@ chemicalMeasurementSummary(x)
 
 - x:
 
-  A categorate result containing `ChemicalMeasurements`, or a
-  `ChemicalMeasurements` data frame.
+  A categorate result containing \`ChemicalMeasurements\`, or a
+  \`ChemicalMeasurements\` data frame.
 
 ## Value
 

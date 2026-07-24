@@ -1,484 +1,329 @@
-# uafR
+# uafR: Reproducible Chemical and Plant-Chemistry Workflows
 
-## Automated GC/LC-MS data processing
+## Scope
 
-------------------------------------------------------------------------
+uafR supports three related tasks:
 
-Nothing in life is to be feared; it is only to be understood.  
-–Marie Curie
+1.  preparing tentative GC-MS library-hit tables for downstream
+    analysis;
+2.  enriching supplied compound identities with source-backed public
+    database annotations; and
+3.  organizing reported plant-compound evidence into auditable
+    summaries, comparable-chemistry matrices, structural-similarity
+    summaries, and portable project bundles.
 
-------------------------------------------------------------------------
+These workflows answer different questions. A GC-MS library hit is a
+tentative annotation unless confirmed with an appropriate analytical
+standard. A database record reports what a source says; it does not
+establish that a compound occurs in a new sample. A plant-compound
+record is evidence of reported occurrence, not a complete metabolome.
+Structural similarity is not proof of shared function, pathway activity,
+exposure, or efficacy.
 
-![Graphical Abstract](GraphicalAbstract.jpg)
+Start with the workflow guide:
 
-Graphical Abstract
+``` r
 
-### Hello \[Chemical\] World!
+knitr::kable(uafRWorkflowGuide()[, c(
+  "user_has", "primary_functions", "stability"
+)])
+```
 
-       Chemistry plays an active role in every aspect of human
-existence. Whether it be the digested molecules of our food, the solid
-matrices of plastic and metal that comprise our technology, or the
-macromolecules that build and run our cells, the compositions are all
-chemical. To understand this aspect of our existence, there are advanced
-instruments and techniques that identify chemicals of any system to
-name. These precise instruments also allow the number of molecules for
-each individual chemical to be quantified across analyzed samples. While
-the output from these machines is immediately available, preparing the
-raw output for interpretive statistics can require hours/days of trained
-labor per sample and months per experiment.   
-  
-       To remove the bottleneck that exists between the acquisition of
-raw mass spectrometry output and the interpretation of chemicals across
-experimental treatments, we have developed advanced algorithms that
-automate the entire process. Ours is the first GC/LC-MS utility that
-accesses published information for every tentative compound to
-intelligently select portions of each sample that describe
-user-specified query chemicals. This information makes uafR the most
-accurate and advanced post GC/LC-MS processing application to date.
+| user_has | primary_functions | stability |
+|:---|:---|:---|
+| GC-MS hit table | spreadOut(); mzExacto(); exactoThese() | stable |
+| compound names or PubChem CIDs | categorate(detail = ‘research’); pubchemProfile(); keggProfile() | stable |
+| plant species list | resolvePlantPhytochemistry(); validatePlantPhytochemistryResult() | experimental |
+| curated plant-compound table | standardizePlantCompoundIntake(); runPlantChemistryProject() | stable |
+| large plant panel | planPlantChemistryRun(); runPlantChemistryPanel(); runPlantPhytochemistryBatch() | experimental |
+| compound or plant groups for Tanimoto | chemicalTanimotoSimilarity(); plantChemicalTanimotoSimilarity(); plantComparableTanimotoSummary() | stable |
+| analysis bundle for downstream modeling | finalizePlantChemistryAnalysisBundle(); validatePlantChemistryAnalysisBundle(); exportPlantChemistryFeatureSet() | stable |
+| student training package | tools/build_student_bundle.R; tools/student_bundle/\* | project_specific |
 
-### New Standard, Mass Spectrometry Workflows
+## Core GC-MS workflow
 
-#### Input Data Structure
-
-       The original workflow for uafR was developed using Agilent
-instruments and software. The recommended software for generating the
-necessary data in the default format (i.e. with correct column names) is
-[Unknowns
-Analysis](https://www.agilent.com/cs/library/usermanuals/public/G3335-90187_Unknowns_Analysis_Familiarization-en.pdf).
-That said, any software or utility that generates the necessary
-information can be used with simple modifications (e.g. changing the
-column names).
-
-| Component.RT | Base.Peak.MZ | Component.Area | Compound.Name | Match.Factor | File.Name |
-|:--:|:--:|:--:|:---|:--:|:--:|
-| 8.229034 | 84.00 | 906.4701 | Pipradrol | 62.62271 | Std_soln_07 |
-| 8.286703 | 120.00 | 209705.1878 | Methyl salicylate | 98.16152 | Std_soln_00a |
-| 8.296408 | 119.99 | 30332.9022 | Methyl salicylate | 95.79911 | Std_soln_00 |
-| 8.303958 | 120.00 | 6476.4785 | Methyl salicylate | 86.29569 | Std_soln_07 |
-| 8.348031 | 105.00 | 420.8119 | 3-Hexen-1-ol, benzoate, (Z)- | 68.78156 | Std_soln_00 |
-| **…** | **…** | **…** | **…** | **…** | **…** |
-
-#### Spread It Out
-
-       The first step in the process is to convert the raw input to a
-format that downstream functions can work with.
 [`spreadOut()`](https://castrattonDSU.github.io/uafR/reference/spreadOut.md)
-prepares the read in .CSV for intelligent ***sorting*** (using retention
-times and published masses) then ***aggregation*** (using all published
-names and top m/z peaks) of sample portions that describe a chemical. A
-list containing all necessary information for the next function,
-[`mzExacto()`](https://castrattonDSU.github.io/uafR/reference/mzExacto.md),
-is returned.  
-       Contents of the list include matrices (here focused on methyl
-salicylate) that store:
+expects a data frame with the columns `Component.RT`, `Component.Area`,
+`Base.Peak.MZ`, `File.Name`, `Compound.Name`, and `Match.Factor`. It
+validates those columns and rejects duplicate peak keys before
+performing live identity and mass lookups.
+[`mzExacto()`](https://castrattonDSU.github.io/uafR/reference/mzExacto.md)
+uses the spread object and a supplied chemical list to aggregate
+candidate peak areas.
+[`exactoThese()`](https://castrattonDSU.github.io/uafR/reference/exactoThese.md)
+can derive a query list from an existing categorate result.
 
-1.  **chemical names**
-
-|           Sample_1           |     Sample_2      |     Sample_3      |
-|:----------------------------:|:-----------------:|:-----------------:|
-|            \<NA\>            |     Pipradrol     |      \<NA\>       |
-|            \<NA\>            |      \<NA\>       | Methyl salicylate |
-|      Methyl salicylate       |      \<NA\>       |      \<NA\>       |
-|            \<NA\>            | Methyl salicylate |      \<NA\>       |
-| 3-Hexen-1-ol, benzoate, (Z)- |      \<NA\>       |      \<NA\>       |
-|            **…**             |       **…**       |       **…**       |
-
-2.  **retention times**
-
-|  Sample_1   |  Sample_2   |  Sample_3   |
-|:-----------:|:-----------:|:-----------:|
-|   \<NA\>    | 8.229033559 |   \<NA\>    |
-|   \<NA\>    |   \<NA\>    | 8.286703432 |
-| 8.296408204 |   \<NA\>    |   \<NA\>    |
-|   \<NA\>    | 8.303958027 |   \<NA\>    |
-| 8.348031108 |   \<NA\>    |   \<NA\>    |
-|    **…**    |    **…**    |    **…**    |
-
-3.  **match factors**
-
-|  Sample_1   |  Sample_2   |  Sample_3   |
-|:-----------:|:-----------:|:-----------:|
-|   \<NA\>    | 62.62271472 |   \<NA\>    |
-|   \<NA\>    |   \<NA\>    | 98.16152088 |
-| 95.79911297 |   \<NA\>    |   \<NA\>    |
-|   \<NA\>    | 86.29569222 |   \<NA\>    |
-| 68.78156469 |   \<NA\>    |   \<NA\>    |
-|    **…**    |    **…**    |    **…**    |
-
-4.  **captured M/Z value**
-
-| Sample_1 | Sample_2 | Sample_3 |
-|:--------:|:--------:|:--------:|
-|  \<NA\>  |    84    |  \<NA\>  |
-|  \<NA\>  |  \<NA\>  |   120    |
-|  119.99  |  \<NA\>  |  \<NA\>  |
-|  \<NA\>  |   120    |  \<NA\>  |
-|   105    |  \<NA\>  |  \<NA\>  |
-|  **…**   |  **…**   |  **…**   |
-
-5.  **exact mass data (if published)**
-
-|   Sample_1    |   Sample_2    |   Sample_3    |
-|:-------------:|:-------------:|:-------------:|
-|    \<NA\>     | 267.162314293 |    \<NA\>     |
-|    \<NA\>     |    \<NA\>     | 152.047344113 |
-| 152.047344113 |    \<NA\>     |    \<NA\>     |
-|    \<NA\>     | 152.047344113 |    \<NA\>     |
-| 204.115029749 |    \<NA\>     |    \<NA\>     |
-|     **…**     |     **…**     |     **…**     |
-
-6.  **raw area values**
-
-|  Sample_1   |  Sample_2   |  Sample_3   |
-|:-----------:|:-----------:|:-----------:|
-|   \<NA\>    | 906.4700739 |   \<NA\>    |
-|   \<NA\>    |   \<NA\>    | 209705.1878 |
-| 30332.90221 |   \<NA\>    |   \<NA\>    |
-|   \<NA\>    | 6476.478451 |   \<NA\>    |
-| 420.8119135 |   \<NA\>    |   \<NA\>    |
-|    **…**    |    **…**    |    **…**    |
-
-7.  **a unique code for each input data point (retention time pasted to
-    exact mass)**
-
-| Sample_1 | Sample_2 | Sample_3 |
-|:--:|:--:|:--:|
-| \<NA\> | 8.229033559 \| 267.162314293 | \<NA\> |
-| \<NA\> | \<NA\> | 8.286703432 \| 152.047344113 |
-| 8.296408204 \| 152.047344113 | \<NA\> | \<NA\> |
-| \<NA\> | 8.303958027 \| 152.047344113 | \<NA\> |
-| 8.348031108 \| 204.115029749 | \<NA\> | \<NA\> |
-| **…** | **…** | **…** |
-
-8.  **and a nested list with**:
-
-- *all published chemical names* (only first 5 are shown)
-
-&nbsp;
-
-    #> [1] "methyl salicylate"        "Methyl 2-hydroxybenzoate"
-    #> [3] "119-36-8"                 "Wintergreen oil"         
-    #> [5] "Gaultheria oil"
-
-- *top m/z peaks*
-
-&nbsp;
-
-    #> [1] "120" "92"  "152" "121" "65"
-
-- *exact mass*
-
-&nbsp;
-
-    #> [1] 152.0473
-
-- *and likely retention times for the query chemicals.*
-
-&nbsp;
-
-    #> [1] 8.286703
-
-#### Extract Your Chemicals
-
-       The output from
+The following is verified against the current function signatures, but
+is not run while building this vignette because
 [`spreadOut()`](https://castrattonDSU.github.io/uafR/reference/spreadOut.md)
-is like a searchable chemical database where each entry has every
-published, uniquely identifying feature assigned to it.
+and
 [`mzExacto()`](https://castrattonDSU.github.io/uafR/reference/mzExacto.md)
-collects the same information for a set of query chemicals and uses it
-to precisely search the advanced dictionary for samples that have those
-chemicals.   
-       In many cases, users will already know what they are looking for.
-In others, they won’t.
+use live services:
 
-------------------------------------------------------------------------
+``` r
 
-##### When Chemicals are Known 
+hits = read.csv("gcms_hit_table.csv", stringsAsFactors = FALSE)
 
-       While there are multiple ways to create a list of input chemicals
-\[see
-[`personalLib()`](https://castrattonDSU.github.io/uafR/reference/personalLib.md)\],
-a simple method for smaller searches is to just type quotes around the
-search names in a list:
+spread = spreadOut(hits)
+query_compounds = c("methyl salicylate", "octanal")
+selected = mzExacto(spread, query_compounds, decontaminate = TRUE)
 
-**`query_chemicals = c("Ethyl hexanoate", "Methyl salicylate", "Octanal", "Undecane")`**
+# A categorate result can also define the query list.
+query_from_sources = exactoThese(
+  categoratedInput = categorate_result,
+  subsetBy = "Database",
+  subsetArgs = c("LOTUS", "KEGG")
+)
+```
 
-[`mzExacto()`](https://castrattonDSU.github.io/uafR/reference/mzExacto.md)
-takes the output from spreadOut() \[`standard_spread`\] and this list of
-`query_chemicals`:
+Inspect input row counts, duplicate keys, missing values, match factors,
+retention times, and area distributions before interpreting `selected`.
+Record the instrument, library, search settings, filters, software
+versions, and whether authentic standards were used.
 
-**`mzExacto(standard_spread, query_chemicals)`**
+## Research-grade compound enrichment
 
-returning a single dataframe with all of the necessary information for
-downstream functions and, ultimately, interpretation.
+`categorate(detail = "research")` adds PubChem and KEGG profiles, source
+coverage, normalized traits, evidence tables, and validation outputs to
+the standard categorate tables. Live enrichment should begin with a
+small smoke test, a persistent cache, and conservative request spacing:
 
-| Compound | Mass | RT | Best Match | Std_soln_00 | Std_soln_07 | Std_soln_00a |
-|----|----|----|----|----|----|----|
-| Octanal | 128.120115130 | 5.462089753 | 99.32456762 | 379178.88653 | 30943.11385 | 125725.8982 |
-| Ethyl hexanoate | 144.115029749 | 5.379718874 | 99.35011811 | 263866.0427 | 9896.488149 | 294869.1357 |
-| Methyl salicylate | 152.047344113 | 8.295689887 | 98.16152088 | 30332.90221 | 6476.478451 | 209705.1878 |
-| Undecane | 156.187800766 | 6.129191467 | 98.6771852 | 86270.05019 | 243.9123731 | 238776.2287 |
+``` r
 
-------------------------------------------------------------------------
+data("library_data", package = "uafR")
 
-##### When Types/Classes of Chemicals are Known 
+result = categorate(
+  compounds = c("aspirin", "caffeine"),
+  chemical_library = library_data,
+  detail = "research",
+  cache = TRUE,
+  cache_dir = "uafR_cache",
+  throttle = 0.5
+)
 
-       [`categorate()`](https://castrattonDSU.github.io/uafR/reference/categorate.md)
-is an overpowered function that accesses a broad array of categorical
-data for searched chemicals. Here we present a single application from
-the output of
-[`categorate()`](https://castrattonDSU.github.io/uafR/reference/categorate.md)
-that could help in GC/LC-MS analyses where classes/types of chemical
-groupings are known, but not specific compounds. For a detailed overview
-of additional chemistry workflows (e.g. meta-analyses) that
-[`categorate()`](https://castrattonDSU.github.io/uafR/reference/categorate.md)
-could catalyze, we recommend the companion manuscript (linked when
-published).  
-       A required input for running
-[`categorate()`](https://castrattonDSU.github.io/uafR/reference/categorate.md)
-is a library to perform structural matches against. This library is a
-.CSV file that can contain as many sets of chemicals as the user’s
-hardware can handle. For the following example, we have restricted our
-search to 4 sets of chemicals that we know are structurally similar to
-our query chemicals from the previous section (Types B, C, D, and E
-below) and one set that should not have any matches (Type A).
+validation = validateCategorateResult(result)
+validation$Summary
+result$DataDictionary
+```
 
-| Type.A | Type.B | Type.C | Type.D | Type.E |
-|:---|:---|:---|:---|:---|
-| 2-Aminothiazole | o-Cresol | Nonane | Butyl methacrylate | Octane |
-| 3,4,5,6-Tetrachlorocyclohexene | Salicylic Acid | Dodecane | Isobutyl hexanoate | Octanoic acid |
-| N-methyl-1,3,5-triazin-2-amine | Guaiacol | Tridecane | Ethyl heptanoate | 1-Octanol |
-| 2-Methyloctahydro-2-azacyclopropa\[cd\]pentalene | Aspirin |  | Methyl hexanoate | Hexadecanal |
-|  | Salicyl alcohol |  | Methyl heptanoate | Decanal |
-|  | 4-Methylsalicylic acid |  | Dihexyl adipate | Undecanal |
-|  |  |  | 2-Heptanone | Hexyl acetate |
+Do not infer experimental presence from enrichment output. Inspect
+`SourceCoverage`, source-specific evidence, unresolved identities, and
+validation warnings before selecting analysis variables.
 
-        To perform the chemical structure matches and summarize atomic
-features, uafR taps into an amazing set of cheminformatics packages –
-[ChemmineR](https://www.bioconductor.org/packages/release/bioc/html/ChemmineR.html),
-[fmcsR](https://bioconductor.org/packages/release/bioc/html/fmcsR.html),
-[webchem](https://cran.r-project.org/web/packages/webchem/index.html).
-The library tests return the following data frames:
+## Complete offline plant-chemistry project
 
-| Type.A | Type.B | Type.C | Type.D | Type.E |          Chemical |
-|:------:|:------:|:------:|:------:|:------:|------------------:|
-|   No   |   No   |   No   |  Yes   |   ~    |   ethyl hexanoate |
-|   No   |  Yes   |   No   |   No   |   No   | methyl salicylate |
-|   No   |   No   |   ~    |   ~    |  Yes   |           octanal |
-|   No   |   No   |  Yes   |   ~    |  Yes   |          undecane |
+The package includes a small **simulated teaching fixture**. Its
+plant-compound rows and source labels are intentionally synthetic and
+are not evidence that the listed compounds occur in the listed plants.
+The fixture exercises the real project, grading, classification,
+feature-export, Tanimoto-summary, and validation code without making
+network requests.
 
-       Where “No” means none of the chemicals had a structural match,
-“~” refers to at least 1 match between 0.85 and 0.95, and “Yes” means
-there was at least 1 match exceeding 0.95.
+``` r
 
-| Type.A | Type.B | Type.C | Type.D | Type.E |          Chemical |
-|:------:|:------:|:------:|:------:|:------:|------------------:|
-|   No   |   No   |   No   |  CMP2  |   No   |   ethyl hexanoate |
-|   No   |  CMP1  |   No   |   No   |   No   | methyl salicylate |
-|   No   |   No   |   No   |   No   |  CMP1  |           octanal |
-|   No   |   No   |  CMP1  |   No   |  CMP1  |          undecane |
+example_dir = system.file(
+  "extdata", "offline_plant_chemistry",
+  package = "uafR"
+)
+stopifnot(nzchar(example_dir))
 
-       Where the first compound in a set that had a match exceeding 0.95
-is shown. The number following “CMP” refers tells the user which
-compound was a match (i.e. 1 refers to the topmost chemical in the
-group), so ethyl hexanoate was more structurally similar to isobutyl
-hexanoate than butyl methacrylate. Makes sense!  
-       As can be seen, our library did a great job pulling out the
-chemicals of interest from the previous example. However, some studies
-may have even less direction to go off of. In these cases, the
-atomic/functional group summary provided by
-[fmcsR](https://bioconductor.org/packages/release/bioc/html/fmcsR.html)
-can also help navigate:
+project_dir = tempfile("uafr_offline_project_")
+project = runPlantChemistryProject(
+  plant_list = file.path(example_dir, "plant_list.csv"),
+  metadata = file.path(example_dir, "plant_metadata.csv"),
+  plant_compounds = file.path(example_dir, "plant_compounds.csv"),
+  plant_compound_pair_tanimoto = file.path(
+    example_dir, "plant_compound_pair_tanimoto.csv"
+  ),
+  output_dir = project_dir,
+  project_id = "simulated_offline_example",
+  overwrite = TRUE
+)
 
-| Chemical          | Groups | GroupCounts | Atom | AtomCounts | NCharges |
-|:------------------|:------:|:-----------:|:----:|:----------:|:--------:|
-| ethyl hexanoate   | RCOOH  |      0      |  H   |     16     |    0     |
-| ethyl hexanoate   | RCOOR  |      1      |  O   |     2      |    0     |
-| ethyl hexanoate   |  ROR   |      0      |  C   |     8      |    0     |
-| methyl salicylate |  ROH   |      1      |  H   |     8      |    0     |
-| methyl salicylate | RCOOR  |      1      |  O   |     3      |    0     |
-| methyl salicylate |  RCOR  |      0      |  C   |     8      |    0     |
-| octanal           |  ROH   |      0      |  H   |     16     |    0     |
-| octanal           |  RCHO  |      1      |  O   |     1      |    0     |
-| octanal           |  RCOR  |      0      |  C   |     8      |    0     |
-| undecane          |  RCHO  |      0      |  H   |     24     |    0     |
-| undecane          |  RCOR  |      0      |  C   |     11     |    0     |
+bundle_dir = project$Project$bundle_dir[[1]]
+validation = validatePlantChemistryAnalysisBundle(bundle_dir)
+stopifnot(identical(validation$Summary$ExportReadyStatus[[1]], "pass"))
+knitr::kable(validation$Summary)
+```
 
-       This is only a subset of the output from this utility/function
-meant to emphasize some of the more useful results. The actual output
-includes columns for the molecular weight, molecular formula,
-presence/absence of rings (cyclical carbon groups), and additional
-common functional groups including those with phosporous or nitrogen.   
-       Getting back to the GC/LC-MS workflow, subsetting the
-`query_chemicals` with these outputs is very easily achieved using
-[`exactoThese()`](https://castrattonDSU.github.io/uafR/reference/exactoThese.md):
+| CSVFileCount | CSVPassCount | CSVWarnCount | CSVFailCount | RequiredColumnFailCount | ArtifactWarnCount | ArtifactFailCount | ManifestReferenceFailCount | PythonCsvChecked | PandasChecked | ExportReadyStatus |
+|---:|---:|---:|---:|---:|---:|---:|---:|:---|:---|:---|
+| 23 | 23 | 0 | 0 | 0 | 0 | 0 | 0 | No | No | pass |
 
-**`query_chemicals = exactoThese(input_categorated, subsetBy = "FMCS",`**  
-**`subsetArgs = "MW", subsetArgs2 = "Between", subset_input = c(50,115))`**
+The finalized bundle retains the full supplied evidence while making
+review and analysis subsets explicit:
 
-       With these arguments,
-[`exactoThese()`](https://castrattonDSU.github.io/uafR/reference/exactoThese.md)
-returns every input chemical with a molecular weight between 50 and 115
-g/mol.
+``` r
 
-------------------------------------------------------------------------
+membership = read.csv(
+  file.path(bundle_dir, "03b_PlantCompoundMembershipEnriched.csv"),
+  stringsAsFactors = FALSE,
+  check.names = FALSE
+)
+grade_summary = read.csv(
+  file.path(bundle_dir, "16_EvidenceGradeSummary.csv"),
+  stringsAsFactors = FALSE,
+  check.names = FALSE
+)
 
-##### Unknown Exploration
+direct = filterPlantEvidenceDirect(membership)
+comparable = filterPlantEvidenceComparable(membership)
+review_required = filterPlantEvidenceReviewRequired(membership)
 
-       As referenced,
-[`categorate()`](https://castrattonDSU.github.io/uafR/reference/categorate.md)
-casts a broad net for categorical information on query chemicals. This
-internet…net uses regular expressions to pull published data from a
-variety of databases. Captured information can include:
+knitr::kable(grade_summary)
+```
 
-1. Reactive Groups from [PubChem](https://pubchem.ncbi.nlm.nih.gov/),
+| evidence_grade | evidence_grade_rank | evidence_grade_label | occurrence_count | species_count | compound_count | source_backed_count | structure_resolved_count | comparable_count | review_required_count | recommended_use |
+|:---|---:|:---|---:|---:|---:|---:|---:|---:|---:|:---|
+| direct_species_database_record | 1 | Direct species database record | 9 | 5 | 8 | 9 | 0 | 7 | 0 | Useful for occurrence summaries but not structure-based Tanimoto analyses. |
+| direct_species_literature_supported_record | 2 | Direct species literature-supported record | 1 | 1 | 1 | 1 | 0 | 1 | 0 | Useful for occurrence summaries but not structure-based Tanimoto analyses. |
+| pubtator_pubmed_candidate_only | 4 | PubTator/PubMed candidate only | 2 | 2 | 0 | 0 | 0 | 0 | 2 | Use only for literature triage until a source-backed occurrence is curated. |
 
-    #>                         reactives_df          Chemical
-    #> 41                           Octanal           Octanal
-    #> 42                         Aldehydes           Octanal
-    #> 43                   N-OCTYLALDEHYDE           Octanal
-    #> 48                          Undecane          Undecane
-    #> 49 Hydrocarbons, Aliphatic Saturated          Undecane
-    #> 60                 Methyl Salicylate Methyl salicylate
-    #> 62               Phenols and Cresols Methyl salicylate
-    #> 63             PubChem Internal Link Methyl salicylate
-    #> 64                 METHYL SALICYLATE Methyl salicylate
+``` r
 
-2. natural products occurrences from
-[LOTUS](https://lotus.naturalproducts.net/),
+data.frame(
+  supplied_rows = nrow(membership),
+  direct_structure_resolved_rows = nrow(direct),
+  direct_comparable_rows = nrow(comparable),
+  review_required_rows = nrow(review_required)
+)
+#>   supplied_rows direct_structure_resolved_rows direct_comparable_rows
+#> 1            12                              0                      0
+#>   review_required_rows
+#> 1                    2
+```
 
-    #>    LOTUS_df          Chemical
-    #> 41  Q416673           Octanal
-    #> 42  biochem           Octanal
-    #> 48  Q150731          Undecane
-    #> 49  biochem          Undecane
-    #> 60  Q407669 Methyl salicylate
-    #> 61  biochem Methyl salicylate
+The filters do not delete evidence from the bundle. They make the
+selection rule reproducible. Direct evidence, genus/family fallback,
+candidate literature co-mentions, unresolved identities, and review
+exclusions remain distinct.
 
-3. bioactivites and risk categories from the Kyoto Encyclopedia of Genes
-and Genomes ([KEGG](https://www.genome.jp/kegg/)),
+## Model-ready feature matrices
 
-    #>                                      KEGG_df          Chemical
-    #> 41                               KEGG: Lipid           Octanal
-    #> 48                                      None          Undecane
-    #> 60                                KEGG: Drug Methyl salicylate
-    #> 61                                KEGG: JP15 Methyl salicylate
-    #> 62 KEGG: Risk Category of Japanese OTC Drugs Methyl salicylate
-    #> 63                           KEGG: OTC drugs Methyl salicylate
-    #> 64                        KEGG: Animal Drugs Methyl salicylate
-    #> 65                         KEGG: Drug Groups Methyl salicylate
-    #> 66                        KEGG: Drug Classes Methyl salicylate
-    #> 67                                      <NA> Methyl salicylate
+The project runner writes count, binary, fraction, and
+confidence-weighted feature tables. It retains the same species universe
+and order across matrix families, including species with no reported
+compounds.
 
-4. flavors, odors, etc. from the Flavor and Extract Manufacturers
-Association ([FEMA](https://www.femaflavor.org/)),
+``` r
 
-    #>        FEMA_df          Chemical
-    #> 41        None           Octanal
-    #> 48        None          Undecane
-    #> 60      Almond Methyl salicylate
-    #> 61     Caramel Methyl salicylate
-    #> 62  Peppermint Methyl salicylate
-    #> 63       Sharp Methyl salicylate
+feature_manifest = read.csv(
+  file.path(bundle_dir, "28_FeatureMatrixManifest.csv"),
+  stringsAsFactors = FALSE,
+  check.names = FALSE
+)
+knitr::kable(feature_manifest[, c(
+  "Table", "FileName", "Mode", "RowCount", "ColumnCount"
+)])
+```
 
-5. and whether it exists in the Food and Drug Administration’s SPL data
-base ([FDA/SPL](https://www.fda.gov/)).
+| Table | FileName | Mode | RowCount | ColumnCount |
+|:---|:---|:---|---:|---:|
+| ComparisonGroupCountMatrix | 18_FeatureComparisonGroupCountMatrix.csv | count | 6 | 8 |
+| ComparisonScopeCountMatrix | 19_FeatureComparisonScopeCountMatrix.csv | count | 6 | 5 |
+| SourceCoverageCountMatrix | 20_FeatureSourceCoverageMatrix.csv | count | 6 | 7 |
+| EvidenceGradeCountMatrix | 24_FeatureEvidenceGradeCountMatrix.csv | count | 6 | 5 |
+| PlantPartCountMatrix | 25_FeaturePlantPartCountMatrix.csv | count | 6 | 2 |
+| TissueCountMatrix | 26_FeatureTissueCountMatrix.csv | count | 6 | 2 |
+| MethodCountMatrix | 27_FeatureMethodCountMatrix.csv | count | 6 | 3 |
+| SpeciesMetadata | 21_FeatureSpeciesMetadata.csv | metadata | 6 | 16 |
 
-    #>           FDA_SPL_df          Chemical
-    #> 41    CAPRYLALDEHYDE           Octanal
-    #> 48          UNDECANE          Undecane
-    #> 60 METHYL SALICYLATE Methyl salicylate
+``` r
 
-       Again, we can easily subset our `query_chemicals()` with this
-information using
-[`exactoThese()`](https://castrattonDSU.github.io/uafR/reference/exactoThese.md):
 
-**`query_chemicals = exactoThese(chems_categorated, subsetBy = "Database", subsetArgs = c("LOTUS", "FEMA"))`**
+feature_files = file.path(bundle_dir, feature_manifest$FileName)
+species_ids = lapply(feature_files, function(path) {
+  read.csv(path, stringsAsFactors = FALSE, check.names = FALSE)$species
+})
+stopifnot(all(vapply(
+  species_ids[-1], identical, logical(1), species_ids[[1]]
+)))
+```
 
-       Here,
-[`exactoThese()`](https://castrattonDSU.github.io/uafR/reference/exactoThese.md)
-returns every input chemical for which information could be found on
-both LOTUS and FEMA. While the following output shows the chemicals from
-the first search (known chemicals), this example is based on the
-assumption that we do not know what we will find across every sample.
-The compounds are the focus for this portion of the example only for
-clarity and simplicity. In this alternate, unknown context, a useful
-approach for narrowing the search chemicals for
-[`categorate()`](https://castrattonDSU.github.io/uafR/reference/categorate.md)
-and/or
-[`mzExacto()`](https://castrattonDSU.github.io/uafR/reference/mzExacto.md)
-is to first subset by match factor:
+Feature matrices are analysis inputs, not response variables or evidence
+of biological efficacy. Preserve coverage, missingness, evidence-grade,
+and classification-quality fields when joining them to ecological,
+phylogenetic, environmental, or experimental metadata.
 
-**`query_chems = standard_dat$Compound.Name[standard_dat$Match.Factor >= 65]`**
+## Species-first discovery and local LOTUS use
 
-       At this match factor, the example input data structure would
-change to:
+For real discovery, query direct species records first and keep fallback
+and literature candidates separate. Public-source coverage is incomplete
+and changes over time. Local indexes and caches are preferred for larger
+projects.
 
-| Component.RT | Base.Peak.MZ | Component.Area | Compound.Name | Match.Factor | Sample.Name |
-|:--:|:--:|:--:|:---|:--:|:--:|
-| \<NA\> | \<NA\\ | \<NA\> | \<NA\> | \<NA\> | \<NA\> |
-| 8.286703 | 120.00 | 209705.1878 | Methyl salicylate | 98.16152 | Std_soln_00a |
-| 8.296408 | 119.99 | 30332.9022 | Methyl salicylate | 95.79911 | Std_soln_00 |
-| 8.303958 | 120.00 | 6476.4785 | Methyl salicylate | 86.29569 | Std_soln_07 |
-| 8.348031 | 105.00 | 420.8119 | 3-Hexen-1-ol, benzoate, (Z)- | 68.78156 | Std_soln_00 |
-| **…** | **…** | **…** | **…** | **…** | **…** |
+``` r
 
-       Which still leaves some “junk” that our analysis would probably
-be better without. To remedy this, we could - 1)
-[`categorate()`](https://castrattonDSU.github.io/uafR/reference/categorate.md)
-all of the chemicals (`Compound.Name`) at this `Match.Factor` then
-subset by some feature(s); or, 2) continue to adjust the `Match.Factor`
-until the data make more chemical sense.
+lotus_index = buildLotusIndex(
+  input = "path/to/lotus_flat_export.tsv",
+  out_file = "uafR_lotus_index/lotus_index.rds"
+)
 
-**`query_chems = standard_dat$Compound.Name[standard_dat$Match.Factor >= 80]`**
+phyto = resolvePlantPhytochemistry(
+  plants = c("Salix nigra", "Camellia sinensis"),
+  sources = c("lotus", "pubmed", "pubtator"),
+  lotus_index = lotus_index,
+  taxon_fallback = c("species", "genus"),
+  enrich_compounds = TRUE,
+  detail = "research",
+  cache = TRUE,
+  cache_dir = "uafR_plant_cache",
+  throttle = 0.5,
+  max_pubmed_records = 25
+)
 
-       This match factor yields:
+validatePlantPhytochemistryResult(phyto)$Summary
+phyto$ProviderDiagnostics
+phyto$PlantCompoundOccurrences
+```
 
-| Component.RT | Base.Peak.MZ | Component.Area | Compound.Name | Match.Factor | Sample.Name |
-|:--:|:--:|:--:|:---|:--:|:--:|
-| \<NA\> | \<NA\\ | \<NA\> | \<NA\> | \<NA\> | \<NA\> |
-| 8.286703 | 120.00 | 209705.1878 | Methyl salicylate | 98.16152 | Std_soln_00a |
-| 8.296408 | 119.99 | 30332.9022 | Methyl salicylate | 95.79911 | Std_soln_00 |
-| 8.303958 | 120.00 | 6476.4785 | Methyl salicylate | 86.29569 | Std_soln_07 |
-| \<NA\> | \<NA\\ | \<NA\> | \<NA\> | \<NA\> | \<NA\> |
-| **…** | **…** | **…** | **…** | **…** | **…** |
+Before a large run, use
+[`planPlantChemistryRun()`](https://castrattonDSU.github.io/uafR/reference/planPlantChemistryRun.md),
+inspect the cache, estimate pairwise output sizes, and choose
+batch/cooldown settings. Live-service errors are not biological no-hits;
+preserve provider diagnostics and retry queues.
 
-       While it may seem as though all is well from this fraction of the
-data, it is important to remember that it is only a peek at what is lost
-or gained from the `Match.Factor` adjustments. To emphasize this point,
-consider what is lost by this adjustment:
+## Structural similarity
 
-**`query_chems = standard_dat$Compound.Name[standard_dat$Match.Factor >= 90]`**
+uafR calculates PubChem Fingerprint2D Tanimoto similarity only for
+structure-resolved compounds. Plant summaries should be filtered by
+comparable chemistry scope or group when the scientific question
+requires like-with-like comparison. Unknown, unresolved, and
+non-comparable compounds remain available for audit but are excluded
+from comparable summaries by default.
 
-       The high level of stochasticity behind every data point in a mass
-spectrometry analysis is another reason previous algorithms fail when
-assigning area values across samples. ***Hopefully*** more simply put –
-with chemicals, things don’t always go exactly the same. While this has
-historically driven manual over data-driven workflows, it could also be
-argued that it drives subjectivity into chemical analysis. Modern
-programming languages allow even complex workflows to be automated. By
-accessing published information we are able to mirror the optimal manual
-workflow for chemicals that were either misread in a sample or buried by
-similarities. This allows razor-sharp precision when excising from
-“gray” regions of the data.   
-       In this example, the known chemicals were found simply by
-sub-setting with `Match.Factor`:
+``` r
 
-**`query_chems = standard_dat$Compound.Name[standard_dat$Match.Factor > 89]`**
+estimateTanimotoOutput(
+  compound_count = 1000,
+  plant_count = 100,
+  write_compound_pairs = TRUE
+)
 
-**`mzExacto(standard_spread, query_chems)`**
+similarity = plantChemicalTanimotoSimilarity(
+  plant_chemistry = structure_resolved_membership,
+  return_compound_pairs = FALSE,
+  return_group_compound_pairs = TRUE
+)
 
-| Compound | Mass | RT | Best Match | Std_soln_00 | Std_soln_07 | Std_soln_00a |
-|:---|---:|---:|---:|---:|---:|---:|
-| Octanal | 128.120115130 | 5.462089753 | 99.32456762 | 379178.88653 | 30943.11385 | 125725.8982 |
-| Ethyl hexanoate | 144.115029749 | 5.379718874 | 99.35011811 | 263866.0427 | 9896.488149 | 294869.1357 |
-| Methyl salicylate | 152.047344113 | 8.295689887 | 98.16152088 | 30332.90221 | 6476.478451 | 209705.1878 |
-| Undecane | 156.187800766 | 6.129191467 | 98.6771852 | 86270.05019 | 243.9123731 | 238776.2287 |
+comparable_summary = plantComparableTanimotoSummary(
+  plant_compound_pair_tanimoto = similarity$PlantCompoundTanimoto,
+  membership = classified_membership
+)
+```
 
-       But, the combined `Match.Factor` and
-[`categorate()`](https://castrattonDSU.github.io/uafR/reference/categorate.md)
-approach can churn through a large amount of complex chemical data
-faster and with more accuracy than any manual protocol for unknown
-compound selections.
+Similarity does not establish shared biosynthesis, ecological role,
+mechanism, toxicity, or treatment performance. Interpret it with
+chemical classification, evidence support, coverage, and the project
+design.
 
-------------------------------------------------------------------------
+## Handoff standard
+
+A defensible project handoff should include the input plant list and
+metadata, the original and reviewed occurrence evidence, compound
+identity audit, provider diagnostics, categorate validation, comparison
+dictionary, feature manifest, exported matrices, checksums, methods
+text, and session information. Run
+[`validatePlantChemistryAnalysisBundle()`](https://castrattonDSU.github.io/uafR/reference/validatePlantChemistryAnalysisBundle.md)
+after copying the bundle to its final location and resolve every failing
+check before analysis or publication.

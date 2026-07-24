@@ -33,7 +33,7 @@ overlaps that exceed a threshold of 0.85."><meta property="og:image" content="ht
 
     <a class="navbar-brand me-2" href="../index.html">uafR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,10 +41,19 @@ overlaps that exceed a threshold of 0.85."><meta property="og:image" content="ht
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/uafR.html">Descriptive Walkthrough</a></li>
-<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Function Documentation</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/uafR.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Getting started</h6></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Plant phytochemistry</h6></li>
+    <li><a class="dropdown-item" href="../articles/plant-phytochemistry-offline.html">Offline Plant Phytochemistry Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/plant-phytochemistry-live.html">Live and Large Plant Phytochemistry Queries</a></li>
+  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
-      </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/castrattonDSU/uafR/" aria-label="github"><span class="fa fab fa-github fa-lg"></span></a></li>
+      </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/castrattonDSU/uafR/" aria-label="GitHub repository"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -106,7 +115,7 @@ overlaps that exceed a threshold of 0.85.</p>
 <dt id="arg-chemical-library">chemical_library<a class="anchor" aria-label="anchor" href="#arg-chemical-library"></a></dt>
 <dd><p>A data frame containing columns with chemical
 groups. Column names label the group while the rows contain chemicals
-that are described by the label. Use <code>data("library_data", package = "uafR")</code>
+that are described by the label. Use `data("library_data", package = "uafR")`
 to load the bundled example library.</p></dd>
 
 
@@ -116,16 +125,16 @@ to load the bundled example library.</p></dd>
 
 
 <dt id="arg-detail">detail<a class="anchor" aria-label="anchor" href="#arg-detail"></a></dt>
-<dd><p>One of <code>"standard"</code>, <code>"research"</code>, or <code>"full"</code>.
-<code>"standard"</code> returns the original eight output tables. <code>"research"</code>
-appends tidy PubChem and KEGG enrichment tables, source coverage, and derived
-grouping columns. <code>"full"</code> additionally requests broader PubChem
-annotations and assay summary data.</p></dd>
+<dd><p>One of `"standard"`, `"research"`, or `"full"`. `"standard"`
+returns the original eight output tables. `"research"` appends tidy PubChem
+and KEGG enrichment tables, source coverage, and derived grouping columns.
+`"full"` additionally requests broader PubChem annotations and assay summary
+data.</p></dd>
 
 
 <dt id="arg-cache">cache<a class="anchor" aria-label="anchor" href="#arg-cache"></a></dt>
-<dd><p>Logical. If <code>TRUE</code>, enrichment requests are cached. Only used
-when <code>detail</code> is <code>"research"</code> or <code>"full"</code>.</p></dd>
+<dd><p>Logical. If `TRUE`, enrichment requests are cached. Only used
+when `detail` is `"research"` or `"full"`.</p></dd>
 
 
 <dt id="arg-cache-dir">cache_dir<a class="anchor" aria-label="anchor" href="#arg-cache-dir"></a></dt>
@@ -139,106 +148,100 @@ user-cache location when available.</p></dd>
 
 <dt id="arg-assay-detail-limit">assay_detail_limit<a class="anchor" aria-label="anchor" href="#arg-assay-detail-limit"></a></dt>
 <dd><p>Maximum number of unique PubChem BioAssay AIDs per
-query for which assay-description metadata is fetched when <code>detail</code> is
-<code>"full"</code>. Active, numeric, and target-bearing assays are prioritized. Set
-to <code>0</code> to skip assay-description requests.</p></dd>
+query for which assay-description metadata is fetched when `detail = "full"`.
+Active, numeric, and target-bearing assays are prioritized. Set to `0` to skip
+assay-description requests.</p></dd>
 
 
 <dt id="arg-trait-matrix-profile">trait_matrix_profile<a class="anchor" aria-label="anchor" href="#arg-trait-matrix-profile"></a></dt>
-<dd><p>Trait profile used to build
-<code>ChemicalTraitMatrix</code>. Defaults to <code>"core"</code> for a compact
-cross-domain matrix. Use <code>chemicalTraitMatrix(result, profile = "full")</code> to
-rebuild wider matrices from <code>ChemicalTraits</code> without repeating database
-requests.</p></dd>
+<dd><p>Trait profile used to build `ChemicalTraitMatrix`.
+Defaults to `"core"` for a compact cross-domain matrix. Use
+`chemicalTraitMatrix(result, profile = "full")` to rebuild wider matrices from
+`ChemicalTraits` without repeating database requests.</p></dd>
 
 
 <dt id="arg-trait-matrix-mode">trait_matrix_mode<a class="anchor" aria-label="anchor" href="#arg-trait-matrix-mode"></a></dt>
-<dd><p>Matrix value mode for <code>ChemicalTraitMatrix</code>:
-<code>"binary"</code> for 0/1 presence, <code>"count"</code> for trait-row counts, or
-<code>"confidence"</code> for the maximum trait confidence score.</p></dd>
+<dd><p>Matrix value mode for `ChemicalTraitMatrix`: `"binary"`
+for 0/1 presence, `"count"` for trait-row counts, or `"confidence"` for the
+maximum trait confidence score.</p></dd>
 
 
 <dt id="arg-trait-matrix-min-confidence">trait_matrix_min_confidence<a class="anchor" aria-label="anchor" href="#arg-trait-matrix-min-confidence"></a></dt>
 <dd><p>Minimum confidence required for traits in
-<code>ChemicalTraitMatrix</code>. Accepts a numeric score or <code>"low"</code>,
-<code>"medium"</code>, or <code>"high"</code>.</p></dd>
+`ChemicalTraitMatrix`. Accepts a numeric score or `"low"`, `"medium"`, or
+`"high"`.</p></dd>
 
 
 <dt id="arg-trait-matrix-max-traits">trait_matrix_max_traits<a class="anchor" aria-label="anchor" href="#arg-trait-matrix-max-traits"></a></dt>
 <dd><p>Maximum number of trait columns to include in
-<code>ChemicalTraitMatrix</code>, ranked by prevalence and confidence. Defaults to
-<code>Inf</code>.</p></dd>
+`ChemicalTraitMatrix`, ranked by prevalence and confidence. Defaults to
+`Inf`.</p></dd>
 
 
 <dt id="arg-request-fun">request_fun<a class="anchor" aria-label="anchor" href="#arg-request-fun"></a></dt>
 <dd><p>Optional PubChem request function for tests and advanced
-users. Only used when <code>detail</code> is <code>"research"</code> or <code>"full"</code>.</p></dd>
+users. Only used when `detail` is `"research"` or `"full"`.</p></dd>
 
 
 <dt id="arg-kegg-request-fun">kegg_request_fun<a class="anchor" aria-label="anchor" href="#arg-kegg-request-fun"></a></dt>
 <dd><p>Optional KEGG request function for tests and advanced
-users. Only used when <code>detail</code> is <code>"research"</code> or <code>"full"</code>.</p></dd>
+users. Only used when `detail` is `"research"` or `"full"`.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>List with at least 8 data frames: <code>reactives</code>, <code>LOTUS</code>, <code>KEGG</code>,
-<code>FEMA</code>, <code>FDA_SPL</code>, <code>FMCS</code>, <code>FunctionalGroups</code>, and
-<code>BestChemMatch</code>. Database tables store extracted source annotations by
-chemical; <code>FMCS</code> stores atomic and molecular sub-group summaries;
-<code>FunctionalGroups</code> stores strong (similarity &gt; 0.95) or moderate
-(similarity &gt; 0.85) matches with input library groups; and
-<code>BestChemMatch</code> stores top chemicals from groups a chemical shared a
-strong match with. With <code>detail = "research"</code> or <code>detail = "full"</code>,
-the list also includes PubChem and KEGG enrichment tables:
-<code>PubChemIdentity</code>, <code>PubChemProperties</code>, <code>PubChemSynonyms</code>,
-<code>PubChemAnnotations</code>, <code>PubChemSourceAnnotations</code>,
-<code>PubChemSpectra</code>, <code>PubChemSafety</code>, <code>PubChemExperimental</code>,
-<code>PubChemBioactivity</code>, <code>PubChemIdentifiers</code>,
-<code>SafetyProfile</code>, <code>FEMAProfile</code>, <code>FDA_SPL_Profile</code>,
-<code>LOTUSProfile</code>, <code>PubChemClassifications</code>, <code>MeSHProfile</code>,
-<code>LiteratureProfile</code>, <code>ChemicalTerms</code>, <code>ChemicalTraits</code>,
-<code>ChemicalTraitOntology</code>, <code>ChemicalTraitMatrix</code>,
-<code>ChemicalTraitOntologyMatrix</code>, <code>ChemicalTraitEvidence</code>,
-<code>ChemicalTraitReport</code>, <code>ChemicalTraitSummary</code>, <code>ChemicalTraitSimilarity</code>,
-<code>ChemicalClasses</code>, <code>ChemicalMeasurements</code>,
-<code>ChemicalMeasurementSummary</code>, <code>ChemicalHazards</code>, <code>ChemicalUses</code>,
-<code>ChemicalBioassays</code>, <code>ChemicalBioactivities</code>,
-<code>ChemicalTargets</code>, <code>ChemicalPotencies</code>, <code>PubChemBioAssayDetails</code>,
-<code>ChemicalTaxonomy</code>,
-<code>ChemicalOccurrences</code>,
-<code>ChemicalPathwayRoles</code>, <code>KEGGReactionParticipants</code>,
-<code>KEGGMatches</code>, <code>KEGGRecords</code>, <code>KEGGIdentifiers</code>,
-<code>KEGGPathways</code>, <code>KEGGReactions</code>, <code>KEGGEnzymes</code>,
-<code>KEGGModules</code>, <code>KEGGLinks</code>, <code>KEGGLinkMetadata</code>,
-<code>KEGGClassifications</code>, <code>SourceCoverage</code>, <code>DerivedGroups</code>,
-<code>Provenance</code>, <code>DataDictionary</code>, <code>TableQuality</code>,
-<code>SourceDiagnostics</code>, <code>ValidationIssues</code>, and
-<code>ValidationSummary</code>. The normalized <code>Chemical*</code> tables split source evidence
-into discrete terms, traits, classes, measurements, standardized measurement
-summaries, hazards, uses, taxonomy fields, bioactivity calls, assay targets,
-potency values, organism occurrences,
-pathway roles, and reaction participants for grouping and comparative analysis.
-<code>ChemicalTraits</code> provides a cross-source long-form trait vocabulary.
-<code>ChemicalTraitOntology</code> maps whitelisted discrete traits to controlled
-ontology domains and groups while preserving source evidence and source-backed
-identifiers where available.
-<code>ChemicalTraitMatrix</code> and <code>ChemicalTraitOntologyMatrix</code> provide
-compact binary wide matrices for filtering, clustering, ordination, heatmaps,
-and model inputs. Use <code><a href="chemicalTraitMatrix.html">chemicalTraitMatrix()</a></code> and
-<code><a href="chemicalTraitOntologyMatrix.html">chemicalTraitOntologyMatrix()</a></code> to rebuild full, confidence-weighted, or
-capped matrices without rerunning web requests. <code>ChemicalTraitEvidence</code>
-and <code><a href="chemicalTraitEvidence.html">chemicalTraitEvidence()</a></code> trace matrix and ontology keys back to source
-evidence, IDs, URLs, extraction rules, and confidence values.
-<code>ChemicalTraitReport</code> and <code><a href="chemicalTraitReport.html">chemicalTraitReport()</a></code> provide one compact,
-researcher-facing row per compound with domain signals, evidence coverage,
-identifiers, and nearest ontology neighbors. <code>ChemicalTraitSummary</code>
+    <p>List with at least 8 data frames: `reactives`, `LOTUS`, `KEGG`, `FEMA`,
+`FDA_SPL`, `FMCS`, `FunctionalGroups`, and `BestChemMatch`. Database
+tables store extracted source annotations by chemical; `FMCS` stores atomic
+and molecular sub-group summaries; `FunctionalGroups` stores strong
+(similarity &gt; 0.95) or moderate (similarity &gt; 0.85) matches with input
+library groups; and `BestChemMatch` stores top chemicals from groups a
+chemical shared a strong match with. With `detail = "research"` or
+`detail = "full"`, the list also includes PubChem and KEGG enrichment tables:
+`PubChemIdentity`, `PubChemProperties`, `PubChemSynonyms`,
+`PubChemAnnotations`, `PubChemSourceAnnotations`, `PubChemSpectra`,
+`PubChemSafety`, `PubChemExperimental`, `PubChemBioactivity`,
+`PubChemIdentifiers`, `SafetyProfile`, `FEMAProfile`, `FDA_SPL_Profile`,
+`LOTUSProfile`, `PubChemClassifications`, `MeSHProfile`, `LiteratureProfile`,
+`ChemicalTerms`, `ChemicalTraits`, `ChemicalTraitOntology`,
+`ChemicalTraitMatrix`, `ChemicalTraitOntologyMatrix`,
+`ChemicalTraitEvidence`, `ChemicalTraitReport`, `ChemicalTraitSummary`,
+`ChemicalTraitSimilarity`, `ChemicalClasses`,
+`ChemicalMeasurements`,
+`ChemicalMeasurementSummary`, `ChemicalHazards`, `ChemicalUses`, `ChemicalBioassays`,
+`ChemicalBioactivities`, `ChemicalTargets`, `ChemicalPotencies`,
+`ChemicalTaxonomy`,
+`ChemicalOccurrences`,
+`ChemicalPathwayRoles`, `KEGGReactionParticipants`,
+`KEGGMatches`, `KEGGSearchCandidates`, `KEGGRecords`, `KEGGIdentifiers`, `KEGGPathways`,
+`KEGGReactions`, `KEGGEnzymes`, `KEGGModules`, `KEGGLinks`,
+`KEGGLinkMetadata`, `KEGGClassifications`, `SourceCoverage`,
+`DerivedGroups`, `Provenance`, `DataDictionary`, `TableQuality`,
+`SourceDiagnostics`, `ValidationIssues`, and `ValidationSummary`. The
+normalized `Chemical*` tables split
+source evidence into discrete terms, traits, classes, measurements, standardized
+measurement summaries, hazards,
+uses, bioactivity calls, assay targets, potency values, taxonomy fields,
+organism occurrences, pathway roles, and reaction participants for grouping
+and comparative analysis. `ChemicalTraits` provides a cross-source long-form
+trait vocabulary. `ChemicalTraitOntology` maps whitelisted discrete traits to
+controlled ontology domains and groups while preserving source evidence and
+source-backed identifiers where available.
+`ChemicalTraitMatrix` and `ChemicalTraitOntologyMatrix` provide compact binary
+wide matrices for filtering, clustering, ordination, heatmaps, and model
+inputs. Use `chemicalTraitMatrix()` and `chemicalTraitOntologyMatrix()` to
+rebuild full, confidence-weighted, or capped matrices without rerunning web
+requests. `ChemicalTraitEvidence` and `chemicalTraitEvidence()` trace matrix
+and ontology keys back to source evidence, IDs, URLs, extraction rules, and
+confidence values. `ChemicalTraitReport` and `chemicalTraitReport()` provide
+one compact, researcher-facing row per compound with domain signals, evidence
+coverage, identifiers, and nearest ontology neighbors. `ChemicalTraitSummary`
 summarizes trait breadth by compound and trait type, while
-<code>ChemicalTraitSimilarity</code> compares compounds by shared and distinct traits.
-<code>DataDictionary</code>, <code>TableQuality</code>, <code>SourceDiagnostics</code>,
-<code>ValidationIssues</code>, and <code>ValidationSummary</code> document expected schemas
-and audit each result for missing tables, missing required columns, type
-mismatches, duplicate analysis keys, completeness, and source-specific coverage.</p>
+`ChemicalTraitSimilarity` compares compounds by shared and distinct traits.
+`DataDictionary`, `TableQuality`, `SourceDiagnostics`, `ValidationIssues`,
+and `ValidationSummary` document expected schemas and audit each result for
+missing tables, missing required columns, type mismatches, duplicate analysis
+keys, completeness, and source-specific coverage.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -266,7 +269,7 @@ library.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by <a href="https://landinstitute.org/about-us/staff/chase-stratton/" class="external-link">Chase Stratton</a>, <a href="https://landinstitute.org/about-us/staff/yvonne-thompson/" class="external-link">Yvonne Thompson</a>, Konilo Zio, <a href="https://www.researchgate.net/profile/William-Morrison" class="external-link">William Morrison</a>, <a href="https://landinstitute.org/about-us/staff/ebony-murrell/" class="external-link">Ebony Murrell</a>.</p>
+  <p>Developed by Chase Stratton, <a href="https://landinstitute.org/about-us/staff/yvonne-thompson/" class="external-link">Yvonne Thompson</a>, Konilo Zio, <a href="https://www.researchgate.net/profile/William-Morrison" class="external-link">William Morrison</a>, <a href="https://landinstitute.org/about-us/staff/ebony-murrell/" class="external-link">Ebony Murrell</a>.</p>
 </div>
 
 <div class="pkgdown-footer-right">

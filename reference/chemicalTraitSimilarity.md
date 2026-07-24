@@ -1,8 +1,8 @@
 # Compare chemicals by normalized traits
 
-`chemicalTraitSimilarity()` computes pairwise similarity from
-`ChemicalTraits`, a categorate result, or an already-built trait matrix.
-It reports shared and distinct trait counts plus collapsed
+\`chemicalTraitSimilarity()\` computes pairwise similarity from
+\`ChemicalTraits\`, a categorate result, or an already-built trait
+matrix. It reports shared and distinct trait counts plus collapsed
 shared/distinct matrix keys so researchers can quickly see why compounds
 group together.
 
@@ -23,18 +23,18 @@ chemicalTraitSimilarity(
 
 - traits:
 
-  A `ChemicalTraits` data frame, a categorate result containing
-  `ChemicalTraits`, or a trait matrix with `Query`/`CID` columns.
+  A \`ChemicalTraits\` data frame, a categorate result containing
+  \`ChemicalTraits\`, or a trait matrix with \`Query\`/\`CID\` columns.
 
 - profile:
 
-  Trait matrix profile used when `traits` is not already a matrix. See
-  [`chemicalTraitMatrix()`](https://castrattonDSU.github.io/uafR/reference/chemicalTraitMatrix.md).
+  Trait matrix profile used when \`traits\` is not already a matrix. See
+  \`chemicalTraitMatrix()\`.
 
 - min_confidence:
 
   Minimum confidence score for included traits. Accepts a numeric score
-  or `"low"`, `"medium"`, or `"high"`.
+  or \`"low"\`, \`"medium"\`, or \`"high"\`.
 
 - max_traits:
 

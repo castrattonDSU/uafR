@@ -1,7 +1,7 @@
 # Supplemental data set for Figure 1 in publication
 
 Contains summary data that was used for linear model figures/analyses of
-standards data.
+standards data
 
 ## Usage
 

@@ -1,0 +1,200 @@
+# Live and Large Plant Phytochemistry Queries
+
+## Scope
+
+This article documents optional live-provider work. Its code is not
+executed during package checks or website builds. Public services
+change, throttle requests, and occasionally become unavailable. Run a
+bounded pilot, retain provider diagnostics, and reuse persistent caches
+before scaling.
+
+Public-source results are reported evidence, not a complete metabolome
+and not proof of chemistry in a new experimental sample.
+
+## Configure NCBI responsibly
+
+Set NCBI contact information in the R session or operating-system
+environment. The API key is optional. Never commit it or place it in
+exported manifests.
+
+``` r
+
+Sys.setenv(
+  NCBI_EMAIL = "researcher@example.edu",
+  NCBI_TOOL = "uafR"
+)
+
+# Optional:
+# Sys.setenv(NCBI_API_KEY = "set-this-outside-version-control")
+```
+
+Without an API key, keep NCBI E-utilities requests at or below three per
+second, as specified in the [NCBI E-utilities
+guidance](https://www.ncbi.nlm.nih.gov/books/NBK25497/). uafR uses
+conservative defaults, caching, backoff, and resumable service-busy
+handling, but the user remains responsible for appropriate API use.
+
+## Start with a three-species pilot
+
+``` r
+
+library(uafR)
+
+plants = c("Salix nigra", "Camellia sinensis", "Zea mays")
+
+phyto = resolvePlantPhytochemistry(
+  plants = plants,
+  sources = c("lotus", "pubmed", "pubtator"),
+  taxon_fallback = c("species", "genus"),
+  enrich_compounds = FALSE,
+  cache = TRUE,
+  cache_dir = "uafR_plant_cache",
+  throttle = 0.5,
+  max_pubmed_records = 25,
+  max_provider_records = 100,
+  progress = TRUE
+)
+
+phyto$ProviderDiagnostics
+phyto$PlantCompoundOccurrences
+phyto$LiteratureCandidates
+validatePlantPhytochemistryResult(phyto)$Summary
+```
+
+Confirm that each enabled provider is reported as queried, unavailable,
+disabled, no-hit, incomplete, or successful. A transport error must not
+be interpreted as a biological no-hit.
+
+## Prefer a local LOTUS index
+
+For medium or large panels, download an official LOTUS export once,
+preserve its source URL and checksum, and build a local index:
+
+``` r
+
+lotus_build = buildLotusIndex(
+  input = "downloads/lotus_flat_export",
+  out_file = "uafR_indexes/lotus_index.rds",
+  overwrite = FALSE
+)
+
+lotus_hits = queryLotusIndex(
+  plants = plants,
+  lotus_index = "uafR_indexes/lotus_index.rds",
+  taxon_fallback = c("species", "genus"),
+  max_records = 500
+)
+
+phyto = resolvePlantPhytochemistry(
+  plants = plants,
+  sources = c("lotus", "pubmed", "pubtator"),
+  lotus_index = "uafR_indexes/lotus_index.rds",
+  enrich_compounds = FALSE,
+  cache = TRUE,
+  cache_dir = "uafR_plant_cache"
+)
+```
+
+Use `tools/flatten_lotus_mongo_dump.py` for official MongoDB ZIP exports
+when a flat file is not already available.
+
+## Preflight a large panel
+
+[`planPlantChemistryRun()`](https://castrattonDSU.github.io/uafR/reference/planPlantChemistryRun.md)
+validates input names and estimates request and pairwise-output burden
+without making live requests:
+
+``` r
+
+run_plan = planPlantChemistryRun(
+  plants = "project_species.csv",
+  sources = c(
+    "lotus",
+    "npass",
+    "knapsack",
+    "pubchem",
+    "pubmed",
+    "pubtator"
+  ),
+  cache_dir = "uafR_plant_cache",
+  lotus_index = "uafR_indexes/LOTUS_lookup_index",
+  expected_compounds_per_plant = 25,
+  write_full_pairwise = FALSE,
+  species_chunk_size = 25,
+  compound_batch_size = 25,
+  max_pubmed_records = 25
+)
+
+run_plan$InputNameAudit
+run_plan$ProviderPlan
+run_plan$CacheSummary
+run_plan$OutputEstimates
+run_plan$ReadinessChecks
+run_plan$Recommendations
+```
+
+Resolve blank, duplicate, genus-only, and `sp.`/`spp.` names before
+discovery. Supply reviewed taxonomy metadata rather than inferring
+family or accepted names without a source.
+
+## Use the resumable production panel
+
+Run preflight and pilot as separate gates:
+
+``` sh
+Rscript tools/run_plant_chemistry_panel.R \
+  --mode preflight \
+  --plant-csv project_species.csv \
+  --out-dir plant_phytochemistry_panel \
+  --cache-dir uafR_plant_cache \
+  --lotus-index uafR_indexes/LOTUS_lookup_index \
+  --sources lotus,npass,knapsack,pubchem,pubmed,pubtator \
+  --species-chunk-size 25 \
+  --compound-batch-size 25
+
+Rscript tools/run_plant_chemistry_panel.R \
+  --mode pilot \
+  --plant-csv project_species.csv \
+  --out-dir plant_phytochemistry_panel \
+  --cache-dir uafR_plant_cache \
+  --lotus-index uafR_indexes/LOTUS_lookup_index \
+  --sources lotus,npass,knapsack,pubchem,pubmed,pubtator \
+  --pilot-count 12
+```
+
+Review pilot provider coverage, context extraction, identity resolution,
+request counts, cache behavior, and service warnings before running
+`--mode discovery`. Exit status 75 is a safe pause. Re-run the same
+command later with the same input, output, cache, and index paths.
+
+## Enrichment and similarity gates
+
+Do not send every discovered name directly to rich PubChem/KEGG
+enrichment. Review identity resolution, prioritize source-backed
+structures, and retain a ledger of deferred or excluded names. Use
+[`estimateTanimotoOutput()`](https://castrattonDSU.github.io/uafR/reference/estimateTanimotoOutput.md)
+before requesting all compound-pair rows.
+
+Tanimoto calculations require structure-resolved compounds. Comparable
+plant summaries should be filtered by a defensible chemistry scope or
+group. Keep the unfiltered summary for audit, but do not treat unlike
+chemistry as directly comparable without a documented rationale.
+
+## Minimum handoff
+
+A production handoff should include:
+
+- immutable input and metadata snapshots;
+- provider and cache manifests;
+- direct, fallback, candidate, and no-hit diagnostics;
+- occurrence evidence and review decisions;
+- compound identity audit and exclusions;
+- enrichment validation;
+- comparable-chemistry dictionary and matrices;
+- Tanimoto summaries and pairwise-output manifest;
+- package version, release artifact, checksums, and session information;
+  and
+- explicit statements of unsupported claims.
+
+Run the relevant validation function after copying the final bundle to
+its handoff location.

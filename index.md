@@ -6,15 +6,16 @@ ONE](https://img.shields.io/badge/PLOS%20ONE-10.1371%2Fjournal.pone.0306202-0A7B
 [![License:
 MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://castrattonDSU.github.io/uafR/LICENSE)
 
-**uafR** is an R package for processing tentative compound
-identifications from GC–MS workflows. It prepares vendor-exported peak
-tables, aggregates detections across samples, extracts user-selected
-compounds, standardizes abundance, and adds structured chemical context
-from PubChem and KEGG.
+**uafR** provides reproducible workflows for tentative mass-spectrometry
+annotations, public-database chemical enrichment, species-first plant
+phytochemistry evidence, comparable chemistry, structural similarity,
+and validated research handoff bundles. Source diagnostics, evidence
+grades, identity review, and scientific guardrails preserve uncertainty
+and provenance for downstream analysis.
 
 ## What uafR does
 
-The package supports three connected workflows:
+The package supports five connected workflows:
 
 1.  **GC–MS data processing** Prepare raw peak tables with
     [`spreadOut()`](https://castrattonDSU.github.io/uafR/reference/spreadOut.md),
@@ -38,6 +39,45 @@ The package supports three connected workflows:
     [`validateCategorateResult()`](https://castrattonDSU.github.io/uafR/reference/validateCategorateResult.md)
     and
     [`exportCategorateWorkbook()`](https://castrattonDSU.github.io/uafR/reference/exportCategorateWorkbook.md).
+
+4.  **Species-first plant phytochemistry** Search supported public
+    sources for reported plant-compound relationships, retain direct and
+    fallback evidence separately, resolve compound identities, and build
+    species summaries with
+    [`resolvePlantPhytochemistry()`](https://castrattonDSU.github.io/uafR/reference/resolvePlantPhytochemistry.md).
+
+5.  **Comparable analysis and project handoff** Grade evidence, separate
+    biologically comparable chemistry, calculate PubChem Fingerprint2D
+    Tanimoto summaries, and export validated feature and analysis
+    bundles.
+
+## Choose a workflow
+
+| Starting point or goal | Recommended entry point |
+|----|----|
+| GC-MS hit table | [`spreadOut()`](https://castrattonDSU.github.io/uafR/reference/spreadOut.md), [`mzExacto()`](https://castrattonDSU.github.io/uafR/reference/mzExacto.md), [`standardifyIt()`](https://castrattonDSU.github.io/uafR/reference/standardifyIt.md) |
+| Compound names or PubChem CIDs | `categorate(detail = "research")` |
+| Small plant species list | [`resolvePlantPhytochemistry()`](https://castrattonDSU.github.io/uafR/reference/resolvePlantPhytochemistry.md) |
+| Curated plant-compound table | [`standardizePlantCompoundIntake()`](https://castrattonDSU.github.io/uafR/reference/standardizePlantCompoundIntake.md) and [`runPlantChemistryProject()`](https://castrattonDSU.github.io/uafR/reference/runPlantChemistryProject.md) |
+| Large plant panel | [`planPlantChemistryRun()`](https://castrattonDSU.github.io/uafR/reference/planPlantChemistryRun.md) and [`runPlantChemistryPanel()`](https://castrattonDSU.github.io/uafR/reference/runPlantChemistryPanel.md) |
+| Compound or plant structural similarity | [`chemicalTanimotoSimilarity()`](https://castrattonDSU.github.io/uafR/reference/chemicalTanimotoSimilarity.md) or [`plantChemicalTanimotoSimilarity()`](https://castrattonDSU.github.io/uafR/reference/plantChemicalTanimotoSimilarity.md) |
+| Model-ready plant chemistry features | [`exportPlantChemistryFeatureSet()`](https://castrattonDSU.github.io/uafR/reference/exportPlantChemistryFeatureSet.md) |
+| Portable analysis handoff | [`finalizePlantChemistryAnalysisBundle()`](https://castrattonDSU.github.io/uafR/reference/finalizePlantChemistryAnalysisBundle.md) |
+
+The same guidance is available from R:
+
+``` r
+
+uafRWorkflowGuide()
+uafRApiStability()
+uafRProviderContracts()
+uafRClaimGuidance()
+```
+
+Functions labeled `stable` are intended for reusable downstream scripts.
+Functions labeled `experimental` are available for research use but may
+gain provider-specific fields or diagnostics before the next stable
+release.
 
 ## Installation
 
@@ -273,6 +313,276 @@ manifest
 To write an Excel workbook, install `openxlsx` or `writexl` and provide
 an `.xlsx` path.
 
+## Species-first plant phytochemistry
+
+[`resolvePlantPhytochemistry()`](https://castrattonDSU.github.io/uafR/reference/resolvePlantPhytochemistry.md)
+starts with plant names and attempts to discover reported plant-compound
+relationships from enabled public providers. It returns normalized
+evidence, provider diagnostics, compound-resolution tables, species
+summaries, matrices, validation, a data dictionary, and provenance.
+
+A bounded exploratory query looks like this:
+
+``` r
+
+plants <- c("Salix nigra", "Camellia sinensis", "Zea mays")
+
+phyto <- resolvePlantPhytochemistry(
+  plants = plants,
+  sources = c("lotus", "pubmed", "pubtator"),
+  taxon_fallback = c("species", "genus"),
+  enrich_compounds = FALSE,
+  cache = TRUE,
+  cache_dir = "uafR_plant_cache",
+  max_pubmed_records = 25,
+  max_provider_records = 100,
+  throttle = 0.5
+)
+
+phyto$PlantCompoundOccurrences
+phyto$LiteratureCandidates
+phyto$ProviderDiagnostics
+phyto$SpeciesChemistrySummary
+
+plant_audit <- validatePlantPhytochemistryResult(phyto)
+plant_audit$Summary
+plant_audit$Issues
+```
+
+This example uses live services and may return different coverage as
+public databases change. Start with a few plants, keep caching enabled,
+and inspect `ProviderDiagnostics` before increasing the query size.
+
+### Run the offline example
+
+The package includes a small **simulated teaching fixture**. It tests
+the workflow without network access; it is not evidence that the listed
+compounds occur in the listed plants.
+
+``` r
+
+example_dir <- system.file(
+  "extdata",
+  "offline_plant_chemistry",
+  package = "uafR"
+)
+
+plants <- read.csv(
+  file.path(example_dir, "plant_list.csv"),
+  stringsAsFactors = FALSE
+)
+metadata <- read.csv(
+  file.path(example_dir, "plant_metadata.csv"),
+  stringsAsFactors = FALSE
+)
+plant_compounds <- read.csv(
+  file.path(example_dir, "plant_compounds.csv"),
+  stringsAsFactors = FALSE,
+  check.names = FALSE
+)
+compound_pairs <- read.csv(
+  file.path(example_dir, "plant_compound_pair_tanimoto.csv"),
+  stringsAsFactors = FALSE
+)
+
+offline_project <- runPlantChemistryProject(
+  plant_list = plants,
+  metadata = metadata,
+  plant_compounds = plant_compounds,
+  plant_compound_pair_tanimoto = compound_pairs,
+  output_dir = "offline-plant-example",
+  project_id = "simulated_offline_example",
+  overwrite = TRUE
+)
+
+bundle_dir <- offline_project$Project$bundle_dir[[1]]
+bundle_audit <- validatePlantChemistryAnalysisBundle(bundle_dir)
+bundle_audit$Summary
+```
+
+The same example can be regenerated from a repository checkout:
+
+``` sh
+Rscript tools/build_offline_plant_chemistry_example.R \
+  --out-dir offline-plant-example
+```
+
+### Use a curated plant-compound table
+
+Public-source discovery is necessarily incomplete. A locally reviewed
+table can enter the same data model:
+
+``` r
+
+curated <- read.csv("plant_compounds_reviewed.csv", stringsAsFactors = FALSE)
+occurrences <- standardizePlantCompoundIntake(curated)
+
+project <- runPlantChemistryProject(
+  plant_list = unique(curated$species),
+  plant_compounds = curated,
+  output_dir = "plant-chemistry-project",
+  project_id = "reviewed_curated_intake",
+  overwrite = TRUE
+)
+```
+
+At minimum, curated intake requires `species` and `compound_name`.
+Include `source_database`, `source_record_id`, `citation_or_url`,
+`evidence_tier`, `plant_part`, `tissue`, `method`, and review notes
+whenever those fields are available.
+
+### Use a local LOTUS index
+
+For medium or large panels, use an official LOTUS export locally rather
+than repeating broad live searches:
+
+``` r
+
+lotus_build <- buildLotusIndex(
+  input = "path/to/flat-lotus-export",
+  out_file = "uafR_indexes/lotus_index.rds",
+  overwrite = FALSE
+)
+
+lotus_hits <- queryLotusIndex(
+  plants = c("Salix nigra", "Zea mays"),
+  lotus_index = lotus_build$LotusIndex
+)
+
+phyto <- resolvePlantPhytochemistry(
+  plants = plants,
+  sources = c("lotus", "pubmed", "pubtator"),
+  lotus_index = "uafR_indexes/lotus_index.rds",
+  enrich_compounds = FALSE,
+  cache = TRUE,
+  cache_dir = "uafR_plant_cache"
+)
+```
+
+Raw LOTUS MongoDB downloads can be converted with
+`tools/flatten_lotus_mongo_dump.py`. The source URL, checksums, build
+manifest, and retrieval date should be retained with the resulting
+index.
+
+### Review evidence and identity
+
+Plant evidence remains separable by source and strength:
+
+``` r
+
+graded <- plantOccurrenceEvidenceGrade(
+  phyto$PlantCompoundOccurrences
+)
+
+direct <- filterPlantEvidenceDirect(graded)
+review_required <- filterPlantEvidenceReviewRequired(graded)
+
+identity_review <- plantCompoundIdentityReviewTable(
+  phyto
+)
+```
+
+Literature co-mentions are candidates, not confirmed occurrence records.
+Genus/family fallback remains separate from direct species evidence.
+Review decisions can be exported and replayed with the plant-evidence
+and compound-identity review helpers.
+
+### Separate comparable chemistry
+
+Do not mix primary metabolites, specialized metabolites, volatiles,
+lipids, and unknown chemistry without an explicit scientific reason:
+
+``` r
+
+comparability <- plantChemistryComparability(plant_compounds)
+
+comparable_matrix <- plantComparableChemistryMatrix(
+  comparability,
+  level = "species",
+  mode = "count"
+)
+
+chemistryComparisonDictionary()
+```
+
+Unknown, unresolved, and non-comparable compounds remain available for
+audit but are excluded from comparable matrices by default.
+
+### Calculate plant-labeled structural similarity
+
+Tanimoto workflows use source-backed, structure-resolved compounds:
+
+``` r
+
+similarity <- plantChemicalTanimotoSimilarity(
+  phyto,
+  out_dir = "plant-tanimoto",
+  cache_dir = "uafR_plant_cache/pubchem",
+  return_group_compound_pairs = FALSE
+)
+
+similarity$PlantPairTanimotoSummary
+similarity$ComparableScopeTanimotoSummary
+similarity$ComparableGroupTanimotoSummary
+```
+
+Structural similarity is not biological equivalence, shared function,
+pathway activity, or evidence of occurrence in a project sample.
+
+### Plan and run a large panel
+
+Preflight does not make live requests:
+
+``` r
+
+run_plan <- planPlantChemistryRun(
+  plants = "project_species.csv",
+  sources = c("lotus", "npass", "knapsack", "pubchem", "pubmed", "pubtator"),
+  cache_dir = "uafR_plant_cache",
+  lotus_index = "uafR_indexes/LOTUS_lookup_index",
+  species_chunk_size = 25,
+  compound_batch_size = 25,
+  max_pubmed_records = 25
+)
+
+run_plan$InputNameAudit
+run_plan$ProviderPlan
+run_plan$OutputEstimates
+run_plan$ReadinessChecks
+run_plan$Recommendations
+```
+
+Use
+[`runPlantChemistryPanel()`](https://castrattonDSU.github.io/uafR/reference/runPlantChemistryPanel.md)
+or its command-line wrapper for an audited, resumable production run:
+
+``` sh
+Rscript tools/run_plant_chemistry_panel.R \
+  --mode preflight \
+  --plant-csv project_species.csv \
+  --out-dir plant_phytochemistry_panel \
+  --cache-dir uafR_plant_cache \
+  --lotus-index uafR_indexes/LOTUS_lookup_index \
+  --sources lotus,npass,knapsack,pubchem,pubmed,pubtator
+```
+
+Run `pilot` before `discovery`. Exit status 75 means a public service
+requested a pause; rerun the same command later to resume from validated
+checkpoints and caches. Full pairwise compound output is opt-in because
+it can become very large.
+
+### Interpret plant results conservatively
+
+- A database record supports a reported association, not measured
+  chemistry in the current sample.
+- No returned record is a coverage limitation, not evidence of absence.
+- Direct species records are stronger than genus or family fallback.
+- PubMed/PubTator co-mentions remain candidate evidence unless reviewed.
+- Pathway annotations provide context, not evidence of pathway activity.
+- Natural-product occurrence in another organism does not establish
+  occurrence in the queried plant.
+- Tanimoto similarity describes structure, not efficacy or mechanism.
+
 ## Source-specific profiles
 
 ### PubChem
@@ -369,6 +679,17 @@ standardized <- standardifyIt(
 | [`chemicalMeasurementSummary()`](https://castrattonDSU.github.io/uafR/reference/chemicalMeasurementSummary.md) | Summarize normalized numeric measurements |
 | [`validateCategorateResult()`](https://castrattonDSU.github.io/uafR/reference/validateCategorateResult.md) | Audit schemas, completeness, duplicates, and source coverage |
 | [`exportCategorateWorkbook()`](https://castrattonDSU.github.io/uafR/reference/exportCategorateWorkbook.md) | Export curated CSV or Excel result bundles |
+| [`resolvePlantPhytochemistry()`](https://castrattonDSU.github.io/uafR/reference/resolvePlantPhytochemistry.md) | Discover reported species-first plant chemistry evidence |
+| [`buildLotusIndex()`](https://castrattonDSU.github.io/uafR/reference/buildLotusIndex.md) / [`queryLotusIndex()`](https://castrattonDSU.github.io/uafR/reference/queryLotusIndex.md) | Build and query scalable local LOTUS resources |
+| [`runPlantPhytochemistryBatch()`](https://castrattonDSU.github.io/uafR/reference/runPlantPhytochemistryBatch.md) | Run resumable species discovery in chunks |
+| [`runPlantChemistryPanel()`](https://castrattonDSU.github.io/uafR/reference/runPlantChemistryPanel.md) | Coordinate a staged production plant panel |
+| [`plantOccurrenceEvidenceGrade()`](https://castrattonDSU.github.io/uafR/reference/plantOccurrenceEvidenceGrade.md) | Assign conservative, reviewable evidence grades |
+| [`plantChemistryComparability()`](https://castrattonDSU.github.io/uafR/reference/plantChemistryComparability.md) | Separate biologically comparable chemistry scopes |
+| [`plantChemicalTanimotoSimilarity()`](https://castrattonDSU.github.io/uafR/reference/plantChemicalTanimotoSimilarity.md) | Calculate plant-labeled structure similarity |
+| [`runPlantChemistryProject()`](https://castrattonDSU.github.io/uafR/reference/runPlantChemistryProject.md) | Create a reusable local plant chemistry project |
+| [`exportPlantChemistryFeatureSet()`](https://castrattonDSU.github.io/uafR/reference/exportPlantChemistryFeatureSet.md) | Write analysis-neutral species feature matrices |
+| [`validatePlantChemistryAnalysisBundle()`](https://castrattonDSU.github.io/uafR/reference/validatePlantChemistryAnalysisBundle.md) | Audit final bundle schemas and references |
+| [`exportAiNsectMolOlfInputs()`](https://castrattonDSU.github.io/uafR/reference/exportAiNsectMolOlfInputs.md) | Export structure-resolved molecular-olfaction inputs |
 
 ## Reproducibility and network access
 
@@ -376,11 +697,16 @@ Several workflows query public web services. Results can change as
 external databases evolve.
 
 - Keep `cache = TRUE` for reusable PubChem and KEGG responses.
+- Use local LOTUS/NPASS indexes for medium or large species panels.
 - Store result objects and validation tables with each analysis.
 - Record the uafR version and session information.
 - Use bounded request limits and the default throttling settings.
 - Inspect `SourceCoverage`, `SourceDiagnostics`, and validation output
   before interpreting missing values.
+- Treat HTTP 429/503 responses as a pause signal; resume from the same
+  cache and output paths rather than restarting.
+- Never write NCBI API keys or other credentials into scripts,
+  command-line arguments, manifests, or exported data.
 
 Record the environment used for an analysis:
 
@@ -390,9 +716,21 @@ packageVersion("uafR")
 sessionInfo()
 ```
 
+### Migration note for pre-0.4 development outputs
+
+uafR 0.4 uses request-bound PubChem cache keys and production checkpoint
+schema `3.3.0`. Legacy PubChem caches are ignored where their keys
+cannot establish the exact request. Regenerate identity and Tanimoto
+products made with older development cache logic, and validate any
+resumed plant checkpoint before reuse. Production discovery defaults
+also use more conservative throttling and smaller batches than the
+earliest plant-workflow prototypes.
+
 ## Documentation and support
 
 - Function reference: <https://castrattonDSU.github.io/uafR/>
+- Public training materials:
+  [`training/`](https://castrattonDSU.github.io/uafR/training/)
 - Issues and bug reports: <https://github.com/castrattonDSU/uafR/issues>
 - Source code: <https://github.com/castrattonDSU/uafR>
 

@@ -1,11 +1,11 @@
 # Build a matrix from normalized chemical traits
 
-`chemicalTraitMatrix()` converts a `ChemicalTraits` table, or a
-`categorate(detail = "research")`/`categorate(detail = "full")` result,
-into a wide matrix for filtering, clustering, ordination, heatmaps, and
-model inputs. The long `ChemicalTraits` table remains the complete
-evidence table; this helper lets users choose compact or source-specific
-matrix views without rerunning web queries.
+\`chemicalTraitMatrix()\` converts a \`ChemicalTraits\` table, or a
+\`categorate(detail = "research")\`/\`categorate(detail = "full")\`
+result, into a wide matrix for filtering, clustering, ordination,
+heatmaps, and model inputs. The long \`ChemicalTraits\` table remains
+the complete evidence table; this helper lets users choose compact or
+source-specific matrix views without rerunning web queries.
 
 ## Usage
 
@@ -24,26 +24,26 @@ chemicalTraitMatrix(
 
 - traits:
 
-  A `ChemicalTraits` data frame or a categorate result list that
-  contains `ChemicalTraits`.
+  A \`ChemicalTraits\` data frame or a categorate result list that
+  contains \`ChemicalTraits\`.
 
 - profile:
 
-  Matrix profile. `"core"` keeps compact cross-domain grouping traits.
-  `"full"` keeps every eligible trait. Other profiles keep traits for
-  one analysis domain: `"bioactivity"`, `"safety"`, `"ecology"`,
-  `"kegg"`, `"sensory"`, or `"biomedical"`.
+  Matrix profile. \`"core"\` keeps compact cross-domain grouping traits.
+  \`"full"\` keeps every eligible trait. Other profiles keep traits for
+  one analysis domain: \`"bioactivity"\`, \`"safety"\`, \`"ecology"\`,
+  \`"kegg"\`, \`"sensory"\`, or \`"biomedical"\`.
 
 - mode:
 
-  Matrix value mode. `"binary"` stores 0/1 presence, `"count"` stores
-  trait-row counts, and `"confidence"` stores the maximum confidence
-  score for each compound-trait pair.
+  Matrix value mode. \`"binary"\` stores 0/1 presence, \`"count"\`
+  stores trait-row counts, and \`"confidence"\` stores the maximum
+  confidence score for each compound-trait pair.
 
 - min_confidence:
 
   Minimum confidence score for included traits. Accepts a numeric score
-  or `"low"`, `"medium"`, or `"high"`.
+  or \`"low"\`, \`"medium"\`, or \`"high"\`.
 
 - max_traits:
 
@@ -52,7 +52,7 @@ chemicalTraitMatrix(
 
 ## Value
 
-A data frame with `Query`, `CID`, and one column per selected trait.
+A data frame with \`Query\`, \`CID\`, and one column per selected trait.
 
 ## Examples
 

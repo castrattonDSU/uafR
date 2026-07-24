@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>uafR • uafR</title>
+<title>uafR: Reproducible Chemical and Plant-Chemistry Workflows • uafR</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
@@ -15,7 +15,7 @@
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="uafR">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="uafR: Reproducible Chemical and Plant-Chemistry Workflows">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">uafR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,12 +34,23 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="active nav-item"><a class="nav-link" href="../articles/uafR.html">Descriptive Walkthrough</a></li>
-<li class="nav-item"><a class="nav-link" href="../reference/index.html">Function Documentation</a></li>
+<li class="active nav-item"><a class="nav-link" href="../articles/uafR.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Getting started</h6></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Plant phytochemistry</h6></li>
+    <li><a class="dropdown-item" href="../articles/plant-phytochemistry-offline.html">Offline Plant Phytochemistry Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/plant-phytochemistry-live.html">Live and Large Plant Phytochemistry Queries</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/castrattonDSU/uafR/" aria-label="github"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/castrattonDSU/uafR/" aria-label="GitHub repository"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -52,7 +63,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.svg" class="logo" alt=""><h1>uafR</h1>
+      <img src="../logo.svg" class="logo" alt=""><h1>uafR: Reproducible Chemical and Plant-Chemistry Workflows</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/castrattonDSU/uafR/blob/main/vignettes/uafR.Rmd" class="external-link"><code>vignettes/uafR.Rmd</code></a></small>
@@ -62,1280 +73,517 @@
     
     
 <div class="section level2">
-<h2 id="automated-gclc-ms-data-processing">
-<span style="color: rgba(80, 0, 96, 1); font-size:120%; background-color: rgba(0, 0, 0, 0)">Automated
-GC/LC-MS data processing</span><a class="anchor" aria-label="anchor" href="#automated-gclc-ms-data-processing"></a>
+<h2 id="scope">Scope<a class="anchor" aria-label="anchor" href="#scope"></a>
 </h2>
-<hr>
-<p><span style="color: rgba(80, 0, 96, 1); font-size:215%; background:none">Nothing
-in life is to be feared; it is only to be understood.</span><br><span style="color: black; font-size:200%; background:none">–Marie
-Curie</span></p>
-<hr>
-<center>
-<div class="float">
-<img src="GraphicalAbstract.jpg" alt="Graphical Abstract"><div class="figcaption">Graphical Abstract</div>
-</div>
-</center>
-<style type="text/css">
-pre code {
-  white-space: pre-wrap;
-}
-</style>
-<div class="section level3">
-<h3 id="hello-chemical-world">
-<span style="color: rgba(80, 0, 96, 1); font-size:120%; background-color: rgba(0, 0, 0, 0.01)">Hello
-[Chemical] World!</span><a class="anchor" aria-label="anchor" href="#hello-chemical-world"></a>
-</h3>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">Chemistry plays
-an active role in every aspect of human existence. Whether it be the
-digested molecules of our food, the solid matrices of plastic and metal
-that comprise our technology, or the macromolecules that build and run
-our cells, the compositions are all chemical. To understand this aspect
-of our existence, there are advanced instruments and techniques that
-identify chemicals of any system to name. These precise instruments also
-allow the number of molecules for each individual chemical to be
-quantified across analyzed samples. While the output from these machines
-is immediately available, preparing the raw output for interpretive
-statistics can require hours/days of trained labor per sample and months
-per experiment. </span><br><br>
-       <span style="color: black; font-size:115%; background:inherit">To
-remove the bottleneck that exists between the acquisition of raw mass
-spectrometry output and the interpretation of chemicals across
-experimental treatments, we have developed advanced algorithms that
-automate the entire process. Ours is the first GC/LC-MS utility that
-accesses published information for every tentative compound to
-intelligently select portions of each sample that describe
-user-specified query chemicals. This information makes uafR the most
-accurate and advanced post GC/LC-MS processing application to
-date.</span>
-</div>
-</div>
-<div class="section level3">
-<h3 id="new-standard-mass-spectrometry-workflows">
-<span style="color: rgba(80, 0, 96, 1); font-size:120%; background-color: rgba(0, 0, 0, 0.01)">New
-Standard, Mass Spectrometry Workflows</span><a class="anchor" aria-label="anchor" href="#new-standard-mass-spectrometry-workflows"></a>
-</h3>
-<div class="section level4">
-<h4 id="input-data-structure">
-<span style="color: rgba(80, 0, 96, 1); font-size:120%; background-color: rgba(0, 0, 0, 0)">Input
-Data Structure</span><a class="anchor" aria-label="anchor" href="#input-data-structure"></a>
-</h4>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">The original
-workflow for uafR was developed using Agilent instruments and software.
-The recommended software for generating the necessary data in the
-default format (i.e. with correct column names) is <a href="https://www.agilent.com/cs/library/usermanuals/public/G3335-90187_Unknowns_Analysis_Familiarization-en.pdf" class="external-link">Unknowns
-Analysis</a>. That said, any software or utility that generates the
-necessary information can be used with simple modifications
-(e.g. changing the column names).</span>
-</div>
-<table class="table">
-<colgroup>
-<col width="13%">
-<col width="16%">
-<col width="16%">
-<col width="25%">
-<col width="14%">
-<col width="12%">
-</colgroup>
-<thead><tr class="header">
-<th align="center">Component.RT</th>
-<th align="center">Base.Peak.MZ</th>
-<th align="center">Component.Area</th>
-<th align="left">Compound.Name</th>
-<th align="center">Match.Factor</th>
-<th align="center">File.Name</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="center">8.229034</td>
-<td align="center">84.00</td>
-<td align="center">906.4701</td>
-<td align="left">Pipradrol</td>
-<td align="center">62.62271</td>
-<td align="center">Std_soln_07</td>
-</tr>
-<tr class="even">
-<td align="center">8.286703</td>
-<td align="center">120.00</td>
-<td align="center">209705.1878</td>
-<td align="left">Methyl salicylate</td>
-<td align="center">98.16152</td>
-<td align="center">Std_soln_00a</td>
-</tr>
-<tr class="odd">
-<td align="center">8.296408</td>
-<td align="center">119.99</td>
-<td align="center">30332.9022</td>
-<td align="left">Methyl salicylate</td>
-<td align="center">95.79911</td>
-<td align="center">Std_soln_00</td>
-</tr>
-<tr class="even">
-<td align="center">8.303958</td>
-<td align="center">120.00</td>
-<td align="center">6476.4785</td>
-<td align="left">Methyl salicylate</td>
-<td align="center">86.29569</td>
-<td align="center">Std_soln_07</td>
-</tr>
-<tr class="odd">
-<td align="center">8.348031</td>
-<td align="center">105.00</td>
-<td align="center">420.8119</td>
-<td align="left">3-Hexen-1-ol, benzoate, (Z)-</td>
-<td align="center">68.78156</td>
-<td align="center">Std_soln_00</td>
-</tr>
-<tr class="even">
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="left"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section level4">
-<h4 id="spread-it-out">
-<span style="color: rgba(80, 0, 96, 1); font-size:120%; background-color: rgba(0, 0, 0, 0)">Spread
-It Out</span><a class="anchor" aria-label="anchor" href="#spread-it-out"></a>
-</h4>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">The first step
-in the process is to convert the raw input to a format that downstream
-functions can work with. <code><a href="../reference/spreadOut.html">spreadOut()</a></code> prepares the read in
-.CSV for intelligent <strong><em>sorting</em></strong> (using retention
-times and published masses) then <strong><em>aggregation</em></strong>
-(using all published names and top m/z peaks) of sample portions that
-describe a chemical. A list containing all necessary information for the
-next function, <code><a href="../reference/mzExacto.html">mzExacto()</a></code>, is returned.</span><br>
-       <span style="color: black; font-size:115%; background:inherit">Contents of the
-list include matrices (here focused on methyl salicylate) that store:
-</span>
-</div>
+<p>uafR supports three related tasks:</p>
 <ol style="list-style-type: decimal">
-<li><span style="color: black; font-size:115%; background:inherit"><strong>chemical
-names</strong></span></li>
+<li>preparing tentative GC-MS library-hit tables for downstream
+analysis;</li>
+<li>enriching supplied compound identities with source-backed public
+database annotations; and</li>
+<li>organizing reported plant-compound evidence into auditable
+summaries, comparable-chemistry matrices, structural-similarity
+summaries, and portable project bundles.</li>
 </ol>
-<center>
-<table class="table">
-<thead><tr class="header">
-<th align="center">Sample_1</th>
-<th align="center">Sample_2</th>
-<th align="center">Sample_3</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">Pipradrol</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">Methyl salicylate</td>
-</tr>
-<tr class="odd">
-<td align="center">Methyl salicylate</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">Methyl salicylate</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td align="center">3-Hexen-1-ol, benzoate, (Z)-</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-</tr>
-</tbody>
-</table>
-</center>
-<ol start="2" style="list-style-type: decimal">
-<li><span style="color: black; font-size:115%; background:inherit"><strong>retention
-times</strong></span></li>
-</ol>
-<center>
-<table class="table">
-<thead><tr class="header">
-<th align="center">Sample_1</th>
-<th align="center">Sample_2</th>
-<th align="center">Sample_3</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">8.229033559</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">8.286703432</td>
-</tr>
-<tr class="odd">
-<td align="center">8.296408204</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">8.303958027</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td align="center">8.348031108</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-</tr>
-</tbody>
-</table>
-</center>
-<ol start="3" style="list-style-type: decimal">
-<li><span style="color: black; font-size:115%; background:inherit"><strong>match
-factors</strong></span></li>
-</ol>
-<center>
-<table class="table">
-<thead><tr class="header">
-<th align="center">Sample_1</th>
-<th align="center">Sample_2</th>
-<th align="center">Sample_3</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">62.62271472</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">98.16152088</td>
-</tr>
-<tr class="odd">
-<td align="center">95.79911297</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">86.29569222</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td align="center">68.78156469</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-</tr>
-</tbody>
-</table>
-</center>
-<ol start="4" style="list-style-type: decimal">
-<li><span style="color: black; font-size:115%; background:inherit"><strong>captured
-M/Z value</strong></span></li>
-</ol>
-<center>
-<table class="table">
-<thead><tr class="header">
-<th align="center">Sample_1</th>
-<th align="center">Sample_2</th>
-<th align="center">Sample_3</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">84</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">120</td>
-</tr>
-<tr class="odd">
-<td align="center">119.99</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">120</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td align="center">105</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-</tr>
-</tbody>
-</table>
-</center>
-<ol start="5" style="list-style-type: decimal">
-<li><span style="color: black; font-size:115%; background:inherit"><strong>exact
-mass data (if published)</strong></span></li>
-</ol>
-<center>
-<table class="table">
-<thead><tr class="header">
-<th align="center">Sample_1</th>
-<th align="center">Sample_2</th>
-<th align="center">Sample_3</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">267.162314293</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">152.047344113</td>
-</tr>
-<tr class="odd">
-<td align="center">152.047344113</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">152.047344113</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td align="center">204.115029749</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-</tr>
-</tbody>
-</table>
-</center>
-<ol start="6" style="list-style-type: decimal">
-<li><span style="color: black; font-size:115%; background:inherit"><strong>raw
-area values</strong></span></li>
-</ol>
-<center>
-<table class="table">
-<thead><tr class="header">
-<th align="center">Sample_1</th>
-<th align="center">Sample_2</th>
-<th align="center">Sample_3</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">906.4700739</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">209705.1878</td>
-</tr>
-<tr class="odd">
-<td align="center">30332.90221</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">6476.478451</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td align="center">420.8119135</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-</tr>
-</tbody>
-</table>
-</center>
-<ol start="7" style="list-style-type: decimal">
-<li><span style="color: black; font-size:115%; background:inherit"><strong>a
-unique code for each input data point (retention time pasted to exact
-mass)</strong></span></li>
-</ol>
-<center>
-<table class="table">
-<colgroup>
-<col width="31%">
-<col width="37%">
-<col width="31%">
-</colgroup>
-<thead><tr class="header">
-<th align="center">Sample_1</th>
-<th align="center">Sample_2</th>
-<th align="center">Sample_3</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">8.229033559 | 267.162314293</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">8.286703432 | 152.047344113</td>
-</tr>
-<tr class="odd">
-<td align="center">8.296408204 | 152.047344113</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">8.303958027 | 152.047344113</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="odd">
-<td align="center">8.348031108 | 204.115029749</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-</tr>
-</tbody>
-</table>
-</center>
-<ol start="8" style="list-style-type: decimal">
-<li><span style="color: black; font-size:115%; background:inherit"><strong>and a
-nested list with</strong>: </span></li>
-</ol>
-<ul>
-<li><span style="color: black; font-size:115%; background:inherit"><em>all
-published chemical names</em> (only first 5 are shown)</span></li>
-</ul>
-<pre><code><span><span class="co">#&gt; [1] "methyl salicylate"        "Methyl 2-hydroxybenzoate"</span></span>
-<span><span class="co">#&gt; [3] "119-36-8"                 "Wintergreen oil"         </span></span>
-<span><span class="co">#&gt; [5] "Gaultheria oil"</span></span></code></pre>
-<ul>
-<li><span style="color: black; font-size:115%; background:inherit"><em>top m/z
-peaks</em></span></li>
-</ul>
-<pre><code><span><span class="co">#&gt; [1] "120" "92"  "152" "121" "65"</span></span></code></pre>
-<ul>
-<li><span style="color: black; font-size:115%; background:inherit"><em>exact
-mass</em></span></li>
-</ul>
-<pre><code><span><span class="co">#&gt; [1] 152.0473</span></span></code></pre>
-<ul>
-<li><span style="color: black; font-size:115%; background:inherit"><em>and likely
-retention times for the query chemicals.</em></span></li>
-</ul>
-<pre><code><span><span class="co">#&gt; [1] 8.286703</span></span></code></pre>
-</div>
-<div class="section level4">
-<h4 id="extract-your-chemicals">
-<span style="color: rgba(80, 0, 96, 1); font-size:120%; background-color: rgba(0, 0, 0, 0)">Extract
-Your Chemicals</span><a class="anchor" aria-label="anchor" href="#extract-your-chemicals"></a>
-</h4>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">The output from
-<code><a href="../reference/spreadOut.html">spreadOut()</a></code> is like a searchable chemical database where
-each entry has every published, uniquely identifying feature assigned to
-it. <code><a href="../reference/mzExacto.html">mzExacto()</a></code> collects the same information for a set of
-query chemicals and uses it to precisely search the advanced dictionary
-for samples that have those chemicals. </span><br>
-       <span style="color: black; font-size:115%; background:inherit">In
-many cases, users will already know what they are looking for. In
-others, they won’t. </span>
-</div>
-<hr>
-<div class="section level5">
-<h5 id="when-chemicals-are-known">
-<span style="color: rgba(80, 0, 96, 1); font-size:120%; background-color: rgba(0, 0, 0, 0)">When
-Chemicals are Known </span><a class="anchor" aria-label="anchor" href="#when-chemicals-are-known"></a>
-</h5>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">While there are
-multiple ways to create a list of input chemicals [see
-<code><a href="../reference/personalLib.html">personalLib()</a></code>], a simple method for smaller searches is to
-just type quotes around the search names in a list:</span>
-</div>
-<p><span style="color: black; font-size:135%; background:inherit">
-<strong><code>query_chemicals = c("Ethyl hexanoate", "Methyl salicylate", "Octanal", "Undecane")</code></strong>
-</span></p>
-<p><span style="color: black; font-size:115%; background:inherit"><code><a href="../reference/mzExacto.html">mzExacto()</a></code>
-takes the output from spreadOut() [<code>standard_spread</code>] and
-this list of <code>query_chemicals</code>: </span></p>
-<p><span style="color: black; font-size:135%; background:inherit">
-<strong><code>mzExacto(standard_spread, query_chemicals)</code></strong>
-</span></p>
-<p><span style="color: black; font-size:115%; background:inherit">returning a
-single dataframe with all of the necessary information for downstream
-functions and, ultimately, interpretation.</span></p>
+<p>These workflows answer different questions. A GC-MS library hit is a
+tentative annotation unless confirmed with an appropriate analytical
+standard. A database record reports what a source says; it does not
+establish that a compound occurs in a new sample. A plant-compound
+record is evidence of reported occurrence, not a complete metabolome.
+Structural similarity is not proof of shared function, pathway activity,
+exposure, or efficacy.</p>
+<p>Start with the workflow guide:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="../reference/uafRWorkflowGuide.html">uafRWorkflowGuide</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  <span class="st">"user_has"</span>, <span class="st">"primary_functions"</span>, <span class="st">"stability"</span></span>
+<span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <table style="width:100%;" class="table">
 <colgroup>
-<col width="20%">
+<col width="23%">
+<col width="66%">
+<col width="10%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">user_has</th>
+<th align="left">primary_functions</th>
+<th align="left">stability</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">GC-MS hit table</td>
+<td align="left">spreadOut(); mzExacto(); exactoThese()</td>
+<td align="left">stable</td>
+</tr>
+<tr class="even">
+<td align="left">compound names or PubChem CIDs</td>
+<td align="left">categorate(detail = ‘research’); pubchemProfile();
+keggProfile()</td>
+<td align="left">stable</td>
+</tr>
+<tr class="odd">
+<td align="left">plant species list</td>
+<td align="left">resolvePlantPhytochemistry();
+validatePlantPhytochemistryResult()</td>
+<td align="left">experimental</td>
+</tr>
+<tr class="even">
+<td align="left">curated plant-compound table</td>
+<td align="left">standardizePlantCompoundIntake();
+runPlantChemistryProject()</td>
+<td align="left">stable</td>
+</tr>
+<tr class="odd">
+<td align="left">large plant panel</td>
+<td align="left">planPlantChemistryRun(); runPlantChemistryPanel();
+runPlantPhytochemistryBatch()</td>
+<td align="left">experimental</td>
+</tr>
+<tr class="even">
+<td align="left">compound or plant groups for Tanimoto</td>
+<td align="left">chemicalTanimotoSimilarity();
+plantChemicalTanimotoSimilarity(); plantComparableTanimotoSummary()</td>
+<td align="left">stable</td>
+</tr>
+<tr class="odd">
+<td align="left">analysis bundle for downstream modeling</td>
+<td align="left">finalizePlantChemistryAnalysisBundle();
+validatePlantChemistryAnalysisBundle();
+exportPlantChemistryFeatureSet()</td>
+<td align="left">stable</td>
+</tr>
+<tr class="even">
+<td align="left">student training package</td>
+<td align="left">tools/build_student_bundle.R;
+tools/student_bundle/*</td>
+<td align="left">project_specific</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level2">
+<h2 id="core-gc-ms-workflow">Core GC-MS workflow<a class="anchor" aria-label="anchor" href="#core-gc-ms-workflow"></a>
+</h2>
+<p><code><a href="../reference/spreadOut.html">spreadOut()</a></code> expects a data frame with the columns
+<code>Component.RT</code>, <code>Component.Area</code>,
+<code>Base.Peak.MZ</code>, <code>File.Name</code>,
+<code>Compound.Name</code>, and <code>Match.Factor</code>. It validates
+those columns and rejects duplicate peak keys before performing live
+identity and mass lookups. <code><a href="../reference/mzExacto.html">mzExacto()</a></code> uses the spread
+object and a supplied chemical list to aggregate candidate peak areas.
+<code><a href="../reference/exactoThese.html">exactoThese()</a></code> can derive a query list from an existing
+categorate result.</p>
+<p>The following is verified against the current function signatures,
+but is not run while building this vignette because
+<code><a href="../reference/spreadOut.html">spreadOut()</a></code> and <code><a href="../reference/mzExacto.html">mzExacto()</a></code> use live
+services:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">hits</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"gcms_hit_table.csv"</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">spread</span> <span class="op">=</span> <span class="fu"><a href="../reference/spreadOut.html">spreadOut</a></span><span class="op">(</span><span class="va">hits</span><span class="op">)</span></span>
+<span><span class="va">query_compounds</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"methyl salicylate"</span>, <span class="st">"octanal"</span><span class="op">)</span></span>
+<span><span class="va">selected</span> <span class="op">=</span> <span class="fu"><a href="../reference/mzExacto.html">mzExacto</a></span><span class="op">(</span><span class="va">spread</span>, <span class="va">query_compounds</span>, decontaminate <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># A categorate result can also define the query list.</span></span>
+<span><span class="va">query_from_sources</span> <span class="op">=</span> <span class="fu"><a href="../reference/exactoThese.html">exactoThese</a></span><span class="op">(</span></span>
+<span>  categoratedInput <span class="op">=</span> <span class="va">categorate_result</span>,</span>
+<span>  subsetBy <span class="op">=</span> <span class="st">"Database"</span>,</span>
+<span>  subsetArgs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"LOTUS"</span>, <span class="st">"KEGG"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Inspect input row counts, duplicate keys, missing values, match
+factors, retention times, and area distributions before interpreting
+<code>selected</code>. Record the instrument, library, search settings,
+filters, software versions, and whether authentic standards were
+used.</p>
+</div>
+<div class="section level2">
+<h2 id="research-grade-compound-enrichment">Research-grade compound enrichment<a class="anchor" aria-label="anchor" href="#research-grade-compound-enrichment"></a>
+</h2>
+<p><code>categorate(detail = "research")</code> adds PubChem and KEGG
+profiles, source coverage, normalized traits, evidence tables, and
+validation outputs to the standard categorate tables. Live enrichment
+should begin with a small smoke test, a persistent cache, and
+conservative request spacing:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"library_data"</span>, package <span class="op">=</span> <span class="st">"uafR"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">result</span> <span class="op">=</span> <span class="fu"><a href="../reference/categorate.html">categorate</a></span><span class="op">(</span></span>
+<span>  compounds <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"aspirin"</span>, <span class="st">"caffeine"</span><span class="op">)</span>,</span>
+<span>  chemical_library <span class="op">=</span> <span class="va">library_data</span>,</span>
+<span>  detail <span class="op">=</span> <span class="st">"research"</span>,</span>
+<span>  cache <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  cache_dir <span class="op">=</span> <span class="st">"uafR_cache"</span>,</span>
+<span>  throttle <span class="op">=</span> <span class="fl">0.5</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">validation</span> <span class="op">=</span> <span class="fu"><a href="../reference/validateCategorateResult.html">validateCategorateResult</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
+<span><span class="va">validation</span><span class="op">$</span><span class="va">Summary</span></span>
+<span><span class="va">result</span><span class="op">$</span><span class="va">DataDictionary</span></span></code></pre></div>
+<p>Do not infer experimental presence from enrichment output. Inspect
+<code>SourceCoverage</code>, source-specific evidence, unresolved
+identities, and validation warnings before selecting analysis
+variables.</p>
+</div>
+<div class="section level2">
+<h2 id="complete-offline-plant-chemistry-project">Complete offline plant-chemistry project<a class="anchor" aria-label="anchor" href="#complete-offline-plant-chemistry-project"></a>
+</h2>
+<p>The package includes a small <strong>simulated teaching
+fixture</strong>. Its plant-compound rows and source labels are
+intentionally synthetic and are not evidence that the listed compounds
+occur in the listed plants. The fixture exercises the real project,
+grading, classification, feature-export, Tanimoto-summary, and
+validation code without making network requests.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">example_dir</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span></span>
+<span>  <span class="st">"extdata"</span>, <span class="st">"offline_plant_chemistry"</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"uafR"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="va">example_dir</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">project_dir</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">"uafr_offline_project_"</span><span class="op">)</span></span>
+<span><span class="va">project</span> <span class="op">=</span> <span class="fu"><a href="../reference/runPlantChemistryProject.html">runPlantChemistryProject</a></span><span class="op">(</span></span>
+<span>  plant_list <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">example_dir</span>, <span class="st">"plant_list.csv"</span><span class="op">)</span>,</span>
+<span>  metadata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">example_dir</span>, <span class="st">"plant_metadata.csv"</span><span class="op">)</span>,</span>
+<span>  plant_compounds <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">example_dir</span>, <span class="st">"plant_compounds.csv"</span><span class="op">)</span>,</span>
+<span>  plant_compound_pair_tanimoto <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span></span>
+<span>    <span class="va">example_dir</span>, <span class="st">"plant_compound_pair_tanimoto.csv"</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  output_dir <span class="op">=</span> <span class="va">project_dir</span>,</span>
+<span>  project_id <span class="op">=</span> <span class="st">"simulated_offline_example"</span>,</span>
+<span>  overwrite <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">bundle_dir</span> <span class="op">=</span> <span class="va">project</span><span class="op">$</span><span class="va">Project</span><span class="op">$</span><span class="va">bundle_dir</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">validation</span> <span class="op">=</span> <span class="fu"><a href="../reference/validatePlantChemistryAnalysisBundle.html">validatePlantChemistryAnalysisBundle</a></span><span class="op">(</span><span class="va">bundle_dir</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">validation</span><span class="op">$</span><span class="va">Summary</span><span class="op">$</span><span class="va">ExportReadyStatus</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, <span class="st">"pass"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">validation</span><span class="op">$</span><span class="va">Summary</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="6%">
+<col width="6%">
+<col width="6%">
+<col width="6%">
+<col width="12%">
+<col width="9%">
+<col width="9%">
 <col width="14%">
-<col width="12%">
-<col width="12%">
+<col width="9%">
+<col width="7%">
+<col width="9%">
+</colgroup>
+<thead><tr class="header">
+<th align="right">CSVFileCount</th>
+<th align="right">CSVPassCount</th>
+<th align="right">CSVWarnCount</th>
+<th align="right">CSVFailCount</th>
+<th align="right">RequiredColumnFailCount</th>
+<th align="right">ArtifactWarnCount</th>
+<th align="right">ArtifactFailCount</th>
+<th align="right">ManifestReferenceFailCount</th>
+<th align="left">PythonCsvChecked</th>
+<th align="left">PandasChecked</th>
+<th align="left">ExportReadyStatus</th>
+</tr></thead>
+<tbody><tr class="odd">
+<td align="right">23</td>
+<td align="right">23</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="left">No</td>
+<td align="left">No</td>
+<td align="left">pass</td>
+</tr></tbody>
+</table>
+<p>The finalized bundle retains the full supplied evidence while making
+review and analysis subsets explicit:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">membership</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">bundle_dir</span>, <span class="st">"03b_PlantCompoundMembershipEnriched.csv"</span><span class="op">)</span>,</span>
+<span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  check.names <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">grade_summary</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">bundle_dir</span>, <span class="st">"16_EvidenceGradeSummary.csv"</span><span class="op">)</span>,</span>
+<span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  check.names <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">direct</span> <span class="op">=</span> <span class="fu"><a href="../reference/filterPlantEvidenceDirect.html">filterPlantEvidenceDirect</a></span><span class="op">(</span><span class="va">membership</span><span class="op">)</span></span>
+<span><span class="va">comparable</span> <span class="op">=</span> <span class="fu"><a href="../reference/filterPlantEvidenceComparable.html">filterPlantEvidenceComparable</a></span><span class="op">(</span><span class="va">membership</span><span class="op">)</span></span>
+<span><span class="va">review_required</span> <span class="op">=</span> <span class="fu"><a href="../reference/filterPlantEvidenceReviewRequired.html">filterPlantEvidenceReviewRequired</a></span><span class="op">(</span><span class="va">membership</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">grade_summary</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<colgroup>
 <col width="13%">
-<col width="12%">
-<col width="14%">
-</colgroup>
-<thead><tr class="header">
-<th>Compound</th>
-<th>Mass</th>
-<th>RT</th>
-<th>Best Match</th>
-<th>Std_soln_00</th>
-<th>Std_soln_07</th>
-<th>Std_soln_00a</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>Octanal</td>
-<td>128.120115130</td>
-<td>5.462089753</td>
-<td>99.32456762</td>
-<td>379178.88653</td>
-<td>30943.11385</td>
-<td>125725.8982</td>
-</tr>
-<tr class="even">
-<td>Ethyl hexanoate</td>
-<td>144.115029749</td>
-<td>5.379718874</td>
-<td>99.35011811</td>
-<td>263866.0427</td>
-<td>9896.488149</td>
-<td>294869.1357</td>
-</tr>
-<tr class="odd">
-<td>Methyl salicylate</td>
-<td>152.047344113</td>
-<td>8.295689887</td>
-<td>98.16152088</td>
-<td>30332.90221</td>
-<td>6476.478451</td>
-<td>209705.1878</td>
-</tr>
-<tr class="even">
-<td>Undecane</td>
-<td>156.187800766</td>
-<td>6.129191467</td>
-<td>98.6771852</td>
-<td>86270.05019</td>
-<td>243.9123731</td>
-<td>238776.2287</td>
-</tr>
-</tbody>
-</table>
-<hr>
-</div>
-<div class="section level5">
-<h5 id="when-typesclasses-of-chemicals-are-known">
-<span style="color: rgba(80, 0, 96, 1); font-size:120%; background-color: rgba(0, 0, 0, 0)">When
-Types/Classes of Chemicals are Known </span><a class="anchor" aria-label="anchor" href="#when-typesclasses-of-chemicals-are-known"></a>
-</h5>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit"><code><a href="../reference/categorate.html">categorate()</a></code>
-is an overpowered function that accesses a broad array of categorical
-data for searched chemicals. Here we present a single application from
-the output of <code><a href="../reference/categorate.html">categorate()</a></code> that could help in GC/LC-MS
-analyses where classes/types of chemical groupings are known, but not
-specific compounds. For a detailed overview of additional chemistry
-workflows (e.g. meta-analyses) that <code><a href="../reference/categorate.html">categorate()</a></code> could
-catalyze, we recommend the companion manuscript (linked when
-published).</span><br>
-       <span style="color: black; font-size:115%; background:inherit">A
-required input for running <code><a href="../reference/categorate.html">categorate()</a></code> is a library to
-perform structural matches against. This library is a .CSV file that can
-contain as many sets of chemicals as the user’s hardware can handle. For
-the following example, we have restricted our search to 4 sets of
-chemicals that we know are structurally similar to our query chemicals
-from the previous section (Types B, C, D, and E below) and one set that
-should not have any matches (Type A).</span>
-</div>
-<table class="table">
-<colgroup>
-<col width="42%">
-<col width="20%">
+<col width="6%">
+<col width="13%">
+<col width="5%">
+<col width="4%">
+<col width="4%">
+<col width="6%">
 <col width="8%">
-<col width="16%">
-<col width="12%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">Type.A</th>
-<th align="left">Type.B</th>
-<th align="left">Type.C</th>
-<th align="left">Type.D</th>
-<th align="left">Type.E</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">2-Aminothiazole</td>
-<td align="left">o-Cresol</td>
-<td align="left">Nonane</td>
-<td align="left">Butyl methacrylate</td>
-<td align="left">Octane</td>
-</tr>
-<tr class="even">
-<td align="left">3,4,5,6-Tetrachlorocyclohexene</td>
-<td align="left">Salicylic Acid</td>
-<td align="left">Dodecane</td>
-<td align="left">Isobutyl hexanoate</td>
-<td align="left">Octanoic acid</td>
-</tr>
-<tr class="odd">
-<td align="left">N-methyl-1,3,5-triazin-2-amine</td>
-<td align="left">Guaiacol</td>
-<td align="left">Tridecane</td>
-<td align="left">Ethyl heptanoate</td>
-<td align="left">1-Octanol</td>
-</tr>
-<tr class="even">
-<td align="left">2-Methyloctahydro-2-azacyclopropa[cd]pentalene</td>
-<td align="left">Aspirin</td>
-<td align="left"><na></na></td>
-<td align="left">Methyl hexanoate</td>
-<td align="left">Hexadecanal</td>
-</tr>
-<tr class="odd">
-<td align="left"><na></na></td>
-<td align="left">Salicyl alcohol</td>
-<td align="left"><na></na></td>
-<td align="left">Methyl heptanoate</td>
-<td align="left">Decanal</td>
-</tr>
-<tr class="even">
-<td align="left"><na></na></td>
-<td align="left">4-Methylsalicylic acid</td>
-<td align="left"><na></na></td>
-<td align="left">Dihexyl adipate</td>
-<td align="left">Undecanal</td>
-</tr>
-<tr class="odd">
-<td align="left"><na></na></td>
-<td align="left"><na></na></td>
-<td align="left"><na></na></td>
-<td align="left">2-Heptanone</td>
-<td align="left">Hexyl acetate</td>
-</tr>
-</tbody>
-</table>
-<div class="line-block">       <span style="color: black; font-size:115%; background-color: rgba(0, 0, 0, 0)">
-To perform the chemical structure matches and summarize atomic features,
-uafR taps into an amazing set of cheminformatics packages – <a href="https://www.bioconductor.org/packages/release/bioc/html/ChemmineR.html" class="external-link">ChemmineR</a>,
-<a href="https://bioconductor.org/packages/release/bioc/html/fmcsR.html" class="external-link">fmcsR</a>,
-<a href="https://cran.r-project.org/web/packages/webchem/index.html" class="external-link">webchem</a>.
-The library tests return the following data frames:</span>
-</div>
-<table class="table">
-<colgroup>
-<col width="8%">
-<col width="10%">
-<col width="10%">
-<col width="10%">
-<col width="10%">
-<col width="50%">
-</colgroup>
-<thead><tr class="header">
-<th align="center">Type.A</th>
-<th align="center">Type.B</th>
-<th align="center">Type.C</th>
-<th align="center">Type.D</th>
-<th align="center">Type.E</th>
-<th align="right">Chemical</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="center">No</td>
-<td align="center">No</td>
-<td align="center">No</td>
-<td align="center">Yes</td>
-<td align="center">~</td>
-<td align="right">ethyl hexanoate</td>
-</tr>
-<tr class="even">
-<td align="center">No</td>
-<td align="center">Yes</td>
-<td align="center">No</td>
-<td align="center">No</td>
-<td align="center">No</td>
-<td align="right">methyl salicylate</td>
-</tr>
-<tr class="odd">
-<td align="center">No</td>
-<td align="center">No</td>
-<td align="center">~</td>
-<td align="center">~</td>
-<td align="center">Yes</td>
-<td align="right">octanal</td>
-</tr>
-<tr class="even">
-<td align="center">No</td>
-<td align="center">No</td>
-<td align="center">Yes</td>
-<td align="center">~</td>
-<td align="center">Yes</td>
-<td align="right">undecane</td>
-</tr>
-</tbody>
-</table>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">Where “No”
-means none of the chemicals had a structural match, “~” refers to at
-least 1 match between 0.85 and 0.95, and “Yes” means there was at least
-1 match exceeding 0.95.</span>
-</div>
-<table class="table">
-<colgroup>
-<col width="8%">
-<col width="10%">
-<col width="10%">
-<col width="10%">
-<col width="10%">
-<col width="50%">
-</colgroup>
-<thead><tr class="header">
-<th align="center">Type.A</th>
-<th align="center">Type.B</th>
-<th align="center">Type.C</th>
-<th align="center">Type.D</th>
-<th align="center">Type.E</th>
-<th align="right">Chemical</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="center">No</td>
-<td align="center">No</td>
-<td align="center">No</td>
-<td align="center">CMP2</td>
-<td align="center">No</td>
-<td align="right">ethyl hexanoate</td>
-</tr>
-<tr class="even">
-<td align="center">No</td>
-<td align="center">CMP1</td>
-<td align="center">No</td>
-<td align="center">No</td>
-<td align="center">No</td>
-<td align="right">methyl salicylate</td>
-</tr>
-<tr class="odd">
-<td align="center">No</td>
-<td align="center">No</td>
-<td align="center">No</td>
-<td align="center">No</td>
-<td align="center">CMP1</td>
-<td align="right">octanal</td>
-</tr>
-<tr class="even">
-<td align="center">No</td>
-<td align="center">No</td>
-<td align="center">CMP1</td>
-<td align="center">No</td>
-<td align="center">CMP1</td>
-<td align="right">undecane</td>
-</tr>
-</tbody>
-</table>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">Where the first
-compound in a set that had a match exceeding 0.95 is shown. The number
-following “CMP” refers tells the user which compound was a match (i.e. 1
-refers to the topmost chemical in the group), so ethyl hexanoate was
-more structurally similar to isobutyl hexanoate than butyl methacrylate.
-Makes sense!</span><br>
-       <span style="color: black; font-size:115%; background:inherit">As
-can be seen, our library did a great job pulling out the chemicals of
-interest from the previous example. However, some studies may have even
-less direction to go off of. In these cases, the atomic/functional group
-summary provided by <a href="https://bioconductor.org/packages/release/bioc/html/fmcsR.html" class="external-link">fmcsR</a>
-can also help navigate:</span>
-</div>
-<table class="table">
-<colgroup>
+<col width="5%">
+<col width="7%">
 <col width="24%">
-<col width="12%">
-<col width="19%">
-<col width="10%">
-<col width="20%">
-<col width="12%">
 </colgroup>
 <thead><tr class="header">
-<th align="left">Chemical</th>
-<th align="center">Groups</th>
-<th align="center">GroupCounts</th>
-<th align="center">Atom</th>
-<th align="center">AtomCounts</th>
-<th align="center">NCharges</th>
+<th align="left">evidence_grade</th>
+<th align="right">evidence_grade_rank</th>
+<th align="left">evidence_grade_label</th>
+<th align="right">occurrence_count</th>
+<th align="right">species_count</th>
+<th align="right">compound_count</th>
+<th align="right">source_backed_count</th>
+<th align="right">structure_resolved_count</th>
+<th align="right">comparable_count</th>
+<th align="right">review_required_count</th>
+<th align="left">recommended_use</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">ethyl hexanoate</td>
-<td align="center">RCOOH</td>
-<td align="center">0</td>
-<td align="center">H</td>
-<td align="center">16</td>
-<td align="center">0</td>
+<td align="left">direct_species_database_record</td>
+<td align="right">1</td>
+<td align="left">Direct species database record</td>
+<td align="right">9</td>
+<td align="right">5</td>
+<td align="right">8</td>
+<td align="right">9</td>
+<td align="right">0</td>
+<td align="right">7</td>
+<td align="right">0</td>
+<td align="left">Useful for occurrence summaries but not structure-based
+Tanimoto analyses.</td>
 </tr>
 <tr class="even">
-<td align="left">ethyl hexanoate</td>
-<td align="center">RCOOR</td>
-<td align="center">1</td>
-<td align="center">O</td>
-<td align="center">2</td>
-<td align="center">0</td>
+<td align="left">direct_species_literature_supported_record</td>
+<td align="right">2</td>
+<td align="left">Direct species literature-supported record</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="left">Useful for occurrence summaries but not structure-based
+Tanimoto analyses.</td>
 </tr>
 <tr class="odd">
-<td align="left">ethyl hexanoate</td>
-<td align="center">ROR</td>
-<td align="center">0</td>
-<td align="center">C</td>
-<td align="center">8</td>
-<td align="center">0</td>
-</tr>
-<tr class="even">
-<td align="left">methyl salicylate</td>
-<td align="center">ROH</td>
-<td align="center">1</td>
-<td align="center">H</td>
-<td align="center">8</td>
-<td align="center">0</td>
-</tr>
-<tr class="odd">
-<td align="left">methyl salicylate</td>
-<td align="center">RCOOR</td>
-<td align="center">1</td>
-<td align="center">O</td>
-<td align="center">3</td>
-<td align="center">0</td>
-</tr>
-<tr class="even">
-<td align="left">methyl salicylate</td>
-<td align="center">RCOR</td>
-<td align="center">0</td>
-<td align="center">C</td>
-<td align="center">8</td>
-<td align="center">0</td>
-</tr>
-<tr class="odd">
-<td align="left">octanal</td>
-<td align="center">ROH</td>
-<td align="center">0</td>
-<td align="center">H</td>
-<td align="center">16</td>
-<td align="center">0</td>
-</tr>
-<tr class="even">
-<td align="left">octanal</td>
-<td align="center">RCHO</td>
-<td align="center">1</td>
-<td align="center">O</td>
-<td align="center">1</td>
-<td align="center">0</td>
-</tr>
-<tr class="odd">
-<td align="left">octanal</td>
-<td align="center">RCOR</td>
-<td align="center">0</td>
-<td align="center">C</td>
-<td align="center">8</td>
-<td align="center">0</td>
-</tr>
-<tr class="even">
-<td align="left">undecane</td>
-<td align="center">RCHO</td>
-<td align="center">0</td>
-<td align="center">H</td>
-<td align="center">24</td>
-<td align="center">0</td>
-</tr>
-<tr class="odd">
-<td align="left">undecane</td>
-<td align="center">RCOR</td>
-<td align="center">0</td>
-<td align="center">C</td>
-<td align="center">11</td>
-<td align="center">0</td>
+<td align="left">pubtator_pubmed_candidate_only</td>
+<td align="right">4</td>
+<td align="left">PubTator/PubMed candidate only</td>
+<td align="right">2</td>
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="left">Use only for literature triage until a source-backed
+occurrence is curated.</td>
 </tr>
 </tbody>
 </table>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">This is only a
-subset of the output from this utility/function meant to emphasize some
-of the more useful results. The actual output includes columns for the
-molecular weight, molecular formula, presence/absence of rings (cyclical
-carbon groups), and additional common functional groups including those
-with phosporous or nitrogen. </span><br>
-       <span style="color: black; font-size:115%; background:inherit">Getting back to
-the GC/LC-MS workflow, subsetting the <code>query_chemicals</code> with
-these outputs is very easily achieved using
-<code><a href="../reference/exactoThese.html">exactoThese()</a></code>:</span>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  supplied_rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">membership</span><span class="op">)</span>,</span>
+<span>  direct_structure_resolved_rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">direct</span><span class="op">)</span>,</span>
+<span>  direct_comparable_rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">comparable</span><span class="op">)</span>,</span>
+<span>  review_required_rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">review_required</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;   supplied_rows direct_structure_resolved_rows direct_comparable_rows</span></span>
+<span><span class="co">#&gt; 1            12                              0                      0</span></span>
+<span><span class="co">#&gt;   review_required_rows</span></span>
+<span><span class="co">#&gt; 1                    2</span></span></code></pre></div>
+<p>The filters do not delete evidence from the bundle. They make the
+selection rule reproducible. Direct evidence, genus/family fallback,
+candidate literature co-mentions, unresolved identities, and review
+exclusions remain distinct.</p>
 </div>
-<p><span style="color: black; font-size:135%; background:inherit"><strong><code>query_chemicals = exactoThese(input_categorated, subsetBy = "FMCS",</code></strong></span><br><span style="color: black; font-size:135%; background:inherit">
-<strong><code>subsetArgs = "MW", subsetArgs2 = "Between", subset_input = c(50,115))</code></strong></span></p>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">With these
-arguments, <code><a href="../reference/exactoThese.html">exactoThese()</a></code> returns every input chemical with
-a molecular weight between 50 and 115 g/mol.</span>
-</div>
-<hr>
-</div>
-<div class="section level5">
-<h5 id="unknown-exploration">
-<span style="color: rgba(80, 0, 96, 1); font-size:120%; background-color: rgba(159, 160, 255, 0.1)">Unknown
-Exploration</span><a class="anchor" aria-label="anchor" href="#unknown-exploration"></a>
-</h5>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">As referenced,
-<code><a href="../reference/categorate.html">categorate()</a></code> casts a broad net for categorical information
-on query chemicals. This internet…net uses regular expressions to pull
-published data from a variety of databases. Captured information can
-include:</span>
-</div>
-<p><span style="color: black; font-size:115%; background:inherit">1.
-Reactive Groups from <a href="https://pubchem.ncbi.nlm.nih.gov/" class="external-link">PubChem</a>,</span></p>
-<pre><code><span><span class="co">#&gt;                         reactives_df          Chemical</span></span>
-<span><span class="co">#&gt; 41                           Octanal           Octanal</span></span>
-<span><span class="co">#&gt; 42                         Aldehydes           Octanal</span></span>
-<span><span class="co">#&gt; 43                   N-OCTYLALDEHYDE           Octanal</span></span>
-<span><span class="co">#&gt; 48                          Undecane          Undecane</span></span>
-<span><span class="co">#&gt; 49 Hydrocarbons, Aliphatic Saturated          Undecane</span></span>
-<span><span class="co">#&gt; 60                 Methyl Salicylate Methyl salicylate</span></span>
-<span><span class="co">#&gt; 62               Phenols and Cresols Methyl salicylate</span></span>
-<span><span class="co">#&gt; 63             PubChem Internal Link Methyl salicylate</span></span>
-<span><span class="co">#&gt; 64                 METHYL SALICYLATE Methyl salicylate</span></span></code></pre>
-<p><span style="color: black; font-size:115%; background:inherit">2.
-natural products occurrences from <a href="https://lotus.naturalproducts.net/" class="external-link">LOTUS</a>,</span></p>
-<pre><code><span><span class="co">#&gt;    LOTUS_df          Chemical</span></span>
-<span><span class="co">#&gt; 41  Q416673           Octanal</span></span>
-<span><span class="co">#&gt; 42  biochem           Octanal</span></span>
-<span><span class="co">#&gt; 48  Q150731          Undecane</span></span>
-<span><span class="co">#&gt; 49  biochem          Undecane</span></span>
-<span><span class="co">#&gt; 60  Q407669 Methyl salicylate</span></span>
-<span><span class="co">#&gt; 61  biochem Methyl salicylate</span></span></code></pre>
-<p><span style="color: black; font-size:115%; background:inherit">3.
-bioactivites and risk categories from the Kyoto Encyclopedia of Genes
-and Genomes (<a href="https://www.genome.jp/kegg/" class="external-link">KEGG</a>),</span></p>
-<pre><code><span><span class="co">#&gt;                                      KEGG_df          Chemical</span></span>
-<span><span class="co">#&gt; 41                               KEGG: Lipid           Octanal</span></span>
-<span><span class="co">#&gt; 48                                      None          Undecane</span></span>
-<span><span class="co">#&gt; 60                                KEGG: Drug Methyl salicylate</span></span>
-<span><span class="co">#&gt; 61                                KEGG: JP15 Methyl salicylate</span></span>
-<span><span class="co">#&gt; 62 KEGG: Risk Category of Japanese OTC Drugs Methyl salicylate</span></span>
-<span><span class="co">#&gt; 63                           KEGG: OTC drugs Methyl salicylate</span></span>
-<span><span class="co">#&gt; 64                        KEGG: Animal Drugs Methyl salicylate</span></span>
-<span><span class="co">#&gt; 65                         KEGG: Drug Groups Methyl salicylate</span></span>
-<span><span class="co">#&gt; 66                        KEGG: Drug Classes Methyl salicylate</span></span>
-<span><span class="co">#&gt; 67                                      &lt;NA&gt; Methyl salicylate</span></span></code></pre>
-<p><span style="color: black; font-size:115%; background:inherit">4.
-flavors, odors, etc. from the Flavor and Extract Manufacturers
-Association (<a href="https://www.femaflavor.org/" class="external-link">FEMA</a>),</span></p>
-<pre><code><span><span class="co">#&gt;        FEMA_df          Chemical</span></span>
-<span><span class="co">#&gt; 41        None           Octanal</span></span>
-<span><span class="co">#&gt; 48        None          Undecane</span></span>
-<span><span class="co">#&gt; 60      Almond Methyl salicylate</span></span>
-<span><span class="co">#&gt; 61     Caramel Methyl salicylate</span></span>
-<span><span class="co">#&gt; 62  Peppermint Methyl salicylate</span></span>
-<span><span class="co">#&gt; 63       Sharp Methyl salicylate</span></span></code></pre>
-<p><span style="color: black; font-size:115%; background:inherit">5. and
-whether it exists in the Food and Drug Administration’s SPL data base
-(<a href="https://www.fda.gov/" class="external-link">FDA/SPL</a>).</span></p>
-<pre><code><span><span class="co">#&gt;           FDA_SPL_df          Chemical</span></span>
-<span><span class="co">#&gt; 41    CAPRYLALDEHYDE           Octanal</span></span>
-<span><span class="co">#&gt; 48          UNDECANE          Undecane</span></span>
-<span><span class="co">#&gt; 60 METHYL SALICYLATE Methyl salicylate</span></span></code></pre>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">Again, we can
-easily subset our <code>query_chemicals()</code> with this information
-using <code><a href="../reference/exactoThese.html">exactoThese()</a></code>:</span>
-</div>
-<p><span style="color: black; font-size:135%; background:inherit">
-<strong><code>query_chemicals = exactoThese(chems_categorated, subsetBy = "Database", subsetArgs = c("LOTUS", "FEMA"))</code></strong></span></p>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">Here,
-<code><a href="../reference/exactoThese.html">exactoThese()</a></code> returns every input chemical for which
-information could be found on both LOTUS and FEMA. While the following
-output shows the chemicals from the first search (known chemicals), this
-example is based on the assumption that we do not know what we will find
-across every sample. The compounds are the focus for this portion of the
-example only for clarity and simplicity. In this alternate, unknown
-context, a useful approach for narrowing the search chemicals for
-<code><a href="../reference/categorate.html">categorate()</a></code> and/or <code><a href="../reference/mzExacto.html">mzExacto()</a></code> is to first
-subset by match factor: </span>
-</div>
-<p><span style="color: black; font-size:135%; background:inherit">
-<strong><code>query_chems = standard_dat$Compound.Name[standard_dat$Match.Factor &gt;= 65]</code></strong></span></p>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">At this match
-factor, the example input data structure would change to: </span>
-</div>
+<div class="section level2">
+<h2 id="model-ready-feature-matrices">Model-ready feature matrices<a class="anchor" aria-label="anchor" href="#model-ready-feature-matrices"></a>
+</h2>
+<p>The project runner writes count, binary, fraction, and
+confidence-weighted feature tables. It retains the same species universe
+and order across matrix families, including species with no reported
+compounds.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">feature_manifest</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">bundle_dir</span>, <span class="st">"28_FeatureMatrixManifest.csv"</span><span class="op">)</span>,</span>
+<span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  check.names <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">feature_manifest</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  <span class="st">"Table"</span>, <span class="st">"FileName"</span>, <span class="st">"Mode"</span>, <span class="st">"RowCount"</span>, <span class="st">"ColumnCount"</span></span>
+<span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
-<col width="13%">
-<col width="16%">
-<col width="16%">
-<col width="25%">
-<col width="14%">
+<col width="27%">
+<col width="41%">
+<col width="9%">
+<col width="9%">
 <col width="12%">
 </colgroup>
 <thead><tr class="header">
-<th align="center">Component.RT</th>
-<th align="center">Base.Peak.MZ</th>
-<th align="center">Component.Area</th>
-<th align="left">Compound.Name</th>
-<th align="center">Match.Factor</th>
-<th align="center">Sample.Name</th>
+<th align="left">Table</th>
+<th align="left">FileName</th>
+<th align="left">Mode</th>
+<th align="right">RowCount</th>
+<th align="right">ColumnCount</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA\</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="left">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
+<td align="left">ComparisonGroupCountMatrix</td>
+<td align="left">18_FeatureComparisonGroupCountMatrix.csv</td>
+<td align="left">count</td>
+<td align="right">6</td>
+<td align="right">8</td>
 </tr>
 <tr class="even">
-<td align="center">8.286703</td>
-<td align="center">120.00</td>
-<td align="center">209705.1878</td>
-<td align="left">Methyl salicylate</td>
-<td align="center">98.16152</td>
-<td align="center">Std_soln_00a</td>
+<td align="left">ComparisonScopeCountMatrix</td>
+<td align="left">19_FeatureComparisonScopeCountMatrix.csv</td>
+<td align="left">count</td>
+<td align="right">6</td>
+<td align="right">5</td>
 </tr>
 <tr class="odd">
-<td align="center">8.296408</td>
-<td align="center">119.99</td>
-<td align="center">30332.9022</td>
-<td align="left">Methyl salicylate</td>
-<td align="center">95.79911</td>
-<td align="center">Std_soln_00</td>
+<td align="left">SourceCoverageCountMatrix</td>
+<td align="left">20_FeatureSourceCoverageMatrix.csv</td>
+<td align="left">count</td>
+<td align="right">6</td>
+<td align="right">7</td>
 </tr>
 <tr class="even">
-<td align="center">8.303958</td>
-<td align="center">120.00</td>
-<td align="center">6476.4785</td>
-<td align="left">Methyl salicylate</td>
-<td align="center">86.29569</td>
-<td align="center">Std_soln_07</td>
+<td align="left">EvidenceGradeCountMatrix</td>
+<td align="left">24_FeatureEvidenceGradeCountMatrix.csv</td>
+<td align="left">count</td>
+<td align="right">6</td>
+<td align="right">5</td>
 </tr>
 <tr class="odd">
-<td align="center">8.348031</td>
-<td align="center">105.00</td>
-<td align="center">420.8119</td>
-<td align="left">3-Hexen-1-ol, benzoate, (Z)-</td>
-<td align="center">68.78156</td>
-<td align="center">Std_soln_00</td>
+<td align="left">PlantPartCountMatrix</td>
+<td align="left">25_FeaturePlantPartCountMatrix.csv</td>
+<td align="left">count</td>
+<td align="right">6</td>
+<td align="right">2</td>
 </tr>
 <tr class="even">
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="left"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
+<td align="left">TissueCountMatrix</td>
+<td align="left">26_FeatureTissueCountMatrix.csv</td>
+<td align="left">count</td>
+<td align="right">6</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">MethodCountMatrix</td>
+<td align="left">27_FeatureMethodCountMatrix.csv</td>
+<td align="left">count</td>
+<td align="right">6</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">SpeciesMetadata</td>
+<td align="left">21_FeatureSpeciesMetadata.csv</td>
+<td align="left">metadata</td>
+<td align="right">6</td>
+<td align="right">16</td>
 </tr>
 </tbody>
 </table>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">Which still
-leaves some “junk” that our analysis would probably be better without.
-To remedy this, we could - 1) <code><a href="../reference/categorate.html">categorate()</a></code> all of the
-chemicals (<code>Compound.Name</code>) at this <code>Match.Factor</code>
-then subset by some feature(s); or, 2) continue to adjust the
-<code>Match.Factor</code> until the data make more chemical
-sense.</span>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
+<span><span class="va">feature_files</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">bundle_dir</span>, <span class="va">feature_manifest</span><span class="op">$</span><span class="va">FileName</span><span class="op">)</span></span>
+<span><span class="va">species_ids</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">feature_files</span>, <span class="kw">function</span><span class="op">(</span><span class="va">path</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">path</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span>, check.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">$</span><span class="va">species</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span></span>
+<span>  <span class="va">species_ids</span><span class="op">[</span><span class="op">-</span><span class="fl">1</span><span class="op">]</span>, <span class="va">identical</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, <span class="va">species_ids</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Feature matrices are analysis inputs, not response variables or
+evidence of biological efficacy. Preserve coverage, missingness,
+evidence-grade, and classification-quality fields when joining them to
+ecological, phylogenetic, environmental, or experimental metadata.</p>
 </div>
-<p><span style="color: black; font-size:135%; background:inherit">
-<strong><code>query_chems = standard_dat$Compound.Name[standard_dat$Match.Factor &gt;= 80]</code></strong></span></p>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">This match
-factor yields: </span>
+<div class="section level2">
+<h2 id="species-first-discovery-and-local-lotus-use">Species-first discovery and local LOTUS use<a class="anchor" aria-label="anchor" href="#species-first-discovery-and-local-lotus-use"></a>
+</h2>
+<p>For real discovery, query direct species records first and keep
+fallback and literature candidates separate. Public-source coverage is
+incomplete and changes over time. Local indexes and caches are preferred
+for larger projects.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">lotus_index</span> <span class="op">=</span> <span class="fu"><a href="../reference/buildLotusIndex.html">buildLotusIndex</a></span><span class="op">(</span></span>
+<span>  input <span class="op">=</span> <span class="st">"path/to/lotus_flat_export.tsv"</span>,</span>
+<span>  out_file <span class="op">=</span> <span class="st">"uafR_lotus_index/lotus_index.rds"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">phyto</span> <span class="op">=</span> <span class="fu"><a href="../reference/resolvePlantPhytochemistry.html">resolvePlantPhytochemistry</a></span><span class="op">(</span></span>
+<span>  plants <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Salix nigra"</span>, <span class="st">"Camellia sinensis"</span><span class="op">)</span>,</span>
+<span>  sources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lotus"</span>, <span class="st">"pubmed"</span>, <span class="st">"pubtator"</span><span class="op">)</span>,</span>
+<span>  lotus_index <span class="op">=</span> <span class="va">lotus_index</span>,</span>
+<span>  taxon_fallback <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"species"</span>, <span class="st">"genus"</span><span class="op">)</span>,</span>
+<span>  enrich_compounds <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  detail <span class="op">=</span> <span class="st">"research"</span>,</span>
+<span>  cache <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  cache_dir <span class="op">=</span> <span class="st">"uafR_plant_cache"</span>,</span>
+<span>  throttle <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  max_pubmed_records <span class="op">=</span> <span class="fl">25</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/validatePlantPhytochemistryResult.html">validatePlantPhytochemistryResult</a></span><span class="op">(</span><span class="va">phyto</span><span class="op">)</span><span class="op">$</span><span class="va">Summary</span></span>
+<span><span class="va">phyto</span><span class="op">$</span><span class="va">ProviderDiagnostics</span></span>
+<span><span class="va">phyto</span><span class="op">$</span><span class="va">PlantCompoundOccurrences</span></span></code></pre></div>
+<p>Before a large run, use <code><a href="../reference/planPlantChemistryRun.html">planPlantChemistryRun()</a></code>, inspect
+the cache, estimate pairwise output sizes, and choose batch/cooldown
+settings. Live-service errors are not biological no-hits; preserve
+provider diagnostics and retry queues.</p>
 </div>
-<table class="table">
-<colgroup>
-<col width="13%">
-<col width="16%">
-<col width="16%">
-<col width="25%">
-<col width="14%">
-<col width="12%">
-</colgroup>
-<thead><tr class="header">
-<th align="center">Component.RT</th>
-<th align="center">Base.Peak.MZ</th>
-<th align="center">Component.Area</th>
-<th align="left">Compound.Name</th>
-<th align="center">Match.Factor</th>
-<th align="center">Sample.Name</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA\</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="left">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center">8.286703</td>
-<td align="center">120.00</td>
-<td align="center">209705.1878</td>
-<td align="left">Methyl salicylate</td>
-<td align="center">98.16152</td>
-<td align="center">Std_soln_00a</td>
-</tr>
-<tr class="odd">
-<td align="center">8.296408</td>
-<td align="center">119.99</td>
-<td align="center">30332.9022</td>
-<td align="left">Methyl salicylate</td>
-<td align="center">95.79911</td>
-<td align="center">Std_soln_00</td>
-</tr>
-<tr class="even">
-<td align="center">8.303958</td>
-<td align="center">120.00</td>
-<td align="center">6476.4785</td>
-<td align="left">Methyl salicylate</td>
-<td align="center">86.29569</td>
-<td align="center">Std_soln_07</td>
-</tr>
-<tr class="odd">
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA\</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="left">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-<td align="center">&lt;NA&gt;</td>
-</tr>
-<tr class="even">
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="left"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-<td align="center"><strong>…</strong></td>
-</tr>
-</tbody>
-</table>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">While it may
-seem as though all is well from this fraction of the data, it is
-important to remember that it is only a peek at what is lost or gained
-from the <code>Match.Factor</code> adjustments. To emphasize this point,
-consider what is lost by this adjustment:</span>
+<div class="section level2">
+<h2 id="structural-similarity">Structural similarity<a class="anchor" aria-label="anchor" href="#structural-similarity"></a>
+</h2>
+<p>uafR calculates PubChem Fingerprint2D Tanimoto similarity only for
+structure-resolved compounds. Plant summaries should be filtered by
+comparable chemistry scope or group when the scientific question
+requires like-with-like comparison. Unknown, unresolved, and
+non-comparable compounds remain available for audit but are excluded
+from comparable summaries by default.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/estimateTanimotoOutput.html">estimateTanimotoOutput</a></span><span class="op">(</span></span>
+<span>  compound_count <span class="op">=</span> <span class="fl">1000</span>,</span>
+<span>  plant_count <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  write_compound_pairs <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">similarity</span> <span class="op">=</span> <span class="fu"><a href="../reference/plantChemicalTanimotoSimilarity.html">plantChemicalTanimotoSimilarity</a></span><span class="op">(</span></span>
+<span>  plant_chemistry <span class="op">=</span> <span class="va">structure_resolved_membership</span>,</span>
+<span>  return_compound_pairs <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  return_group_compound_pairs <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">comparable_summary</span> <span class="op">=</span> <span class="fu"><a href="../reference/plantComparableTanimotoSummary.html">plantComparableTanimotoSummary</a></span><span class="op">(</span></span>
+<span>  plant_compound_pair_tanimoto <span class="op">=</span> <span class="va">similarity</span><span class="op">$</span><span class="va">PlantCompoundTanimoto</span>,</span>
+<span>  membership <span class="op">=</span> <span class="va">classified_membership</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Similarity does not establish shared biosynthesis, ecological role,
+mechanism, toxicity, or treatment performance. Interpret it with
+chemical classification, evidence support, coverage, and the project
+design.</p>
 </div>
-<p><span style="color: black; font-size:135%; background:inherit">
-<strong><code>query_chems = standard_dat$Compound.Name[standard_dat$Match.Factor &gt;= 90]</code></strong></span></p>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">The high level
-of stochasticity behind every data point in a mass spectrometry analysis
-is another reason previous algorithms fail when assigning area values
-across samples. <strong><em>Hopefully</em></strong> more simply put –
-with chemicals, things don’t always go exactly the same. While this has
-historically driven manual over data-driven workflows, it could also be
-argued that it drives subjectivity into chemical analysis. Modern
-programming languages allow even complex workflows to be automated. By
-accessing published information we are able to mirror the optimal manual
-workflow for chemicals that were either misread in a sample or buried by
-similarities. This allows razor-sharp precision when excising from
-“gray” regions of the data. </span><br>
-       <span style="color: black; font-size:115%; background:inherit">In
-this example, the known chemicals were found simply by sub-setting with
-<code>Match.Factor</code>:</span>
-</div>
-<p><span style="color: black; font-size:135%; background:inherit">
-<strong><code>query_chems = standard_dat$Compound.Name[standard_dat$Match.Factor &gt; 89]</code></strong></span></p>
-<p><span style="color: black; font-size:135%; background:inherit">
-<strong><code>mzExacto(standard_spread, query_chems)</code></strong></span></p>
-<table style="width:100%;" class="table">
-<colgroup>
-<col width="20%">
-<col width="14%">
-<col width="12%">
-<col width="12%">
-<col width="13%">
-<col width="12%">
-<col width="14%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">Compound</th>
-<th align="right">Mass</th>
-<th align="right">RT</th>
-<th align="right">Best Match</th>
-<th align="right">Std_soln_00</th>
-<th align="right">Std_soln_07</th>
-<th align="right">Std_soln_00a</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">Octanal</td>
-<td align="right">128.120115130</td>
-<td align="right">5.462089753</td>
-<td align="right">99.32456762</td>
-<td align="right">379178.88653</td>
-<td align="right">30943.11385</td>
-<td align="right">125725.8982</td>
-</tr>
-<tr class="even">
-<td align="left">Ethyl hexanoate</td>
-<td align="right">144.115029749</td>
-<td align="right">5.379718874</td>
-<td align="right">99.35011811</td>
-<td align="right">263866.0427</td>
-<td align="right">9896.488149</td>
-<td align="right">294869.1357</td>
-</tr>
-<tr class="odd">
-<td align="left">Methyl salicylate</td>
-<td align="right">152.047344113</td>
-<td align="right">8.295689887</td>
-<td align="right">98.16152088</td>
-<td align="right">30332.90221</td>
-<td align="right">6476.478451</td>
-<td align="right">209705.1878</td>
-</tr>
-<tr class="even">
-<td align="left">Undecane</td>
-<td align="right">156.187800766</td>
-<td align="right">6.129191467</td>
-<td align="right">98.6771852</td>
-<td align="right">86270.05019</td>
-<td align="right">243.9123731</td>
-<td align="right">238776.2287</td>
-</tr>
-</tbody>
-</table>
-<div class="line-block">       <span style="color: black; font-size:115%; background:inherit">But, the
-combined <code>Match.Factor</code> and <code><a href="../reference/categorate.html">categorate()</a></code>
-approach can churn through a large amount of complex chemical data
-faster and with more accuracy than any manual protocol for unknown
-compound selections.</span>
-</div>
-<hr>
-</div>
-</div>
-</div>
+<div class="section level2">
+<h2 id="handoff-standard">Handoff standard<a class="anchor" aria-label="anchor" href="#handoff-standard"></a>
+</h2>
+<p>A defensible project handoff should include the input plant list and
+metadata, the original and reviewed occurrence evidence, compound
+identity audit, provider diagnostics, categorate validation, comparison
+dictionary, feature manifest, exported matrices, checksums, methods
+text, and session information. Run
+<code><a href="../reference/validatePlantChemistryAnalysisBundle.html">validatePlantChemistryAnalysisBundle()</a></code> after copying the
+bundle to its final location and resolve every failing check before
+analysis or publication.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
@@ -1344,7 +592,7 @@ compound selections.</span>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by <a href="https://landinstitute.org/about-us/staff/chase-stratton/" class="external-link">Chase Stratton</a>, <a href="https://landinstitute.org/about-us/staff/yvonne-thompson/" class="external-link">Yvonne Thompson</a>, Konilo Zio, <a href="https://www.researchgate.net/profile/William-Morrison" class="external-link">William Morrison</a>, <a href="https://landinstitute.org/about-us/staff/ebony-murrell/" class="external-link">Ebony Murrell</a>.</p>
+  <p>Developed by Chase Stratton, <a href="https://landinstitute.org/about-us/staff/yvonne-thompson/" class="external-link">Yvonne Thompson</a>, Konilo Zio, <a href="https://www.researchgate.net/profile/William-Morrison" class="external-link">William Morrison</a>, <a href="https://landinstitute.org/about-us/staff/ebony-murrell/" class="external-link">Ebony Murrell</a>.</p>
 </div>
 
 <div class="pkgdown-footer-right">

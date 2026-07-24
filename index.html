@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Automates Mass Spectrometry Data Processing • uafR</title>
+<title>Reproducible Chemical Enrichment and Plant Chemistry Workflows • uafR</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -15,9 +15,9 @@
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Automates Mass Spectrometry Data Processing">
-<meta name="description" content="This R package automates chemical processing for tentative chemical identities in mass spectrometry workflows. It includes a powerful set of functions that make chemical interpretations accurate and efficient.">
-<meta property="og:description" content="This R package automates chemical processing for tentative chemical identities in mass spectrometry workflows. It includes a powerful set of functions that make chemical interpretations accurate and efficient.">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Reproducible Chemical Enrichment and Plant Chemistry Workflows">
+<meta name="description" content="Provides reproducible workflows for tentative mass-spectrometry annotations, public-database chemical enrichment, species-first plant phytochemistry evidence, comparable chemistry, structural similarity, and validated research handoff bundles. Source diagnostics, evidence grades, identity review, and scientific guardrails preserve uncertainty and provenance for downstream analysis.">
+<meta property="og:description" content="Provides reproducible workflows for tentative mass-spectrometry annotations, public-database chemical enrichment, species-first plant phytochemistry evidence, comparable chemistry, structural similarity, and validated research handoff bundles. Source diagnostics, evidence grades, identity review, and scientific guardrails preserve uncertainty and provenance for downstream analysis.">
 <meta property="og:image" content="https://castrattonDSU.github.io/uafR/reference/figures/opengraph.png">
 <meta property="og:image:alt" content="uafR evidence-prism logo and wordmark">
 </head>
@@ -29,7 +29,7 @@
 
     <a class="navbar-brand me-2" href="index.html">uafR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,12 +38,23 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="articles/uafR.html">Descriptive Walkthrough</a></li>
-<li class="nav-item"><a class="nav-link" href="reference/index.html">Function Documentation</a></li>
+<li class="nav-item"><a class="nav-link" href="articles/uafR.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Getting started</h6></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Plant phytochemistry</h6></li>
+    <li><a class="dropdown-item" href="articles/plant-phytochemistry-offline.html">Offline Plant Phytochemistry Workflow</a></li>
+    <li><a class="dropdown-item" href="articles/plant-phytochemistry-live.html">Live and Large Plant Phytochemistry Queries</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/castrattonDSU/uafR/" aria-label="github"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/castrattonDSU/uafR/" aria-label="GitHub repository"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -58,22 +69,87 @@
 </h1>
 </div>
 <p><a href="https://github.com/castrattonDSU/uafR/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/castrattonDSU/uafR/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://doi.org/10.1371/journal.pone.0306202" class="external-link"><img src="https://img.shields.io/badge/PLOS%20ONE-10.1371%2Fjournal.pone.0306202-0A7BBB" alt="PLOS ONE"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a></p>
-<p><strong>uafR</strong> is an R package for processing tentative compound identifications from GC–MS workflows. It prepares vendor-exported peak tables, aggregates detections across samples, extracts user-selected compounds, standardizes abundance, and adds structured chemical context from PubChem and KEGG.</p>
+<p><strong>uafR</strong> provides reproducible workflows for tentative mass-spectrometry annotations, public-database chemical enrichment, species-first plant phytochemistry evidence, comparable chemistry, structural similarity, and validated research handoff bundles. Source diagnostics, evidence grades, identity review, and scientific guardrails preserve uncertainty and provenance for downstream analysis.</p>
 <div class="section level2">
 <h2 id="what-uafr-does">What uafR does<a class="anchor" aria-label="anchor" href="#what-uafr-does"></a>
 </h2>
-<p>The package supports three connected workflows:</p>
+<p>The package supports five connected workflows:</p>
 <ol style="list-style-type: decimal">
 <li><p><strong>GC–MS data processing</strong> Prepare raw peak tables with <code><a href="reference/spreadOut.html">spreadOut()</a></code>, extract target compounds with <code><a href="reference/mzExacto.html">mzExacto()</a></code>, and standardize abundance with <code><a href="reference/standardifyIt.html">standardifyIt()</a></code>.</p></li>
 <li><p><strong>Chemical interpretation</strong> Group and annotate compound names with <code><a href="reference/categorate.html">categorate()</a></code>, then select compounds for downstream extraction with <code><a href="reference/exactoThese.html">exactoThese()</a></code>.</p></li>
 <li><p><strong>Research-grade enrichment</strong> Retrieve reusable PubChem and KEGG tables with <code><a href="reference/pubchemProfile.html">pubchemProfile()</a></code>, <code><a href="reference/keggProfile.html">keggProfile()</a></code>, and the enriched <code><a href="reference/categorate.html">categorate()</a></code> workflow; validate and export results with <code><a href="reference/validateCategorateResult.html">validateCategorateResult()</a></code> and <code><a href="reference/exportCategorateWorkbook.html">exportCategorateWorkbook()</a></code>.</p></li>
+<li><p><strong>Species-first plant phytochemistry</strong> Search supported public sources for reported plant-compound relationships, retain direct and fallback evidence separately, resolve compound identities, and build species summaries with <code><a href="reference/resolvePlantPhytochemistry.html">resolvePlantPhytochemistry()</a></code>.</p></li>
+<li><p><strong>Comparable analysis and project handoff</strong> Grade evidence, separate biologically comparable chemistry, calculate PubChem Fingerprint2D Tanimoto summaries, and export validated feature and analysis bundles.</p></li>
 </ol>
+</div>
+<div class="section level2">
+<h2 id="choose-a-workflow">Choose a workflow<a class="anchor" aria-label="anchor" href="#choose-a-workflow"></a>
+</h2>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr>
+<th>Starting point or goal</th>
+<th>Recommended entry point</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>GC-MS hit table</td>
+<td>
+<code><a href="reference/spreadOut.html">spreadOut()</a></code>, <code><a href="reference/mzExacto.html">mzExacto()</a></code>, <code><a href="reference/standardifyIt.html">standardifyIt()</a></code>
+</td>
+</tr>
+<tr>
+<td>Compound names or PubChem CIDs</td>
+<td><code>categorate(detail = "research")</code></td>
+</tr>
+<tr>
+<td>Small plant species list</td>
+<td><code><a href="reference/resolvePlantPhytochemistry.html">resolvePlantPhytochemistry()</a></code></td>
+</tr>
+<tr>
+<td>Curated plant-compound table</td>
+<td>
+<code><a href="reference/standardizePlantCompoundIntake.html">standardizePlantCompoundIntake()</a></code> and <code><a href="reference/runPlantChemistryProject.html">runPlantChemistryProject()</a></code>
+</td>
+</tr>
+<tr>
+<td>Large plant panel</td>
+<td>
+<code><a href="reference/planPlantChemistryRun.html">planPlantChemistryRun()</a></code> and <code><a href="reference/runPlantChemistryPanel.html">runPlantChemistryPanel()</a></code>
+</td>
+</tr>
+<tr>
+<td>Compound or plant structural similarity</td>
+<td>
+<code><a href="reference/chemicalTanimotoSimilarity.html">chemicalTanimotoSimilarity()</a></code> or <code><a href="reference/plantChemicalTanimotoSimilarity.html">plantChemicalTanimotoSimilarity()</a></code>
+</td>
+</tr>
+<tr>
+<td>Model-ready plant chemistry features</td>
+<td><code><a href="reference/exportPlantChemistryFeatureSet.html">exportPlantChemistryFeatureSet()</a></code></td>
+</tr>
+<tr>
+<td>Portable analysis handoff</td>
+<td><code><a href="reference/finalizePlantChemistryAnalysisBundle.html">finalizePlantChemistryAnalysisBundle()</a></code></td>
+</tr>
+</tbody>
+</table>
+<p>The same guidance is available from R:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/uafRWorkflowGuide.html">uafRWorkflowGuide</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/uafRApiStability.html">uafRApiStability</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/uafRProviderContracts.html">uafRProviderContracts</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/uafRClaimGuidance.html">uafRClaimGuidance</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>Functions labeled <code>stable</code> are intended for reusable downstream scripts. Functions labeled <code>experimental</code> are available for research use but may gain provider-specific fields or diagnostics before the next stable release.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <p>uafR requires R 4.2 or newer.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"remotes"</span>, <span class="st">"BiocManager"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">BiocManager</span><span class="fu">::</span><span class="fu">install</span><span class="op">(</span></span>
@@ -89,7 +165,7 @@
 <span>  build_vignettes <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Load the package:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/castrattonDSU/uafR" class="external-link">uafR</a></span><span class="op">)</span></span></code></pre></div>
 <p>Windows users may need <a href="https://cran.r-project.org/bin/windows/Rtools/" class="external-link">Rtools</a> when a dependency must be compiled from source. macOS users may need the Xcode Command Line Tools.</p>
 </div>
@@ -130,7 +206,7 @@
 </tbody>
 </table>
 <p>Read vendor output without changing its column names:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">raw_gcms</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span></span>
 <span>  <span class="st">"path/to/gcms-export.csv"</span>,</span>
 <span>  check.names <span class="op">=</span> <span class="cn">FALSE</span></span>
@@ -151,10 +227,10 @@
 <h2 id="core-workflow-prepare-and-extract-gcms-data">Core workflow: prepare and extract GC–MS data<a class="anchor" aria-label="anchor" href="#core-workflow-prepare-and-extract-gcms-data"></a>
 </h2>
 <p>Prepare the peak table:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">spread</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/spreadOut.html">spreadOut</a></span><span class="op">(</span><span class="va">raw_gcms</span><span class="op">)</span></span></code></pre></div>
 <p>Choose compounds directly or use a match-factor threshold:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">targets</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span></span>
 <span>  <span class="va">raw_gcms</span><span class="op">$</span><span class="va">Compound.Name</span><span class="op">[</span></span>
 <span>    <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">raw_gcms</span><span class="op">$</span><span class="va">Match.Factor</span><span class="op">)</span> <span class="op">&amp;</span></span>
@@ -162,7 +238,7 @@
 <span>  <span class="op">]</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Extract target compounds across samples:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">extracted</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mzExacto.html">mzExacto</a></span><span class="op">(</span></span>
 <span>  data_in <span class="op">=</span> <span class="va">spread</span>,</span>
 <span>  chemicals <span class="op">=</span> <span class="va">targets</span>,</span>
@@ -176,7 +252,7 @@
 <h2 id="core-workflow-annotate-and-select-compounds">Core workflow: annotate and select compounds<a class="anchor" aria-label="anchor" href="#core-workflow-annotate-and-select-compounds"></a>
 </h2>
 <p>uafR includes an example chemical library:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"library_data"</span>, package <span class="op">=</span> <span class="st">"uafR"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">query_compounds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
@@ -186,7 +262,7 @@
 <span>  <span class="st">"alpha-Pinene"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Run the standard annotation workflow:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">annotations</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/categorate.html">categorate</a></span><span class="op">(</span></span>
 <span>  compounds <span class="op">=</span> <span class="va">query_compounds</span>,</span>
 <span>  chemical_library <span class="op">=</span> <span class="va">library_data</span>,</span>
@@ -204,14 +280,14 @@
 <span><span class="va">FunctionalGroups</span></span>
 <span><span class="va">BestChemMatch</span></span></code></pre>
 <p>Select compounds using database, structure, or library-group evidence:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">selected</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/exactoThese.html">exactoThese</a></span><span class="op">(</span></span>
 <span>  <span class="va">annotations</span>,</span>
 <span>  subsetBy <span class="op">=</span> <span class="st">"Database"</span>,</span>
 <span>  subsetArgs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"LOTUS"</span>, <span class="st">"KEGG"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Use the selected names in the GC–MS extraction workflow:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">selected_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mzExacto.html">mzExacto</a></span><span class="op">(</span></span>
 <span>  data_in <span class="op">=</span> <span class="va">spread</span>,</span>
 <span>  chemicals <span class="op">=</span> <span class="va">selected</span></span>
@@ -221,7 +297,7 @@
 <h2 id="research-grade-enrichment">Research-grade enrichment<a class="anchor" aria-label="anchor" href="#research-grade-enrichment"></a>
 </h2>
 <p>Use <code>detail = "research"</code> to append normalized PubChem and KEGG tables while preserving the original eight standard tables:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">research_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/categorate.html">categorate</a></span><span class="op">(</span></span>
 <span>  compounds <span class="op">=</span> <span class="va">query_compounds</span>,</span>
 <span>  chemical_library <span class="op">=</span> <span class="va">library_data</span>,</span>
@@ -232,7 +308,7 @@
 <span>  assay_detail_limit <span class="op">=</span> <span class="fl">0</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Frequently used outputs include:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">research_result</span><span class="op">$</span><span class="va">PubChemProperties</span></span>
 <span><span class="va">research_result</span><span class="op">$</span><span class="va">ChemicalTraits</span></span>
 <span><span class="va">research_result</span><span class="op">$</span><span class="va">ChemicalTraitOntology</span></span>
@@ -245,7 +321,7 @@
 <span><span class="va">research_result</span><span class="op">$</span><span class="va">KEGGPathways</span></span>
 <span><span class="va">research_result</span><span class="op">$</span><span class="va">SourceCoverage</span></span></code></pre></div>
 <p>Validate the result before downstream analysis:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">audit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/validateCategorateResult.html">validateCategorateResult</a></span><span class="op">(</span><span class="va">research_result</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">audit</span><span class="op">$</span><span class="va">Summary</span></span>
@@ -253,7 +329,7 @@
 <span><span class="va">audit</span><span class="op">$</span><span class="va">SourceDiagnostics</span></span>
 <span><span class="va">audit</span><span class="op">$</span><span class="va">Issues</span></span></code></pre></div>
 <p>Export a curated CSV bundle:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">manifest</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/exportCategorateWorkbook.html">exportCategorateWorkbook</a></span><span class="op">(</span></span>
 <span>  <span class="va">research_result</span>,</span>
 <span>  path <span class="op">=</span> <span class="st">"categorate-export"</span>,</span>
@@ -265,12 +341,224 @@
 <p>To write an Excel workbook, install <code>openxlsx</code> or <code>writexl</code> and provide an <code>.xlsx</code> path.</p>
 </div>
 <div class="section level2">
+<h2 id="species-first-plant-phytochemistry">Species-first plant phytochemistry<a class="anchor" aria-label="anchor" href="#species-first-plant-phytochemistry"></a>
+</h2>
+<p><code><a href="reference/resolvePlantPhytochemistry.html">resolvePlantPhytochemistry()</a></code> starts with plant names and attempts to discover reported plant-compound relationships from enabled public providers. It returns normalized evidence, provider diagnostics, compound-resolution tables, species summaries, matrices, validation, a data dictionary, and provenance.</p>
+<p>A bounded exploratory query looks like this:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">plants</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Salix nigra"</span>, <span class="st">"Camellia sinensis"</span>, <span class="st">"Zea mays"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">phyto</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/resolvePlantPhytochemistry.html">resolvePlantPhytochemistry</a></span><span class="op">(</span></span>
+<span>  plants <span class="op">=</span> <span class="va">plants</span>,</span>
+<span>  sources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lotus"</span>, <span class="st">"pubmed"</span>, <span class="st">"pubtator"</span><span class="op">)</span>,</span>
+<span>  taxon_fallback <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"species"</span>, <span class="st">"genus"</span><span class="op">)</span>,</span>
+<span>  enrich_compounds <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  cache <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  cache_dir <span class="op">=</span> <span class="st">"uafR_plant_cache"</span>,</span>
+<span>  max_pubmed_records <span class="op">=</span> <span class="fl">25</span>,</span>
+<span>  max_provider_records <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  throttle <span class="op">=</span> <span class="fl">0.5</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">phyto</span><span class="op">$</span><span class="va">PlantCompoundOccurrences</span></span>
+<span><span class="va">phyto</span><span class="op">$</span><span class="va">LiteratureCandidates</span></span>
+<span><span class="va">phyto</span><span class="op">$</span><span class="va">ProviderDiagnostics</span></span>
+<span><span class="va">phyto</span><span class="op">$</span><span class="va">SpeciesChemistrySummary</span></span>
+<span></span>
+<span><span class="va">plant_audit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/validatePlantPhytochemistryResult.html">validatePlantPhytochemistryResult</a></span><span class="op">(</span><span class="va">phyto</span><span class="op">)</span></span>
+<span><span class="va">plant_audit</span><span class="op">$</span><span class="va">Summary</span></span>
+<span><span class="va">plant_audit</span><span class="op">$</span><span class="va">Issues</span></span></code></pre></div>
+<p>This example uses live services and may return different coverage as public databases change. Start with a few plants, keep caching enabled, and inspect <code>ProviderDiagnostics</code> before increasing the query size.</p>
+<div class="section level3">
+<h3 id="run-the-offline-example">Run the offline example<a class="anchor" aria-label="anchor" href="#run-the-offline-example"></a>
+</h3>
+<p>The package includes a small <strong>simulated teaching fixture</strong>. It tests the workflow without network access; it is not evidence that the listed compounds occur in the listed plants.</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">example_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span></span>
+<span>  <span class="st">"extdata"</span>,</span>
+<span>  <span class="st">"offline_plant_chemistry"</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"uafR"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">plants</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">example_dir</span>, <span class="st">"plant_list.csv"</span><span class="op">)</span>,</span>
+<span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">metadata</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">example_dir</span>, <span class="st">"plant_metadata.csv"</span><span class="op">)</span>,</span>
+<span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">plant_compounds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">example_dir</span>, <span class="st">"plant_compounds.csv"</span><span class="op">)</span>,</span>
+<span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  check.names <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">compound_pairs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">example_dir</span>, <span class="st">"plant_compound_pair_tanimoto.csv"</span><span class="op">)</span>,</span>
+<span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">offline_project</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/runPlantChemistryProject.html">runPlantChemistryProject</a></span><span class="op">(</span></span>
+<span>  plant_list <span class="op">=</span> <span class="va">plants</span>,</span>
+<span>  metadata <span class="op">=</span> <span class="va">metadata</span>,</span>
+<span>  plant_compounds <span class="op">=</span> <span class="va">plant_compounds</span>,</span>
+<span>  plant_compound_pair_tanimoto <span class="op">=</span> <span class="va">compound_pairs</span>,</span>
+<span>  output_dir <span class="op">=</span> <span class="st">"offline-plant-example"</span>,</span>
+<span>  project_id <span class="op">=</span> <span class="st">"simulated_offline_example"</span>,</span>
+<span>  overwrite <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">bundle_dir</span> <span class="op">&lt;-</span> <span class="va">offline_project</span><span class="op">$</span><span class="va">Project</span><span class="op">$</span><span class="va">bundle_dir</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">bundle_audit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/validatePlantChemistryAnalysisBundle.html">validatePlantChemistryAnalysisBundle</a></span><span class="op">(</span><span class="va">bundle_dir</span><span class="op">)</span></span>
+<span><span class="va">bundle_audit</span><span class="op">$</span><span class="va">Summary</span></span></code></pre></div>
+<p>The same example can be regenerated from a repository checkout:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="ex">Rscript</span> tools/build_offline_plant_chemistry_example.R <span class="dt">\</span></span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>  <span class="at">--out-dir</span> offline-plant-example</span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="use-a-curated-plant-compound-table">Use a curated plant-compound table<a class="anchor" aria-label="anchor" href="#use-a-curated-plant-compound-table"></a>
+</h3>
+<p>Public-source discovery is necessarily incomplete. A locally reviewed table can enter the same data model:</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">curated</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"plant_compounds_reviewed.csv"</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">occurrences</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/standardizePlantCompoundIntake.html">standardizePlantCompoundIntake</a></span><span class="op">(</span><span class="va">curated</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">project</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/runPlantChemistryProject.html">runPlantChemistryProject</a></span><span class="op">(</span></span>
+<span>  plant_list <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">curated</span><span class="op">$</span><span class="va">species</span><span class="op">)</span>,</span>
+<span>  plant_compounds <span class="op">=</span> <span class="va">curated</span>,</span>
+<span>  output_dir <span class="op">=</span> <span class="st">"plant-chemistry-project"</span>,</span>
+<span>  project_id <span class="op">=</span> <span class="st">"reviewed_curated_intake"</span>,</span>
+<span>  overwrite <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>At minimum, curated intake requires <code>species</code> and <code>compound_name</code>. Include <code>source_database</code>, <code>source_record_id</code>, <code>citation_or_url</code>, <code>evidence_tier</code>, <code>plant_part</code>, <code>tissue</code>, <code>method</code>, and review notes whenever those fields are available.</p>
+</div>
+<div class="section level3">
+<h3 id="use-a-local-lotus-index">Use a local LOTUS index<a class="anchor" aria-label="anchor" href="#use-a-local-lotus-index"></a>
+</h3>
+<p>For medium or large panels, use an official LOTUS export locally rather than repeating broad live searches:</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">lotus_build</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/buildLotusIndex.html">buildLotusIndex</a></span><span class="op">(</span></span>
+<span>  input <span class="op">=</span> <span class="st">"path/to/flat-lotus-export"</span>,</span>
+<span>  out_file <span class="op">=</span> <span class="st">"uafR_indexes/lotus_index.rds"</span>,</span>
+<span>  overwrite <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">lotus_hits</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/queryLotusIndex.html">queryLotusIndex</a></span><span class="op">(</span></span>
+<span>  plants <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Salix nigra"</span>, <span class="st">"Zea mays"</span><span class="op">)</span>,</span>
+<span>  lotus_index <span class="op">=</span> <span class="va">lotus_build</span><span class="op">$</span><span class="va">LotusIndex</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">phyto</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/resolvePlantPhytochemistry.html">resolvePlantPhytochemistry</a></span><span class="op">(</span></span>
+<span>  plants <span class="op">=</span> <span class="va">plants</span>,</span>
+<span>  sources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lotus"</span>, <span class="st">"pubmed"</span>, <span class="st">"pubtator"</span><span class="op">)</span>,</span>
+<span>  lotus_index <span class="op">=</span> <span class="st">"uafR_indexes/lotus_index.rds"</span>,</span>
+<span>  enrich_compounds <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  cache <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  cache_dir <span class="op">=</span> <span class="st">"uafR_plant_cache"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Raw LOTUS MongoDB downloads can be converted with <code>tools/flatten_lotus_mongo_dump.py</code>. The source URL, checksums, build manifest, and retrieval date should be retained with the resulting index.</p>
+</div>
+<div class="section level3">
+<h3 id="review-evidence-and-identity">Review evidence and identity<a class="anchor" aria-label="anchor" href="#review-evidence-and-identity"></a>
+</h3>
+<p>Plant evidence remains separable by source and strength:</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">graded</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plantOccurrenceEvidenceGrade.html">plantOccurrenceEvidenceGrade</a></span><span class="op">(</span></span>
+<span>  <span class="va">phyto</span><span class="op">$</span><span class="va">PlantCompoundOccurrences</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">direct</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/filterPlantEvidenceDirect.html">filterPlantEvidenceDirect</a></span><span class="op">(</span><span class="va">graded</span><span class="op">)</span></span>
+<span><span class="va">review_required</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/filterPlantEvidenceReviewRequired.html">filterPlantEvidenceReviewRequired</a></span><span class="op">(</span><span class="va">graded</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">identity_review</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plantCompoundIdentityReviewTable.html">plantCompoundIdentityReviewTable</a></span><span class="op">(</span></span>
+<span>  <span class="va">phyto</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Literature co-mentions are candidates, not confirmed occurrence records. Genus/family fallback remains separate from direct species evidence. Review decisions can be exported and replayed with the plant-evidence and compound-identity review helpers.</p>
+</div>
+<div class="section level3">
+<h3 id="separate-comparable-chemistry">Separate comparable chemistry<a class="anchor" aria-label="anchor" href="#separate-comparable-chemistry"></a>
+</h3>
+<p>Do not mix primary metabolites, specialized metabolites, volatiles, lipids, and unknown chemistry without an explicit scientific reason:</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">comparability</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plantChemistryComparability.html">plantChemistryComparability</a></span><span class="op">(</span><span class="va">plant_compounds</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">comparable_matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plantComparableChemistryMatrix.html">plantComparableChemistryMatrix</a></span><span class="op">(</span></span>
+<span>  <span class="va">comparability</span>,</span>
+<span>  level <span class="op">=</span> <span class="st">"species"</span>,</span>
+<span>  mode <span class="op">=</span> <span class="st">"count"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/chemistryComparisonDictionary.html">chemistryComparisonDictionary</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>Unknown, unresolved, and non-comparable compounds remain available for audit but are excluded from comparable matrices by default.</p>
+</div>
+<div class="section level3">
+<h3 id="calculate-plant-labeled-structural-similarity">Calculate plant-labeled structural similarity<a class="anchor" aria-label="anchor" href="#calculate-plant-labeled-structural-similarity"></a>
+</h3>
+<p>Tanimoto workflows use source-backed, structure-resolved compounds:</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">similarity</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plantChemicalTanimotoSimilarity.html">plantChemicalTanimotoSimilarity</a></span><span class="op">(</span></span>
+<span>  <span class="va">phyto</span>,</span>
+<span>  out_dir <span class="op">=</span> <span class="st">"plant-tanimoto"</span>,</span>
+<span>  cache_dir <span class="op">=</span> <span class="st">"uafR_plant_cache/pubchem"</span>,</span>
+<span>  return_group_compound_pairs <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">similarity</span><span class="op">$</span><span class="va">PlantPairTanimotoSummary</span></span>
+<span><span class="va">similarity</span><span class="op">$</span><span class="va">ComparableScopeTanimotoSummary</span></span>
+<span><span class="va">similarity</span><span class="op">$</span><span class="va">ComparableGroupTanimotoSummary</span></span></code></pre></div>
+<p>Structural similarity is not biological equivalence, shared function, pathway activity, or evidence of occurrence in a project sample.</p>
+</div>
+<div class="section level3">
+<h3 id="plan-and-run-a-large-panel">Plan and run a large panel<a class="anchor" aria-label="anchor" href="#plan-and-run-a-large-panel"></a>
+</h3>
+<p>Preflight does not make live requests:</p>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">run_plan</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/planPlantChemistryRun.html">planPlantChemistryRun</a></span><span class="op">(</span></span>
+<span>  plants <span class="op">=</span> <span class="st">"project_species.csv"</span>,</span>
+<span>  sources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lotus"</span>, <span class="st">"npass"</span>, <span class="st">"knapsack"</span>, <span class="st">"pubchem"</span>, <span class="st">"pubmed"</span>, <span class="st">"pubtator"</span><span class="op">)</span>,</span>
+<span>  cache_dir <span class="op">=</span> <span class="st">"uafR_plant_cache"</span>,</span>
+<span>  lotus_index <span class="op">=</span> <span class="st">"uafR_indexes/LOTUS_lookup_index"</span>,</span>
+<span>  species_chunk_size <span class="op">=</span> <span class="fl">25</span>,</span>
+<span>  compound_batch_size <span class="op">=</span> <span class="fl">25</span>,</span>
+<span>  max_pubmed_records <span class="op">=</span> <span class="fl">25</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">run_plan</span><span class="op">$</span><span class="va">InputNameAudit</span></span>
+<span><span class="va">run_plan</span><span class="op">$</span><span class="va">ProviderPlan</span></span>
+<span><span class="va">run_plan</span><span class="op">$</span><span class="va">OutputEstimates</span></span>
+<span><span class="va">run_plan</span><span class="op">$</span><span class="va">ReadinessChecks</span></span>
+<span><span class="va">run_plan</span><span class="op">$</span><span class="va">Recommendations</span></span></code></pre></div>
+<p>Use <code><a href="reference/runPlantChemistryPanel.html">runPlantChemistryPanel()</a></code> or its command-line wrapper for an audited, resumable production run:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a><span class="ex">Rscript</span> tools/run_plant_chemistry_panel.R <span class="dt">\</span></span>
+<span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a>  <span class="at">--mode</span> preflight <span class="dt">\</span></span>
+<span id="cb26-3"><a href="#cb26-3" tabindex="-1"></a>  <span class="at">--plant-csv</span> project_species.csv <span class="dt">\</span></span>
+<span id="cb26-4"><a href="#cb26-4" tabindex="-1"></a>  <span class="at">--out-dir</span> plant_phytochemistry_panel <span class="dt">\</span></span>
+<span id="cb26-5"><a href="#cb26-5" tabindex="-1"></a>  <span class="at">--cache-dir</span> uafR_plant_cache <span class="dt">\</span></span>
+<span id="cb26-6"><a href="#cb26-6" tabindex="-1"></a>  <span class="at">--lotus-index</span> uafR_indexes/LOTUS_lookup_index <span class="dt">\</span></span>
+<span id="cb26-7"><a href="#cb26-7" tabindex="-1"></a>  <span class="at">--sources</span> lotus,npass,knapsack,pubchem,pubmed,pubtator</span></code></pre></div>
+<p>Run <code>pilot</code> before <code>discovery</code>. Exit status 75 means a public service requested a pause; rerun the same command later to resume from validated checkpoints and caches. Full pairwise compound output is opt-in because it can become very large.</p>
+</div>
+<div class="section level3">
+<h3 id="interpret-plant-results-conservatively">Interpret plant results conservatively<a class="anchor" aria-label="anchor" href="#interpret-plant-results-conservatively"></a>
+</h3>
+<ul>
+<li>A database record supports a reported association, not measured chemistry in the current sample.</li>
+<li>No returned record is a coverage limitation, not evidence of absence.</li>
+<li>Direct species records are stronger than genus or family fallback.</li>
+<li>PubMed/PubTator co-mentions remain candidate evidence unless reviewed.</li>
+<li>Pathway annotations provide context, not evidence of pathway activity.</li>
+<li>Natural-product occurrence in another organism does not establish occurrence in the queried plant.</li>
+<li>Tanimoto similarity describes structure, not efficacy or mechanism.</li>
+</ul>
+</div>
+</div>
+<div class="section level2">
 <h2 id="source-specific-profiles">Source-specific profiles<a class="anchor" aria-label="anchor" href="#source-specific-profiles"></a>
 </h2>
 <div class="section level3">
 <h3 id="pubchem">PubChem<a class="anchor" aria-label="anchor" href="#pubchem"></a>
 </h3>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pubchem</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/pubchemProfile.html">pubchemProfile</a></span><span class="op">(</span></span>
 <span>  <span class="va">query_compounds</span>,</span>
 <span>  profile <span class="op">=</span> <span class="st">"ms"</span>,</span>
@@ -298,7 +586,7 @@
 <div class="section level3">
 <h3 id="kegg">KEGG<a class="anchor" aria-label="anchor" href="#kegg"></a>
 </h3>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">kegg</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/keggProfile.html">keggProfile</a></span><span class="op">(</span></span>
 <span>  compounds <span class="op">=</span> <span class="va">query_compounds</span>,</span>
 <span>  pubchem_profile <span class="op">=</span> <span class="va">pubchem</span>,</span>
@@ -317,7 +605,7 @@
 <h2 id="standardization">Standardization<a class="anchor" aria-label="anchor" href="#standardization"></a>
 </h2>
 <p>Standardize <code><a href="reference/mzExacto.html">mzExacto()</a></code> output with an internal standard:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">standardized</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/standardifyIt.html">standardifyIt</a></span><span class="op">(</span></span>
 <span>  data_in <span class="op">=</span> <span class="va">extracted</span>,</span>
 <span>  standard_type <span class="op">=</span> <span class="st">"Internal"</span>,</span>
@@ -328,7 +616,7 @@
 <span>  sample_amt <span class="op">=</span> <span class="fl">1</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>For external standardization, provide a calibration matrix:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"ExternalStandard_data"</span>, package <span class="op">=</span> <span class="st">"uafR"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">standardized</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/standardifyIt.html">standardifyIt</a></span><span class="op">(</span></span>
@@ -414,6 +702,52 @@
 <td><code><a href="reference/exportCategorateWorkbook.html">exportCategorateWorkbook()</a></code></td>
 <td>Export curated CSV or Excel result bundles</td>
 </tr>
+<tr>
+<td><code><a href="reference/resolvePlantPhytochemistry.html">resolvePlantPhytochemistry()</a></code></td>
+<td>Discover reported species-first plant chemistry evidence</td>
+</tr>
+<tr>
+<td>
+<code><a href="reference/buildLotusIndex.html">buildLotusIndex()</a></code> / <code><a href="reference/queryLotusIndex.html">queryLotusIndex()</a></code>
+</td>
+<td>Build and query scalable local LOTUS resources</td>
+</tr>
+<tr>
+<td><code><a href="reference/runPlantPhytochemistryBatch.html">runPlantPhytochemistryBatch()</a></code></td>
+<td>Run resumable species discovery in chunks</td>
+</tr>
+<tr>
+<td><code><a href="reference/runPlantChemistryPanel.html">runPlantChemistryPanel()</a></code></td>
+<td>Coordinate a staged production plant panel</td>
+</tr>
+<tr>
+<td><code><a href="reference/plantOccurrenceEvidenceGrade.html">plantOccurrenceEvidenceGrade()</a></code></td>
+<td>Assign conservative, reviewable evidence grades</td>
+</tr>
+<tr>
+<td><code><a href="reference/plantChemistryComparability.html">plantChemistryComparability()</a></code></td>
+<td>Separate biologically comparable chemistry scopes</td>
+</tr>
+<tr>
+<td><code><a href="reference/plantChemicalTanimotoSimilarity.html">plantChemicalTanimotoSimilarity()</a></code></td>
+<td>Calculate plant-labeled structure similarity</td>
+</tr>
+<tr>
+<td><code><a href="reference/runPlantChemistryProject.html">runPlantChemistryProject()</a></code></td>
+<td>Create a reusable local plant chemistry project</td>
+</tr>
+<tr>
+<td><code><a href="reference/exportPlantChemistryFeatureSet.html">exportPlantChemistryFeatureSet()</a></code></td>
+<td>Write analysis-neutral species feature matrices</td>
+</tr>
+<tr>
+<td><code><a href="reference/validatePlantChemistryAnalysisBundle.html">validatePlantChemistryAnalysisBundle()</a></code></td>
+<td>Audit final bundle schemas and references</td>
+</tr>
+<tr>
+<td><code><a href="reference/exportAiNsectMolOlfInputs.html">exportAiNsectMolOlfInputs()</a></code></td>
+<td>Export structure-resolved molecular-olfaction inputs</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -423,21 +757,31 @@
 <p>Several workflows query public web services. Results can change as external databases evolve.</p>
 <ul>
 <li>Keep <code>cache = TRUE</code> for reusable PubChem and KEGG responses.</li>
+<li>Use local LOTUS/NPASS indexes for medium or large species panels.</li>
 <li>Store result objects and validation tables with each analysis.</li>
 <li>Record the uafR version and session information.</li>
 <li>Use bounded request limits and the default throttling settings.</li>
 <li>Inspect <code>SourceCoverage</code>, <code>SourceDiagnostics</code>, and validation output before interpreting missing values.</li>
+<li>Treat HTTP 429/503 responses as a pause signal; resume from the same cache and output paths rather than restarting.</li>
+<li>Never write NCBI API keys or other credentials into scripts, command-line arguments, manifests, or exported data.</li>
 </ul>
 <p>Record the environment used for an analysis:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/packageDescription.html" class="external-link">packageVersion</a></span><span class="op">(</span><span class="st">"uafR"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="migration-note-for-pre-04-development-outputs">Migration note for pre-0.4 development outputs<a class="anchor" aria-label="anchor" href="#migration-note-for-pre-04-development-outputs"></a>
+</h3>
+<p>uafR 0.4 uses request-bound PubChem cache keys and production checkpoint schema <code>3.3.0</code>. Legacy PubChem caches are ignored where their keys cannot establish the exact request. Regenerate identity and Tanimoto products made with older development cache logic, and validate any resumed plant checkpoint before reuse. Production discovery defaults also use more conservative throttling and smaller batches than the earliest plant-workflow prototypes.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="documentation-and-support">Documentation and support<a class="anchor" aria-label="anchor" href="#documentation-and-support"></a>
 </h2>
 <ul>
 <li>Function reference: <a href="https://castrattonDSU.github.io/uafR/" class="uri">https://castrattonDSU.github.io/uafR/</a>
+</li>
+<li>Public training materials: <a href="training/"><code>training/</code></a>
 </li>
 <li>Issues and bug reports: <a href="https://github.com/castrattonDSU/uafR/issues" class="external-link uri">https://github.com/castrattonDSU/uafR/issues</a>
 </li>
@@ -470,9 +814,8 @@
 <div class="license">
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
-<li>
-<a href="https://opensource.org/licenses/mit-license.php" class="external-link">MIT</a> + file <a href="LICENSE-text.html">LICENSE</a>
-</li>
+<li><a href="LICENSE.html">Full license</a></li>
+<li><small><a href="https://opensource.org/licenses/mit-license.php" class="external-link">MIT</a> + file <a href="LICENSE-text.html">LICENSE</a></small></li>
 </ul>
 </div>
 
@@ -487,8 +830,7 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>
-<a href="https://landinstitute.org/about-us/staff/chase-stratton/" class="external-link">Chase Stratton</a> <br><small class="roles"> Author, maintainer </small>   </li>
+<li>Chase Stratton <br><small class="roles"> Author, maintainer </small>   </li>
 <li>
 <a href="https://landinstitute.org/about-us/staff/yvonne-thompson/" class="external-link">Yvonne Thompson</a> <br><small class="roles"> Author </small>   </li>
 <li>Konilo Zio <br><small class="roles"> Author </small>   </li>
@@ -506,7 +848,7 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by <a href="https://landinstitute.org/about-us/staff/chase-stratton/" class="external-link">Chase Stratton</a>, <a href="https://landinstitute.org/about-us/staff/yvonne-thompson/" class="external-link">Yvonne Thompson</a>, Konilo Zio, <a href="https://www.researchgate.net/profile/William-Morrison" class="external-link">William Morrison</a>, <a href="https://landinstitute.org/about-us/staff/ebony-murrell/" class="external-link">Ebony Murrell</a>.</p>
+  <p>Developed by Chase Stratton, <a href="https://landinstitute.org/about-us/staff/yvonne-thompson/" class="external-link">Yvonne Thompson</a>, Konilo Zio, <a href="https://www.researchgate.net/profile/William-Morrison" class="external-link">William Morrison</a>, <a href="https://landinstitute.org/about-us/staff/ebony-murrell/" class="external-link">Ebony Murrell</a>.</p>
 </div>
 
 <div class="pkgdown-footer-right">

@@ -1,11 +1,10 @@
 # Export enriched categorate results for review and sharing
 
-`exportCategorateWorkbook()` writes the most useful
-[`categorate()`](https://castrattonDSU.github.io/uafR/reference/categorate.md)
+\`exportCategorateWorkbook()\` writes the most useful \`categorate()\`
 result tables to a researcher-friendly export bundle. It always supports
-a directory of CSV files with an `ExportManifest` table. If `openxlsx`
-or `writexl` is installed, it can also write a multi-sheet `.xlsx`
-workbook.
+a directory of CSV files with an \`ExportManifest\` table. If
+\`openxlsx\` or \`writexl\` is installed, it can also write a
+multi-sheet \`.xlsx\` workbook.
 
 ## Usage
 
@@ -26,40 +25,39 @@ exportCategorateWorkbook(
 
 - x:
 
-  A list returned by
-  [`categorate()`](https://castrattonDSU.github.io/uafR/reference/categorate.md),
-  preferably with `detail = "research"` or `detail = "full"`.
+  A list returned by \`categorate()\`, preferably with \`detail =
+  "research"\` or \`detail = "full"\`.
 
 - path:
 
-  Output path. For `format = "csv"`, this is a directory. For
-  `format = "xlsx"`, this is an `.xlsx` file.
+  Output path. For \`format = "csv"\`, this is a directory. For \`format
+  = "xlsx"\`, this is an \`.xlsx\` file.
 
 - tables:
 
-  Optional character vector of result table names to export. If `NULL`,
-  a curated analysis-ready set is exported.
+  Optional character vector of result table names to export. If
+  \`NULL\`, a curated analysis-ready set is exported.
 
 - format:
 
-  Export format: `"csv"`, `"xlsx"`, or `"auto"`. `"auto"` writes `.xlsx`
-  when `path` ends in `.xlsx` and an Excel writer is installed;
-  otherwise it writes a CSV bundle.
+  Export format: \`"csv"\`, \`"xlsx"\`, or \`"auto"\`. \`"auto"\` writes
+  \`.xlsx\` when \`path\` ends in \`.xlsx\` and an Excel writer is
+  installed; otherwise it writes a CSV bundle.
 
 - include_raw:
 
-  Logical. If `TRUE` and `tables = NULL`, export every data frame in
-  `x`, including raw source tables. If `FALSE`, export the curated
+  Logical. If \`TRUE\` and \`tables = NULL\`, export every data frame in
+  \`x\`, including raw source tables. If \`FALSE\`, export the curated
   analysis and diagnostics tables.
 
 - include_empty:
 
-  Logical. If `TRUE`, include empty data frames so the bundle preserves
-  expected schema. If `FALSE`, omit empty tables.
+  Logical. If \`TRUE\`, include empty data frames so the bundle
+  preserves expected schema. If \`FALSE\`, omit empty tables.
 
 - overwrite:
 
-  Logical. If `TRUE`, replace an existing output file or directory.
+  Logical. If \`TRUE\`, replace an existing output file or directory.
 
 - max_cell_chars:
 

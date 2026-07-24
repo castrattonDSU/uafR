@@ -1,10 +1,9 @@
 # Validate enriched categorate results
 
-`validateCategorateResult()` audits a
-[`categorate()`](https://castrattonDSU.github.io/uafR/reference/categorate.md)
-result against the uafR data dictionary. It checks expected tables,
-required columns, basic column types, controlled values, duplicate keys,
-table completeness, and source coverage diagnostics. The return value is
+\`validateCategorateResult()\` audits a \`categorate()\` result against
+the uafR data dictionary. It checks expected tables, required columns,
+basic column types, controlled values, duplicate keys, table
+completeness, and source coverage diagnostics. The return value is
 designed to be stored with results and inspected before downstream
 analyses.
 
@@ -18,24 +17,23 @@ validateCategorateResult(x, tables = NULL, strict = FALSE)
 
 - x:
 
-  A list returned by
-  [`categorate()`](https://castrattonDSU.github.io/uafR/reference/categorate.md),
-  preferably with `detail = "research"` or `detail = "full"`.
+  A list returned by \`categorate()\`, preferably with \`detail =
+  "research"\` or \`detail = "full"\`.
 
 - tables:
 
-  Optional character vector of table names to validate. If `NULL`, all
+  Optional character vector of table names to validate. If \`NULL\`, all
   dictionary tables relevant to the result are checked.
 
 - strict:
 
-  Logical. If `TRUE`, missing optional documented columns are reported
+  Logical. If \`TRUE\`, missing optional documented columns are reported
   as warnings.
 
 ## Value
 
-A list with `Summary`, `TableQuality`, `SourceDiagnostics`, `Issues`,
-and `DataDictionary` data frames.
+A list with \`Summary\`, \`TableQuality\`, \`SourceDiagnostics\`,
+\`Issues\`, and \`DataDictionary\` data frames.
 
 ## Examples
 

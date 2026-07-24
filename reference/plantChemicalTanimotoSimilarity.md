@@ -1,0 +1,66 @@
+# Plant-labeled PubChem fingerprint Tanimoto similarity
+
+\`plantChemicalTanimotoSimilarity()\` converts a plant phytochemistry
+result from \`resolvePlantPhytochemistry()\` or
+\`runPlantPhytochemistryBatch()\` into a species-compound membership
+table, then calls \`chemicalTanimotoSimilarity()\`. The returned tables
+preserve plant labels, evidence tiers, plant-part context, and source
+identifiers so pairwise chemistry outputs can be joined directly to
+downstream ecological, phylogenetic, remediation, or trait analyses.
+
+## Usage
+
+``` r
+plantChemicalTanimotoSimilarity(
+  plant_chemistry,
+  level = "species",
+  include_review_required = TRUE,
+  ...
+)
+```
+
+## Arguments
+
+- plant_chemistry:
+
+  A plant phytochemistry result list containing
+  \`PlantCompoundOccurrences\` and \`CompoundResolution\`, or a data
+  frame already containing plant-compound rows.
+
+- level:
+
+  Plant grouping level. Defaults to \`"species"\`.
+
+- include_review_required:
+
+  Logical. If \`TRUE\`, carry \`CompoundIdentityReview\` flags into the
+  membership table when present.
+
+- ...:
+
+  Additional arguments passed to \`chemicalTanimotoSimilarity()\`,
+  including \`out_dir\`, \`cache_dir\`, \`return_group_compound_pairs\`,
+  and \`request_fun\`.
+
+## Value
+
+A \`"uaf_plant_tanimoto_similarity"\` list containing the generic
+Tanimoto tables plus plant-labeled aliases: \`PlantCompoundMembership\`,
+\`PlantPairTanimotoSummary\`, and \`PlantCompoundTanimoto\`. Generic
+exact comparable-scope and comparable-group summaries remain available
+as \`ComparableScopeTanimotoSummary\` and
+\`ComparableGroupTanimotoSummary\`.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+phyto = resolvePlantPhytochemistry(c("Salix nigra", "Zea mays"))
+sim = plantChemicalTanimotoSimilarity(
+  phyto,
+  out_dir = "plant_tanimoto",
+  return_group_compound_pairs = TRUE
+)
+sim$PlantPairTanimotoSummary
+} # }
+```

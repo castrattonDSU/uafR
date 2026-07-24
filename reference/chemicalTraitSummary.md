@@ -1,9 +1,10 @@
 # Summarize normalized chemical traits
 
-`chemicalTraitSummary()` produces compact per-compound summaries from a
-`ChemicalTraits` table or a categorate result. Use it to see how many
-traits were extracted by domain or source, which sources contributed
-evidence, and which trait groups/values dominate each compound.
+\`chemicalTraitSummary()\` produces compact per-compound summaries from
+a \`ChemicalTraits\` table or a categorate result. Use it to see how
+many traits were extracted by domain or source, which sources
+contributed evidence, and which trait groups/values dominate each
+compound.
 
 ## Usage
 
@@ -20,19 +21,19 @@ chemicalTraitSummary(
 
 - traits:
 
-  A `ChemicalTraits` data frame or a categorate result list that
-  contains `ChemicalTraits`.
+  A \`ChemicalTraits\` data frame or a categorate result list that
+  contains \`ChemicalTraits\`.
 
 - by:
 
-  Summary level: `"type"` summarizes by `TraitType`, `"source"`
-  summarizes by `SourceDatabase`, and `"compound"` summarizes all traits
-  per compound.
+  Summary level: \`"type"\` summarizes by \`TraitType\`, \`"source"\`
+  summarizes by \`SourceDatabase\`, and \`"compound"\` summarizes all
+  traits per compound.
 
 - min_confidence:
 
   Minimum confidence score for included traits. Accepts a numeric score
-  or `"low"`, `"medium"`, or `"high"`.
+  or \`"low"\`, \`"medium"\`, or \`"high"\`.
 
 - top_n:
 

@@ -1,9 +1,9 @@
 # Map normalized chemical traits to a controlled ontology
 
-`chemicalTraitOntology()` converts extracted `ChemicalTraits` into a
+\`chemicalTraitOntology()\` converts extracted \`ChemicalTraits\` into a
 conservative, source-backed ontology table. The function only maps
-whitelisted `TraitType`/`TraitGroup` combinations whose values are
-already discrete in `ChemicalTraits`; it does not infer new biology or
+whitelisted \`TraitType\`/\`TraitGroup\` combinations whose values are
+already discrete in \`ChemicalTraits\`; it does not infer new biology or
 parse long descriptive text.
 
 ## Usage
@@ -16,18 +16,18 @@ chemicalTraitOntology(traits, min_confidence = 0, include_unmapped = FALSE)
 
 - traits:
 
-  A `ChemicalTraits` data frame or a categorate result list that
-  contains `ChemicalTraits`.
+  A \`ChemicalTraits\` data frame or a categorate result list that
+  contains \`ChemicalTraits\`.
 
 - min_confidence:
 
   Minimum confidence score for included traits. Accepts a numeric score
-  or `"low"`, `"medium"`, or `"high"`.
+  or \`"low"\`, \`"medium"\`, or \`"high"\`.
 
 - include_unmapped:
 
-  Logical. If `TRUE`, unmapped discrete traits are kept under
-  `OntologyDomain = "unmapped"` for auditing. Defaults to `FALSE`.
+  Logical. If \`TRUE\`, unmapped discrete traits are kept under
+  \`OntologyDomain = "unmapped"\` for auditing. Defaults to \`FALSE\`.
 
 ## Value
 

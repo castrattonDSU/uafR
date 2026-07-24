@@ -1,0 +1,258 @@
+# Species-first plant phytochemistry resolver
+
+\`resolvePlantPhytochemistry()\` builds a species-first phytochemistry
+result from plant names, public-provider adapters, literature
+candidates, and optional curated species-compound rows. The resolver is
+intentionally conservative: no compound is fabricated, literature
+co-mentions remain candidate evidence, and provider no-hit states are
+reported through diagnostics.
+
+## Usage
+
+``` r
+resolvePlantPhytochemistry(
+  plants,
+  sources = c("lotus", "knapsack", "npass", "pubchem", "pubmed", "pubtator"),
+  taxon_fallback = c("species", "genus"),
+  enrich_compounds = TRUE,
+  chemical_library = NULL,
+  detail = c("research", "full", "none"),
+  cache = TRUE,
+  cache_dir = NULL,
+  lotus_index = Sys.getenv("UAFR_LOTUS_INDEX", ""),
+  provider_indexes = NULL,
+  require_all_providers = FALSE,
+  throttle = 0.2,
+  ncbi_email = Sys.getenv("NCBI_EMAIL", ""),
+  ncbi_tool = Sys.getenv("NCBI_TOOL", "uafR"),
+  ncbi_api_key = Sys.getenv("NCBI_API_KEY", ""),
+  max_pubmed_records = 50,
+  max_provider_records = max_pubmed_records,
+  request_timeout = 30,
+  enrich_context = FALSE,
+  context_sources = NULL,
+  max_context_sources = 100,
+  min_confidence = "medium",
+  enrichment_batch_size = Inf,
+  resume_enrichment = TRUE,
+  progress = interactive(),
+  defer_derived = FALSE,
+  strict = FALSE,
+  curated_data = NULL,
+  provider_results = NULL,
+  enrichment_fun = NULL,
+  request_fun = NULL,
+  pubtator_request_fun = NULL,
+  refresh = FALSE,
+  ...
+)
+```
+
+## Arguments
+
+- plants:
+
+  Character vector or data frame of plant names. If a data frame is
+  supplied, a \`species\` column is preferred; otherwise the first
+  column is treated as the plant name. Optional \`genus\` and \`family\`
+  columns are used when present.
+
+- sources:
+
+  Character vector of provider names. Supported names are \`"lotus"\`,
+  \`"knapsack"\`, \`"npass"\`, \`"pubchem"\`, \`"pubmed"\`, and
+  \`"pubtator"\`.
+
+- taxon_fallback:
+
+  Character vector of fallback ranks to record in query planning.
+  Species-level evidence is queried first. Providers that support
+  broader lookup may also use genus or family terms; fallback evidence
+  is labeled separately from direct species evidence.
+
+- enrich_compounds:
+
+  Logical. If \`TRUE\`, attempt compound enrichment after occurrence
+  discovery.
+
+- chemical_library:
+
+  Optional chemical library passed to \`categorate()\` when compound
+  enrichment is requested. If omitted, compound enrichment falls back to
+  \`pubchemProfile()\` and returns PubChem-derived categorate-like
+  analysis tables without FMCS library matching.
+
+- detail:
+
+  One of \`"research"\`, \`"full"\`, or \`"none"\`.
+
+- cache:
+
+  Logical. If \`TRUE\`, provider requests may use cache files.
+
+- cache_dir:
+
+  Cache directory. Defaults to a uafR cache directory when needed.
+
+- lotus_index:
+
+  Optional local LOTUS index as a data frame, path to a CSV, TSV, JSON,
+  JSONL, NDJSON, or RDS file, or manifest-backed lookup directory
+  produced by \`tools/flatten_lotus_mongo_dump.py –lookup-dir\`. When
+  supplied and \`"lotus"\` is enabled, uafR queries this local index
+  instead of the live LOTUS simple API. Lookup directories are the
+  recommended path for hundreds of plant names.
+
+- provider_indexes:
+
+  Optional named list of local provider indexes.
+  \`provider_indexes\$lotus\` and \`provider_indexes\$npass\` are
+  currently supported. \`lotus_index\` remains a backward-compatible
+  alias.
+
+- require_all_providers:
+
+  Logical. If \`TRUE\`, fail when a requested local resource is
+  unavailable or a provider finishes with an incomplete/error status.
+  Use this for audited production panels after a live pilot.
+
+- throttle:
+
+  Seconds to wait between uncached provider requests.
+
+- ncbi_email:
+
+  Optional NCBI email. Defaults to \`Sys.getenv("NCBI_EMAIL")\`.
+
+- ncbi_tool:
+
+  Optional NCBI tool name. Defaults to \`Sys.getenv("NCBI_TOOL",
+  "uafR")\`.
+
+- ncbi_api_key:
+
+  Optional NCBI API key. Defaults to \`Sys.getenv("NCBI_API_KEY")\`. It
+  is used in request URLs but is not persisted in result tables.
+
+- max_pubmed_records:
+
+  Maximum PubMed records per plant to request.
+
+- max_provider_records:
+
+  Maximum occurrence rows to retain per plant from non-PubMed provider
+  adapters.
+
+- request_timeout:
+
+  Maximum seconds allowed for an uncached provider request before the
+  underlying R connection times out. Cached and mocked requests are not
+  delayed by this setting.
+
+- enrich_context:
+
+  Logical. If \`TRUE\`, attempt source-backed PubMed context enrichment
+  for occurrence rows that have PMID or DOI provenance. This can add
+  plant-part, tissue, or method context only when source text contains
+  the relevant terms; it does not fabricate missing context.
+
+- context_sources:
+
+  Optional source text table, such as \`LiteratureCandidates\` or a data
+  frame with \`pmid\`, \`doi\`, \`title\`, \`abstract\`, and
+  \`evidence_text\`, used for source-backed context enrichment without
+  live requests.
+
+- max_context_sources:
+
+  Maximum unique PMID/DOI records to fetch when \`enrich_context =
+  TRUE\`.
+
+- min_confidence:
+
+  Minimum confidence for summary/matrix features.
+
+- enrichment_batch_size:
+
+  Maximum number of unique compounds per PubChem-only enrichment batch.
+  Use \`Inf\` for one batch.
+
+- resume_enrichment:
+
+  Logical. If \`TRUE\`, reuse saved PubChem-only enrichment batch files
+  when available.
+
+- progress:
+
+  Logical. If \`TRUE\`, print simple enrichment progress messages.
+
+- defer_derived:
+
+  Logical. If \`TRUE\`, return provider-normalized discovery tables
+  while deferring context linking, summaries, matrices, identity review,
+  and validation. This staging option is used by the resumable batch
+  runner so expensive derived products are built once after chunks are
+  combined.
+
+- strict:
+
+  Logical. If \`TRUE\`, validation treats optional missing fields more
+  strictly.
+
+- curated_data:
+
+  Optional local species-compound table to standardize and include.
+
+- provider_results:
+
+  Optional named list of mocked or pre-fetched provider results. This is
+  intended for tests, offline workflows, and future cached provider
+  download parsers.
+
+- enrichment_fun:
+
+  Optional function used instead of \`categorate()\` for compound
+  enrichment. It should accept a character vector of compounds and
+  return a categorate-like list.
+
+- request_fun:
+
+  Optional URL request function used by live-capable provider adapters
+  in tests or advanced use.
+
+- pubtator_request_fun:
+
+  Optional URL request function used by the PubTator adapter in tests or
+  advanced use.
+
+- refresh:
+
+  Logical. Reserved for future provider cache refresh support.
+
+- ...:
+
+  Additional arguments passed to \`categorate()\`, \`enrichment_fun\`,
+  or the PubChem-only enrichment fallback. Use \`compound_request_fun\`
+  in \`...\` to mock or customize compound-centered PubChem requests.
+
+## Value
+
+A list with class \`"uaf_plant_phytochemistry"\` containing normalized
+query, occurrence, literature, enrichment, summary, matrix, validation,
+dictionary, and provenance tables.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+plants = c("Salix nigra", "Camellia sinensis", "Zea mays")
+phyto = resolvePlantPhytochemistry(
+  plants = plants,
+  sources = c("lotus", "pubmed", "pubtator"),
+  taxon_fallback = c("species", "genus"),
+  enrich_compounds = FALSE
+)
+phyto$SpeciesChemistrySummary
+validatePlantPhytochemistryResult(phyto)$Summary
+} # }
+```
