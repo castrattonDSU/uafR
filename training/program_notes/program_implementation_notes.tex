@@ -1,160 +1,108 @@
-\chapter{Program Implementation Guide}
+\chapter{Program Implementation Notes}
 
 \section{Program Philosophy}
-This program treats undergraduate interns as early-career researchers. Students are not expected to arrive knowing R, chemistry, statistics, mass spectrometry, or manuscript writing. They are expected to learn how to make their work traceable, honest, reproducible, and useful. The curriculum is intentionally full-day: research skill develops through repeated cycles of trying, inspecting, documenting, revising, and explaining.
+This program treats undergraduate interns as early-career researchers. The expectation is not that students arrive knowing R, chemistry, statistics, or manuscript writing. The expectation is that they learn how to make their work traceable, honest, and useful. The second-pass curriculum assumes a full-day internship: students have enough time each week for reading, guided lab work, independent analysis, writing, peer review, and revision.
 
-\section{Pre-Program Setup Checklist}
-\begin{checklistbox}{Before Week 1}
+\section{Program Setup Before Week 1}
+Before Week 1, program setup includes:
 \begin{itemize}
-  \item Prepare the current private uafR student bundle or another approved installation route.
-  \item Confirm that the bundle includes installation instructions, preflight checks, acceptance tests, training scripts, and this manual.
-  \item Prepare a case dataset and short chemical list for students without immediate research data.
-  \item Decide where students will store project folders and which locations may contain private or unpublished data.
-  \item Prepare printed or digital copies of the Project Brief, Chemical Intake Table, Database Evidence Map, Daily Research Log, and Weekly Progress Review worksheets.
-  \item Schedule weekly review checkpoints and final presentation time.
-  \item Identify which public database exercises can use saved examples if network access or live services fail.
-  \item Create a list of program contacts for R help, chemistry interpretation, data privacy, and presentation review.
+  \item A short orientation to the lab or core facility.
+  \item A list of possible research domains and dsDNA Core contacts.
+  \item A small set of example chemicals for demonstrations.
+  \item Confirmation that R, RStudio, Git, and uafR can be installed.
+  \item A current private student bundle with installer, verifier, package archive, and training PDF.
+  \item Guidance on what data are public, private, unpublished, or restricted.
 \end{itemize}
-\end{checklistbox}
 
-\section{Daily Check-In Script}
-The daily check-in is short and artifact-centered. It can be used at the start or end of a workday.
-
-\begin{enumerate}
-  \item What did the student produce since the last check-in?
-  \item Where is the file, table, figure, worksheet, or code object saved?
-  \item What evidence supports the main thing the student thinks they learned?
-  \item What is uncertain, missing, broken, or overclaimed?
-  \item What will be produced by the next check-in?
-\end{enumerate}
-
-\section{Weekly Mentor Review Script}
-Weekly review should inspect the product ladder artifact rather than reviewing the whole project from scratch.
-
-\begin{enumerate}
-  \item Confirm the week's primary deliverable and file location.
-  \item Ask the student to explain the research question in one minute.
-  \item Ask the student to show the source evidence behind one important claim.
-  \item Ask the student to show one reproducibility check or rerun result.
-  \item Ask the student to name the strongest limitation.
-  \item Decide whether the next week can proceed, proceed with a reduced scope, or pause for revision.
-\end{enumerate}
-
-\section{Decision-Gate Review Questions}
-\begin{longtable}{p{0.20\textwidth}p{0.36\textwidth}p{0.34\textwidth}}
+\section{Suggested Weekly Pacing}
+\begin{tabularx}{\textwidth}{p{0.18\textwidth}Y}
 \toprule
-\textbf{Gate} & \textbf{Review questions} & \textbf{Evidence required}\\
+\textbf{Week} & \textbf{Program focus}\\
 \midrule
-\endfirsthead
-\toprule
-\textbf{Gate} & \textbf{Review questions} & \textbf{Evidence required}\\
-\midrule
-\endhead
-Scope gate & What chemical set is being studied? What claim is out of scope? & Project brief, risk note, chemical intake draft.\\
-Reproducibility gate & Can the project be opened and rerun from its root? & README, setup script, session info, clean folder structure.\\
-Evidence gate & Which sources returned useful data and which did not? & Validation summary, source coverage, diagnostics, saved result object.\\
-Variable gate & How did source evidence become analysis-ready variables? & Grouping dictionary, trait evidence audit, matrix settings.\\
-Interpretation gate & Which claims survive evidence review? & Claim-evidence-limitation memo, figures, literature table.\\
-Handoff gate & Can someone continue the project without the student present? & Final audit, continuation note, rerun status, archive path.\\
-\bottomrule
-\end{longtable}
-
-\section{Expected Student Answers by Program Stage}
-\begin{longtable}{p{0.16\textwidth}p{0.34\textwidth}p{0.40\textwidth}}
-\toprule
-\textbf{Stage} & \textbf{Strong answer} & \textbf{Answer needing revision}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Stage} & \textbf{Strong answer} & \textbf{Answer needing revision}\\
-\midrule
-\endhead
-Question design & Names system, chemical set, comparison, evidence type, and limitation. & ``I want to see what chemicals are important.''\\
-Identifier cleanup & Preserves original names and documents cleaned query names and ambiguity. & Original names are overwritten or difficult compounds disappear.\\
-GC-MS workflow & Describes match factor, retention time, base peak, area, and tentative identity caveats. & ``The software identified the compound.''\\
-Database enrichment & Starts with validation and source coverage. & Jumps directly to the most exciting pathway or bioactivity term.\\
-Trait design & Names source table, field, extraction rule, allowed values, confidence, and caveat. & Uses broad sentences as categories.\\
-Visualization & Explains which question the figure answers and which values are missing. & Shows a figure because it looks interesting.\\
-Literature & Uses papers to refine interpretation and limitations. & Searches only for papers that support a desired conclusion.\\
-Final report & Methods, results, and limitations are reproducible and source-backed. & Report reads like a story without an evidence trail.\\
-\bottomrule
-\end{longtable}
-
-\section{Common Coaching Moments}
-\begin{tabularx}{\textwidth}{p{0.30\textwidth}Y}
-\toprule
-\textbf{Pattern} & \textbf{Useful program response}\\
-\midrule
-Project is too broad & Reduce to one chemical set, one comparison, and one main evidence family.\\
-Student is stuck on installation & Use the private bundle path, run preflight checks, and switch to case-data reading while installation is repaired.\\
-Student has weak R background & Keep chemical set small, require script comments that explain intent, and prioritize clean reruns over advanced analysis.\\
-Student has no chemistry background & Use identifier ambiguity drills and claim-boundary examples before interpreting traits.\\
-Student has strong background and needs more challenge & Add sensitivity analysis, reviewer response, literature conflict, or a reusable audit/plotting function.\\
-Live service fails & Use saved result objects or offline examples and document that live access was unavailable.\\
-Matrix is too wide & Return to the grouping dictionary and remove variables that lack project relevance or source support.\\
-Writing overclaims & Rewrite the claim using evidence type, source, and limitation.\\
+1 & Research questions are narrowed before projects become too large.\\
+2 & Project structure, relative paths, and safe token handling are established.\\
+3 & Database interpretation and evidence limits are made explicit.\\
+4 & GC-MS inputs, duplicates, and tentative identity claims are inspected.\\
+5 & Enrichment outputs, validation summaries, and source coverage are reviewed.\\
+6 & Grouping variables and extraction rules are reviewed before analysis expands.\\
+7 & Figures are tied to clear questions and explicit missing-data interpretation.\\
+8 & Major claims are supported by literature and source evidence.\\
+9 & Methods are reproducible and results remain restrained.\\
+10 & Communication, handoff quality, and next research steps are finalized.\\
 \bottomrule
 \end{tabularx}
 
-\section{When To Slow Down}
-The program should slow down when a student cannot explain the question, cannot find the files they produced, ignores source coverage, interprets before validation, uses absolute paths, treats database text as proof, or cannot explain what a figure shows. Slowing down means reducing scope and improving evidence quality, not abandoning the project.
-
-\section{When To Accelerate}
-The program can accelerate when the student can rerun the workflow from a clean session, source coverage and validation are documented, the grouping dictionary is clear, figures have source-backed captions, and the student can explain what evidence would change their interpretation. Acceleration should add depth: sensitivity checks, literature conflict analysis, stronger figures, or reusable functions.
-
-\section{Running With Real Data, Case Data, or No Data}
-\begin{longtable}{p{0.20\textwidth}p{0.34\textwidth}p{0.36\textwidth}}
+\section{Suggested Daily Rhythm}
+\begin{tabularx}{\textwidth}{p{0.20\textwidth}Y}
 \toprule
-\textbf{Mode} & \textbf{Best use} & \textbf{Required adjustment}\\
+\textbf{Time block} & \textbf{Use}\\
 \midrule
-\endfirsthead
-\toprule
-\textbf{Mode} & \textbf{Best use} & \textbf{Required adjustment}\\
-\midrule
-\endhead
-Real student data & Strongest ownership and publication potential. & Add data privacy notes, raw-data preservation, and realistic scope limits.\\
-Program case data & Best for teaching a consistent workflow. & Make clear that scientific claims are about the case exercise, not new discovery.\\
-No available chemical data & Best for students entering early or from communication tracks. & Use a curated chemical list, database evidence atlas, methods evaluation, or teaching module.\\
-Mixed mode & Best when real data are messy. & Train on case data first, then apply only reviewed steps to real data.\\
+9:00--9:30 & Daily check-in, objective, and one concept.\\
+9:30--11:30 & Guided lab or reading discussion.\\
+11:30--12:00 & Research log update and troubleshooting list.\\
+1:00--3:00 & Independent project application or case exercise.\\
+3:00--4:00 & Writing, figure captioning, or evidence audit.\\
+4:00--4:30 & dsDNA Core or peer checkpoint and next-day plan.\\
 \bottomrule
-\end{longtable}
+\end{tabularx}
 
-\section{Protecting Unpublished and Private Data}
-Private and unpublished data require deliberate handling. Student projects should not contain tokens, passwords, private collaborator files, raw data with restricted identifiers, or uncontrolled copies of unpublished sample metadata. Public-facing products should use generalized descriptions unless sharing has been approved. Reproducibility can be preserved with documented access rules, checksums where appropriate, case-data substitutes, and clear separation of public scripts from private data.
+\section{Minimum Viable Project}
+If a student struggles or time is limited, scope is reduced rather than lowering quality. A strong minimum project can use 8 to 15 chemicals, one research question, one trait matrix, two figures, and one interpretation memo. The student still preserves reproducibility, source evidence, and uncertainty.
 
-\section{Database Etiquette}
-Live database access is deliberately conservative:
+\section{Advanced Project Options}
+Students who move quickly can add:
 \begin{itemize}
-  \item Start with one or two compounds before scaling.
-  \item Use caching for repeated work.
-  \item Use throttling for broad queries.
-  \item Save RDS result objects so students do not repeat identical requests.
-  \item Use offline saved examples when teaching in rooms with unstable internet.
-  \item Treat service failures as workflow realities, not as student failures.
+  \item Comparison of trait profiles across treatments or sample groups.
+  \item A curated literature table for a chemical class.
+  \item A pathway-focused KEGG interpretation.
+  \item A safety or exposure screening appendix.
+  \item A natural product occurrence analysis using LOTUS-derived fields.
+  \item A reusable R function for project-specific filtering or plotting.
 \end{itemize}
 
-\section{Evaluating Final Packages}
-Final review uses three questions:
-\begin{enumerate}
-  \item Can the package be understood from the README, report, and continuation note?
-  \item Can the figures and tables be traced to scripts, saved objects, source evidence, and literature?
-  \item Are claims scientifically restrained by tentative identity, source coverage, missingness, and evidence type?
-\end{enumerate}
+\section{Database Etiquette}
+Live database practice is deliberately conservative:
+\begin{itemize}
+  \item Start with small smoke tests.
+  \item Use caching for repeated work.
+  \item Use throttling for broad queries.
+  \item Save result objects so students do not repeat identical requests.
+  \item Use offline saved examples when teaching in a room with unstable internet.
+\end{itemize}
 
-Packages that pass these questions can be archived even if they contain negative or inconclusive findings. Inconclusive projects are valuable when they document why the evidence was insufficient and what should be done next.
-
-\section{Archiving Projects}
-The final archive should include the final project folder, report, presentation, saved uafR result object, validation outputs, source coverage report, trait matrix, grouping dictionary, figures, research log, session information, final package audit, and continuation note. Archive names should include student initials or project code, year, and short title. Restricted data should remain in controlled storage with a note explaining access requirements.
+\section{Common Coaching Moments}
+\begin{tabularx}{\textwidth}{p{0.25\textwidth}Y}
+\toprule
+\textbf{Issue} & \textbf{Program response}\\
+\midrule
+Student overclaims tentative GC-MS hits & Evidence for confirmed identity and tentative status is reviewed before claims move forward.\\
+Matrix has many columns but no interpretation & The student narrows the work through a project-specific grouping dictionary.\\
+Database text is copied into results & The result is rewritten as discrete extracted values with source-backed fields.\\
+Unmatched chemicals disappear & The project adds a missing-data and source-coverage note.\\
+Figures are decorative & The figure is tied to a specific question and research decision.\\
+Script only runs on one laptop & Absolute paths are removed and the workflow is rerun from the project root.\\
+\bottomrule
+\end{tabularx}
 
 \section{Recommended Grading Weight}
 \begin{tabularx}{\textwidth}{p{0.35\textwidth}p{0.15\textwidth}Y}
 \toprule
 \textbf{Component} & \textbf{Weight} & \textbf{Notes}\\
 \midrule
-Weekly deliverables and research log & 25\% & Completion, quality, daily documentation, and responsiveness to feedback.\\
-Reproducible project package & 20\% & File structure, scripts, logs, clean-session check, and saved objects.\\
-Chemical evidence and trait design & 20\% & Source coverage, evidence traceability, grouping dictionary, and matrix quality.\\
-Final report and figures & 20\% & Scientific logic, methods, results, figures, interpretation, and limitations.\\
-Presentation and handoff & 15\% & Clear communication, final audit, continuation note, and archive readiness.\\
+Weekly deliverables & 30\% & Completion, quality, and responsiveness to feedback.\\
+Reproducible project package & 20\% & File structure, scripts, logs, and rerunnable outputs.\\
+Final report & 25\% & Scientific logic, methods, results, and interpretation.\\
+Presentation & 15\% & Clear communication and ability to answer questions.\\
+Research professionalism & 10\% & Documentation, integrity, collaboration, and growth.\\
 \bottomrule
 \end{tabularx}
+
+\section{Final Presentation Questions}
+These questions are used during final presentations:
+\begin{enumerate}
+  \item What was your original question?
+  \item Which chemical evidence changed your thinking?
+  \item Which result is strongest?
+  \item Which result is most uncertain?
+  \item What should the next student or collaborator do next?
+\end{enumerate}

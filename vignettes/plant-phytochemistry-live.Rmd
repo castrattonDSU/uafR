@@ -39,9 +39,11 @@ Sys.setenv(
 # Sys.setenv(NCBI_API_KEY = "set-this-outside-version-control")
 ```
 
-Without an API key, keep NCBI requests at or below three per second. uafR uses
-conservative defaults, caching, backoff, and resumable service-busy handling,
-but the user remains responsible for appropriate API use.
+Without an API key, keep NCBI E-utilities requests at or below three per
+second, as specified in the
+[NCBI E-utilities guidance](https://www.ncbi.nlm.nih.gov/books/NBK25497/).
+uafR uses conservative defaults, caching, backoff, and resumable service-busy
+handling, but the user remains responsible for appropriate API use.
 
 ## Start with a three-species pilot
 

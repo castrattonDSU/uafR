@@ -1,3 +1,0 @@
-sample_id,compound_name,retention_time,match_factor,peak_area,source_file,annotation_status,notes
-S001,caffeine,12.43,82,14320,example_gcms.csv,tentative_training_example,Teaching template only; not evidence of WiCCED sample presence.
-S002,atrazine,15.88,78,9200,example_gcms.csv,tentative_training_example,Teaching template only; not evidence of WiCCED sample presence.

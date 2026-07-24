@@ -1,206 +1,123 @@
 \chapter{Project Tracks for Student Interests}
 
-Students should be able to bring their own interests to the program while using a common quality standard. The tracks below define feasible questions, outputs, caveats, and capstone products for different research domains. A track is a starting point, not a restriction. The same project may combine a biological question with a methods question, or a food chemistry question with a communication product.
+Students should be able to bring their own interests to the program. These tracks help adapt the same uafR workflow to different fields while preserving a shared quality standard.
 
 \section{Track 1: Plant, Agriculture, and Natural Products}
-\textbf{Good research questions:}
+\textbf{Good questions:}
 \begin{itemize}
-  \item Which tentative GC-MS hits in two plant treatments have source-backed natural product occurrence or chemical class annotations?
-  \item Do cultivar, tissue, or developmental-stage groups differ in trait profiles derived from validated chemical evidence?
-  \item Which compounds have pathway or occurrence context that supports follow-up targeted analysis?
+  \item Do volatile profiles differ between treatments, cultivars, tissues, or developmental stages?
+  \item Which detected compounds have natural product occurrence evidence?
+  \item Do compounds cluster by sensory traits, pathway context, or functional groups?
 \end{itemize}
 
-\textbf{Bad or overbroad questions:}
+\textbf{High-value tables:}
 \begin{itemize}
-  \item Which plant is medicinal?
-  \item Did this treatment activate a pathway based only on KEGG context?
-  \item Are these compounds present in the plant because LOTUS reports them in another organism?
+  \item \texttt{ChemicalOccurrences}, \texttt{ChemicalTaxonomy}, and \texttt{LOTUSProfile}.
+  \item \texttt{ChemicalPathwayRoles}, \texttt{KEGGPathways}, and \texttt{ChemicalTraits}.
 \end{itemize}
 
-\textbf{Recommended uafR tables and outputs:}
-\begin{itemize}
-  \item \texttt{ChemicalOccurrences}, \texttt{ChemicalTaxonomy}, \texttt{LOTUSProfile}, and \texttt{ChemicalClasses}.
-  \item \texttt{ChemicalTraits}, \texttt{ChemicalPathwayRoles}, \texttt{KEGGPathways}, and \texttt{KEGGReactions}.
-  \item \texttt{SourceCoverage} and \texttt{ChemicalTraitEvidence}.
-\end{itemize}
+\textbf{Recommended figures:} Occurrence heatmap, trait matrix heatmap, pathway role summary, compound class bar chart.
 
-\textbf{Recommended figures:} Source coverage heatmap, occurrence evidence heatmap, compound class bar chart, trait matrix heatmap, and a focused pathway-context table.
-
-\textbf{Key caveats:} Natural product occurrence in another organism supports hypothesis generation, not direct occurrence in the student's sample. KEGG pathway membership is pathway context, not pathway activity. Tentative GC-MS annotation requires cautious wording.
-
-\textbf{Minimum viable project:} 10 to 20 tentative compounds, one plant system or comparison, source coverage report, occurrence or class grouping dictionary, two figures, and one limitation paragraph.
-
-\textbf{Advanced project:} Compare treatment or tissue groups using a medium-confidence trait matrix and add a targeted follow-up list for standards or MS/MS confirmation.
-
-\textbf{Example final product:} ``Source-backed natural product and pathway-context profile of tentative volatile annotations from treated and untreated plant tissue.''
+\textbf{Caution:} Natural product occurrence in another organism supports hypothesis generation, not direct evidence of occurrence in the student's sample.
 
 \section{Track 2: Environmental Exposure and Toxicology}
-\textbf{Good research questions:}
+\textbf{Good questions:}
 \begin{itemize}
-  \item Which detected or queried chemicals have hazard, property, or regulatory signals that justify follow-up review?
-  \item Do sample groups differ in safety-relevant trait profiles or physicochemical properties?
-  \item Which chemicals combine strong source coverage with properties relevant to volatility, hydrophobicity, persistence, or exposure screening?
+  \item Which detected chemicals have hazard, exposure, or regulatory signals requiring follow-up?
+  \item Do sample groups differ by safety-relevant trait profiles?
+  \item Which compounds have properties suggesting persistence, volatility, or hydrophobicity?
 \end{itemize}
 
-\textbf{Bad or overbroad questions:}
+\textbf{High-value tables:}
 \begin{itemize}
-  \item Are these samples toxic?
-  \item Which chemical caused the biological effect?
-  \item Is a compound risky because a hazard annotation exists?
-\end{itemize}
-
-\textbf{Recommended uafR tables and outputs:}
-\begin{itemize}
-  \item \texttt{ChemicalHazards}, \texttt{SafetyProfile}, \texttt{PubChemProperties}, and \texttt{PubChemSafety}.
+  \item \texttt{ChemicalHazards}, \texttt{SafetyProfile}, and \texttt{PubChemProperties}.
   \item \texttt{ChemicalMeasurementSummary}, \texttt{ChemicalTraits}, and \texttt{DerivedGroups}.
-  \item \texttt{SourceCoverage} and \texttt{ValidationSummary}.
 \end{itemize}
 
-\textbf{Recommended figures:} Hazard-term summary, property scatterplot, source coverage heatmap, confidence-weighted trait matrix, and table of chemicals prioritized for follow-up.
+\textbf{Recommended figures:} Hazard code count, property scatterplot, source coverage heatmap, trait confidence matrix.
 
-\textbf{Key caveats:} Hazard screening is not risk assessment. Risk requires exposure, concentration, dose, route, organism, and context. Database safety annotations may come from different formulations or use cases.
-
-\textbf{Minimum viable project:} One chemical set, a source coverage and hazard screening table, one property figure, one evidence-limited prioritization list, and a risk-assessment caveat.
-
-\textbf{Advanced project:} Add sensitivity analysis showing how conclusions change when low-confidence safety or exposure traits are removed.
-
-\textbf{Example final product:} ``Evidence-screening profile for tentative chemicals with safety-relevant annotations in an environmental sample set.''
+\textbf{Caution:} Hazard annotations are screening evidence. Risk requires dose, exposure, route, organism, and context.
 
 \section{Track 3: Food, Flavor, Aroma, and Sensory Chemistry}
-\textbf{Good research questions:}
+\textbf{Good questions:}
 \begin{itemize}
-  \item Which tentative volatile compounds have source-backed flavor, odor, or sensory descriptors relevant to a food or plant system?
-  \item Do treatment groups differ in sensory-relevant trait profiles or physicochemical properties?
-  \item Which compounds should be prioritized for standards or sensory validation?
+  \item Which compounds have flavor, odor, or sensory descriptors relevant to a food or plant system?
+  \item Do treatment groups differ in sensory-relevant chemical trait profiles?
+  \item Which compounds should be prioritized for sensory validation or standards?
 \end{itemize}
 
-\textbf{Bad or overbroad questions:}
-\begin{itemize}
-  \item Which sample tastes best?
-  \item Did this compound cause a sensory perception based only on a database descriptor?
-  \item Are all compounds with flavor annotations relevant at the measured abundance?
-\end{itemize}
-
-\textbf{Recommended uafR tables and outputs:}
+\textbf{High-value tables:}
 \begin{itemize}
   \item \texttt{FEMAProfile}, \texttt{ChemicalTerms}, and \texttt{ChemicalTraits}.
-  \item \texttt{PubChemProperties}, \texttt{ChemicalMeasurementSummary}, and \texttt{ChemicalTraitMatrix}.
-  \item \texttt{ChemicalTraitEvidence}.
+  \item \texttt{PubChemProperties} and \texttt{ChemicalMeasurementSummary}.
 \end{itemize}
 
-\textbf{Recommended figures:} Sensory descriptor heatmap, abundance versus sensory evidence plot, trait count by treatment, property summary, and source coverage table for sensory evidence.
+\textbf{Recommended figures:} Sensory term heatmap, compound abundance versus sensory evidence, trait count by treatment.
 
-\textbf{Key caveats:} Sensory descriptors do not prove perceptibility. Concentration, odor threshold, matrix effects, mixture effects, and human or instrument validation matter.
-
-\textbf{Minimum viable project:} 8 to 15 volatile compounds, sensory descriptor evidence map, one heatmap, one abundance or property summary, and a cautious sensory interpretation.
-
-\textbf{Advanced project:} Add literature-derived odor thresholds where available and classify compounds as strong evidence, context evidence, or follow-up candidates.
-
-\textbf{Example final product:} ``Source-backed sensory descriptor profile for tentative volatile annotations in a food aroma comparison.''
+\textbf{Caution:} A flavor annotation does not prove perceptibility. Concentration, threshold, matrix, and mixture effects matter.
 
 \section{Track 4: Biomedical, Pharmacology, and Public Health}
-\textbf{Good research questions:}
+\textbf{Good questions:}
 \begin{itemize}
-  \item Which query chemicals have biomedical terms, pharmacologic actions, assay annotations, or target evidence in public databases?
-  \item Which compounds have evidence strong enough for background discussion versus only future-work prioritization?
-  \item How does bioactivity source coverage differ across a chemical set?
+  \item Which compounds have biomedical terms, pharmacologic actions, or assay evidence?
+  \item Are any detected compounds connected to targets, potencies, or bioactivity categories?
+  \item Which compounds require caution before being described as therapeutic, toxic, or mechanistic?
 \end{itemize}
 
-\textbf{Bad or overbroad questions:}
+\textbf{High-value tables:}
 \begin{itemize}
-  \item Which compounds cure disease?
-  \item What mechanism explains the biological effect based only on PubChem bioassay records?
-  \item Are compounds clinically relevant because they have MeSH terms?
+  \item \texttt{MeSHProfile}, \texttt{PubChemBioactivity}, and \texttt{ChemicalTraitEvidence}.
+  \item \texttt{ChemicalBioactivities}, \texttt{ChemicalTargets}, and \texttt{ChemicalPotencies}.
 \end{itemize}
 
-\textbf{Recommended uafR tables and outputs:}
-\begin{itemize}
-  \item \texttt{MeSHProfile}, \texttt{PubChemBioactivity}, and \texttt{PubChemBioAssayDetails}.
-  \item \texttt{ChemicalBioassays}, \texttt{ChemicalBioactivities}, \texttt{ChemicalTargets}, and \texttt{ChemicalPotencies}.
-  \item \texttt{ChemicalTraitEvidence} and \texttt{LiteratureProfile}.
-\end{itemize}
+\textbf{Recommended figures:} Bioactivity summary table, target evidence table, biomedical trait matrix, evidence ladder plot.
 
-\textbf{Recommended figures:} Bioactivity evidence summary, target evidence table, biomedical trait matrix, assay-source coverage plot, and evidence ladder figure.
-
-\textbf{Key caveats:} Bioassay or pharmacologic annotation does not prove mechanism, efficacy, safety, clinical relevance, or activity in the student's system. Assay context, potency, target type, and evidence source matter.
-
-\textbf{Minimum viable project:} Small chemical set, biomedical evidence map, one source coverage figure, one table of supported and unsupported claims, and a literature-context paragraph.
-
-\textbf{Advanced project:} Compare assay-level details for a few priority compounds while keeping broad compound interpretation conservative.
-
-\textbf{Example final product:} ``Biomedical evidence map and claim-boundary analysis for a focused set of tentative chemical annotations.''
+\textbf{Caution:} Bioassay or pharmacologic annotation does not prove clinical relevance or mechanism in the student's system.
 
 \section{Track 5: Methods, Data Science, and Tool Evaluation}
-\textbf{Good research questions:}
+\textbf{Good questions:}
 \begin{itemize}
-  \item How do \texttt{chemicalTraitMatrix()} settings change grouping or similarity conclusions?
-  \item Which database sources contribute the most usable evidence for a particular chemical class?
-  \item How robust are project conclusions when low-confidence traits, sparse columns, or weakly covered chemicals are removed?
+  \item How do trait matrix settings change clustering or grouping conclusions?
+  \item Which database sources contribute the most useful evidence for a chemical class?
+  \item How robust are conclusions when low-confidence traits are removed?
 \end{itemize}
 
-\textbf{Bad or overbroad questions:}
+\textbf{High-value tables:}
 \begin{itemize}
-  \item What can uafR do?
-  \item Which setting gives the best-looking heatmap?
-  \item Can all output tables be combined into one master table without a research question?
+  \item \texttt{ValidationSummary}, \texttt{TableQuality}, and \texttt{SourceDiagnostics}.
+  \item \texttt{SourceCoverage}, \texttt{ChemicalTraitMatrix}, and \texttt{ChemicalTraitSimilarity}.
 \end{itemize}
 
-\textbf{Recommended uafR tables and outputs:}
-\begin{itemize}
-  \item \texttt{ValidationSummary}, \texttt{TableQuality}, \texttt{SourceDiagnostics}, and \texttt{SourceCoverage}.
-  \item \texttt{ChemicalTraitMatrix}, \texttt{ChemicalTraitSimilarity}, and \texttt{ChemicalTraitReport}.
-  \item \texttt{DataDictionary} and saved RDS result objects.
-\end{itemize}
+\textbf{Recommended figures:} Matrix sensitivity comparison, source coverage summary, trait overlap network, confidence distribution.
 
-\textbf{Recommended figures:} Matrix sensitivity comparison, source coverage summary, sparsity plot, trait overlap heatmap, and confidence distribution.
-
-\textbf{Key caveats:} Methods projects still need a scientific or training question. A large output inventory is not a result unless it changes how evidence is interpreted or workflows are run.
-
-\textbf{Minimum viable project:} One chemical set, at least two matrix settings, source coverage summary, one sensitivity figure, and a recommendation memo.
-
-\textbf{Advanced project:} Build a reusable project-specific audit function or visualization function and test it against a second chemical set.
-
-\textbf{Example final product:} ``Sensitivity of source-backed chemical grouping to trait matrix profile and confidence thresholds in uafR.''
+\textbf{Caution:} Method evaluation projects still need a scientific question. They should not become demonstrations of every available output.
 
 \section{Track 6: Chemistry Education and Communication}
-\textbf{Good research questions:}
+\textbf{Good questions:}
 \begin{itemize}
-  \item Which chemical traits are most useful for teaching new students about evidence limits?
-  \item Can a small compound set teach identity ambiguity, source coverage, and cautious interpretation?
-  \item Which visualization best communicates tentative annotation and database evidence to non-specialists?
+  \item Which chemical traits are easiest or hardest for new students to interpret correctly?
+  \item Can a small set of compounds teach uncertainty, source coverage, and chemical grouping?
+  \item What visualizations best communicate chemical evidence to non-specialists?
 \end{itemize}
 
-\textbf{Bad or overbroad questions:}
+\textbf{High-value tables:}
 \begin{itemize}
-  \item How can chemistry be made easy?
-  \item Can uncertainty be removed from the training materials?
-  \item Which graphic looks most engaging without preserving source evidence?
+  \item \texttt{ChemicalTraitReport} and \texttt{ChemicalTraitEvidence}.
+  \item \texttt{DataDictionary} and \texttt{SourceCoverage}.
 \end{itemize}
 
-\textbf{Recommended uafR tables and outputs:}
-\begin{itemize}
-  \item \texttt{ChemicalTraitReport}, \texttt{ChemicalTraitEvidence}, and \texttt{DataDictionary}.
-  \item \texttt{SourceCoverage}, \texttt{ValidationSummary}, \texttt{ChemicalTerms}, and selected identity tables.
-\end{itemize}
+\textbf{Recommended products:} Teaching dataset, annotated figure set, evidence interpretation guide, mini-workshop.
 
-\textbf{Recommended products:} Teaching dataset, annotated figure set, evidence interpretation guide, worksheet example packet, and short mini-workshop.
-
-\textbf{Key caveats:} Communication products must preserve scientific caution. Simplification should not erase tentative identity, missingness, source limitations, or the distinction between source annotation and sample evidence.
-
-\textbf{Minimum viable project:} One teaching compound set, evidence map, two annotated figures, a short guide, and an assessment question set.
-
-\textbf{Advanced project:} Pilot the material with a peer group and revise based on documented confusion points.
-
-\textbf{Example final product:} ``A teaching module for interpreting tentative GC-MS annotations and public database evidence with uafR.''
+\textbf{Caution:} Educational products should preserve scientific accuracy. Simplification should not erase uncertainty.
 
 \section{Capstone Options}
 Students can finish with one of several products:
 \begin{itemize}
-  \item Manuscript-style research report suitable for internal dsDNA Core review.
+  \item Research report suitable for a dsDNA Core or lab meeting.
   \item Poster-ready figure set with captions and methods.
-  \item Reusable analysis pipeline for a larger lab or collaborator project.
+  \item Manuscript-style results section.
+  \item Reusable analysis pipeline for a larger project.
   \item Database evidence atlas for a chemical class.
-  \item Methods comparison or sensitivity analysis for uafR workflows.
   \item Teaching module for future interns.
 \end{itemize}
 
@@ -214,8 +131,6 @@ Why this track fits the student's interest & \rule{0pt}{3em}\\
 Primary uafR tables & \rule{0pt}{3em}\\
 Most important figure & \rule{0pt}{3em}\\
 Most important limitation & \rule{0pt}{3em}\\
-Minimum viable product & \rule{0pt}{3em}\\
-Advanced extension & \rule{0pt}{3em}\\
 Likely final product & \rule{0pt}{3em}\\
 \bottomrule
 \end{tabularx}

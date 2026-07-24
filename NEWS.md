@@ -236,7 +236,7 @@
   `exportCompoundIdentityReviewTemplate()`, and
   `applyCompoundIdentityReview()`. The release-check wrapper now installs the
   built source tarball into a clean temporary library by default and can run a
-  private student-bundle acceptance test when supplied a bundle path.
+  offline student-bundle acceptance test when supplied a bundle path.
 - Added a simulated offline plant chemistry example under
   `inst/extdata/offline_plant_chemistry` plus
   `tools/build_offline_plant_chemistry_example.R` so users and CI can generate

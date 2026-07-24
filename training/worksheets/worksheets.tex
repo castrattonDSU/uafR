@@ -1,527 +1,152 @@
 \chapter{Student Worksheets}
 
-Worksheets are working documents, not decorations. Each one exists to preserve a decision, expose uncertainty, or make a final product easier to review. Students may complete them on paper, in a spreadsheet, or in a project Markdown file, but the final project folder must contain a completed version or equivalent evidence.
-
-\begingroup
-\small
-\setlength{\tabcolsep}{3pt}
-
-\newcommand{\WorksheetNotes}[5]{%
-\begin{programbox}{Purpose}
-#1
-\end{programbox}
-\textbf{When to use:} #2
-
-\textbf{Instructions:} #3
-
-\textbf{Required fields:} #4
-
-\textbf{Common mistakes:} #5
-}
-
 \section{Worksheet 1: Project Brief}
-\WorksheetNotes
-{Convert a broad interest into a feasible chemical research question with a product that can be completed in 10 weeks.}
-{Week 1 scope gate and any later major project revision.}
-{Write in complete sentences. The question must name the chemical set, system or comparison, evidence type, and expected final product.}
-{Project title, research system, primary question, comparison or grouping variable, starting chemical list source, evidence types, expected product, main risk, and backup plan.}
-{Questions that ask whether chemicals are important without defining importance; questions that require confirmed identity when only tentative annotations are available; missing risk notes.}
+\begin{programbox}{Purpose}
+Use this worksheet to convert a broad interest into a research question that can be tested with chemical data, database enrichment, and reproducible analysis.
+\end{programbox}
 
 \begin{tabularx}{\textwidth}{p{0.28\textwidth}Y}
 \toprule
 \textbf{Prompt} & \textbf{Student response}\\
 \midrule
 Working project title & \rule{0pt}{2.5em}\\
-Research system or domain & \rule{0pt}{2.5em}\\
+Research system & \rule{0pt}{2.5em}\\
 Primary research question & \rule{0pt}{3.5em}\\
 Comparison or grouping variable & \rule{0pt}{3.5em}\\
 Starting chemical list source & \rule{0pt}{2.5em}\\
-Evidence types needed & \rule{0pt}{3.5em}\\
+Most relevant evidence types & \rule{0pt}{3.5em}\\
 Expected final product & \rule{0pt}{2.5em}\\
 Main risk or limitation & \rule{0pt}{3.5em}\\
-Backup question & \rule{0pt}{3.5em}\\
 \bottomrule
 \end{tabularx}
-
-\textbf{Completion standard:} A reviewer can tell what will be analyzed, what evidence is needed, and what claim will remain out of scope.
 
 \section{Worksheet 2: Chemical Intake Table}
-\WorksheetNotes
-{Preserve the original chemical list while creating a clean, auditable query list.}
-{Week 1 through Week 3, before enrichment and any time identifiers change.}
-{Never overwrite submitted names. Add cleaned query names, identifiers, ambiguity flags, and inclusion decisions in separate columns.}
-{Original name, cleaned query name, source, identifier if available, ambiguity type, inclusion decision, confidence, project relevance, and notes.}
-{Deleting difficult chemicals without explanation; mixing salts, mixtures, and parent compounds without a rule; treating synonyms as independent compounds.}
-
-\begin{longtable}{p{0.15\textwidth}p{0.15\textwidth}p{0.11\textwidth}p{0.11\textwidth}p{0.13\textwidth}p{0.12\textwidth}p{0.13\textwidth}}
+\begin{tabularx}{\textwidth}{p{0.18\textwidth}p{0.14\textwidth}p{0.14\textwidth}p{0.18\textwidth}Y}
 \toprule
-\textbf{Original name} & \textbf{Clean query} & \textbf{Source} & \textbf{Identifier} & \textbf{Ambiguity} & \textbf{Include?} & \textbf{Notes}\\
+\textbf{Chemical} & \textbf{Source} & \textbf{Confidence} & \textbf{Project relevance} & \textbf{Notes}\\
 \midrule
-\endfirsthead
-\toprule
-\textbf{Original name} & \textbf{Clean query} & \textbf{Source} & \textbf{Identifier} & \textbf{Ambiguity} & \textbf{Include?} & \textbf{Notes}\\
-\midrule
-\endhead
-\rule{0pt}{2em} & & & & & &\\
-\rule{0pt}{2em} & & & & & &\\
-\rule{0pt}{2em} & & & & & &\\
-\rule{0pt}{2em} & & & & & &\\
-\rule{0pt}{2em} & & & & & &\\
+\rule{0pt}{2em} & & & &\\
+\rule{0pt}{2em} & & & &\\
+\rule{0pt}{2em} & & & &\\
+\rule{0pt}{2em} & & & &\\
+\rule{0pt}{2em} & & & &\\
 \bottomrule
-\end{longtable}
-
-\textbf{Completion standard:} The cleaned list can be rerun by another student using the same inclusion rules.
+\end{tabularx}
 
 \section{Worksheet 3: Database Evidence Map}
-\WorksheetNotes
-{Show which evidence sources are useful for each chemical and what each source can support.}
-{Week 3 source audit and Week 5 enrichment review.}
-{Mark coverage using yes, no, weak, or not relevant. Add notes for source gaps that affect interpretation.}
-{Chemical, identity evidence, property evidence, hazard evidence, occurrence evidence, pathway or reaction evidence, sensory evidence, biomedical evidence, strongest source, and limitation.}
-{Treating every database field as equally reliable; hiding empty sources; assuming a source annotation applies to the student's sample.}
-
-\begin{longtable}{p{0.13\textwidth}p{0.10\textwidth}p{0.10\textwidth}p{0.10\textwidth}p{0.10\textwidth}p{0.10\textwidth}p{0.10\textwidth}p{0.17\textwidth}}
+\begin{tabularx}{\textwidth}{p{0.18\textwidth}p{0.10\textwidth}p{0.10\textwidth}p{0.12\textwidth}p{0.10\textwidth}p{0.10\textwidth}Y}
 \toprule
-\textbf{Chemical} & \textbf{Identity} & \textbf{Property} & \textbf{Hazard} & \textbf{Occur.} & \textbf{Pathway} & \textbf{Sensory} & \textbf{Best source/limit}\\
+\textbf{Chemical} & \textbf{Identity} & \textbf{Safety} & \textbf{Occur.} & \textbf{Pathway} & \textbf{Bioact.} & \textbf{Most useful source}\\
 \midrule
-\endfirsthead
-\toprule
-\textbf{Chemical} & \textbf{Identity} & \textbf{Property} & \textbf{Hazard} & \textbf{Occur.} & \textbf{Pathway} & \textbf{Sensory} & \textbf{Best source/limit}\\
-\midrule
-\endhead
-\rule{0pt}{2em} & & & & & & &\\
-\rule{0pt}{2em} & & & & & & &\\
-\rule{0pt}{2em} & & & & & & &\\
-\bottomrule
-\end{longtable}
-
-\textbf{Completion standard:} Every major source gap has an interpretation note.
-
-\section{Worksheet 4: Source Coverage Report}
-\WorksheetNotes
-{Summarize what was returned by \texttt{categorate()} before analysis begins.}
-{Week 5 validation and any rerun after changing query chemicals.}
-{Use \texttt{SourceCoverage}, \texttt{TableQuality}, and \texttt{SourceDiagnostics}. Distinguish empty sources from failed requests.}
-{Result object name, date, query size, source family, returned rows, missing chemicals, diagnostics, and interpretation consequence.}
-{Interpreting rich chemicals more strongly without noting uneven coverage; rerunning live queries repeatedly without preserving settings.}
-
-\begin{tabularx}{\textwidth}{p{0.22\textwidth}p{0.18\textwidth}p{0.18\textwidth}Y}
-\toprule
-\textbf{Source family/table} & \textbf{Coverage status} & \textbf{Diagnostics} & \textbf{Interpretation consequence}\\
-\midrule
-\rule{0pt}{2.5em} & & &\\
-\rule{0pt}{2.5em} & & &\\
-\rule{0pt}{2.5em} & & &\\
-\rule{0pt}{2.5em} & & &\\
-\bottomrule
-\end{tabularx}
-
-\textbf{Completion standard:} The report explains whether missingness is expected, concerning, or project-limiting.
-
-\section{Worksheet 5: GC-MS Input Column Audit}
-\WorksheetNotes
-{Confirm that GC-MS hit tables have the required columns and usable values before running the core workflow.}
-{Week 4 before \texttt{spreadOut()} and again after input repair.}
-{Compare the file to the required fields used by the workflow. Record renaming and type coercion in a script.}
-{File name, row count, required columns, missing columns, duplicate keys, suspicious values, repair decision, and processed output location.}
-{Editing the raw export manually; ignoring duplicate peak keys; assuming column names are obvious without checking.}
-
-\begin{tabularx}{\textwidth}{p{0.24\textwidth}p{0.18\textwidth}p{0.18\textwidth}Y}
-\toprule
-\textbf{Check} & \textbf{Pass/fail} & \textbf{Evidence} & \textbf{Action needed}\\
-\midrule
-\texttt{Component.RT} present and numeric & & &\\
-\texttt{Component.Area} present and numeric & & &\\
-\texttt{Base.Peak.MZ} present and numeric & & &\\
-\texttt{File.Name} present & & &\\
-\texttt{Compound.Name} present & & &\\
-\texttt{Match.Factor} present and numeric & & &\\
-Duplicate peak keys checked & & &\\
-\bottomrule
-\end{tabularx}
-
-\textbf{Completion standard:} The processed input can be produced from raw input by running a documented script.
-
-\section{Worksheet 6: Query Settings Log}
-\WorksheetNotes
-{Preserve the exact settings used for enrichment so results can be reproduced and interpreted.}
-{Every \texttt{categorate()} run, especially live database runs.}
-{Record code-level settings and service behavior. Save the result object immediately.}
-{Date, compounds, \texttt{detail}, cache setting, cache directory, throttle, assay detail limit, trait profile, confidence threshold, max traits, and result path.}
-{Running large live queries without a smoke test; forgetting whether cached or fresh results were used; losing the RDS object.}
-
-\begin{tabularx}{\textwidth}{p{0.32\textwidth}Y}
-\toprule
-\textbf{Setting} & \textbf{Value}\\
-\midrule
-Run date and operator & \rule{0pt}{2em}\\
-Compound list file & \rule{0pt}{2em}\\
-\texttt{detail} setting & \rule{0pt}{2em}\\
-\texttt{cache} and cache location & \rule{0pt}{2em}\\
-\texttt{throttle} & \rule{0pt}{2em}\\
-\texttt{assay\_detail\_limit} & \rule{0pt}{2em}\\
-Trait matrix profile and confidence & \rule{0pt}{2em}\\
-Saved RDS path & \rule{0pt}{2em}\\
-Warnings or failed sources & \rule{0pt}{3em}\\
-\bottomrule
-\end{tabularx}
-
-\textbf{Completion standard:} Another student can rerun the same query or explain why it should not be rerun.
-
-\section{Worksheet 7: Trait Evidence Audit}
-\WorksheetNotes
-{Trace important traits or matrix columns back to source evidence before using them in figures or claims.}
-{Week 6 and every time a final claim depends on a trait.}
-{Use \texttt{chemicalTraitEvidence()} when possible. If evidence must be inspected manually, record the source table and field.}
-{Trait key, chemical, source table, source field, evidence text or value, confidence, extraction rule, source URL or identifier, and decision.}
-{Treating trait names as self-evident; failing to record extraction rules; using low-confidence traits without caveat.}
-
-\begin{longtable}{p{0.14\textwidth}p{0.12\textwidth}p{0.14\textwidth}p{0.13\textwidth}p{0.16\textwidth}p{0.10\textwidth}p{0.11\textwidth}}
-\toprule
-\textbf{Trait} & \textbf{Chemical} & \textbf{Source table} & \textbf{Field} & \textbf{Evidence/value} & \textbf{Conf.} & \textbf{Decision}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Trait} & \textbf{Chemical} & \textbf{Source table} & \textbf{Field} & \textbf{Evidence/value} & \textbf{Conf.} & \textbf{Decision}\\
-\midrule
-\endhead
+\rule{0pt}{2em} & & & & & &\\
 \rule{0pt}{2em} & & & & & &\\
 \rule{0pt}{2em} & & & & & &\\
 \rule{0pt}{2em} & & & & & &\\
 \bottomrule
-\end{longtable}
+\end{tabularx}
 
-\textbf{Completion standard:} Every final trait can be defended with source evidence or removed.
-
-\section{Worksheet 8: Trait Grouping Dictionary}
-\WorksheetNotes
-{Define analysis-ready variables from source-backed fields.}
-{Week 6 variable gate and later matrix revisions.}
-{Each row is a variable definition. Include the allowed values and the rule used to extract them.}
-{Variable, source table, source field, extraction rule, allowed values, confidence rule, caveat, and final use.}
-{Using full sentences as factor levels; merging unrelated traits; creating variables without source fields.}
-
-\begin{longtable}{p{0.14\textwidth}p{0.14\textwidth}p{0.13\textwidth}p{0.18\textwidth}p{0.15\textwidth}p{0.12\textwidth}}
+\section{Worksheet 4: Trait Grouping Dictionary}
+\begin{tabularx}{\textwidth}{p{0.18\textwidth}p{0.16\textwidth}p{0.15\textwidth}p{0.17\textwidth}Y}
 \toprule
-\textbf{Variable} & \textbf{Source table} & \textbf{Field} & \textbf{Extraction rule} & \textbf{Allowed values} & \textbf{Caveat}\\
+\textbf{Variable} & \textbf{Source table} & \textbf{Source field} & \textbf{Allowed values} & \textbf{Why it matters}\\
 \midrule
-\endfirsthead
-\toprule
-\textbf{Variable} & \textbf{Source table} & \textbf{Field} & \textbf{Extraction rule} & \textbf{Allowed values} & \textbf{Caveat}\\
-\midrule
-\endhead
-\rule{0pt}{2em} & & & & &\\
-\rule{0pt}{2em} & & & & &\\
-\rule{0pt}{2em} & & & & &\\
-\bottomrule
-\end{longtable}
-
-\textbf{Completion standard:} The dictionary is precise enough that another student could rebuild the variables.
-
-\section{Worksheet 9: Matrix Sensitivity Log}
-\WorksheetNotes
-{Document how matrix settings affect dimensions, sparsity, and interpretation.}
-{Week 6 sparsity challenge and any final matrix selection.}
-{Change one setting at a time. Preserve dimensions and nonzero counts.}
-{Profile, mode, confidence threshold, max traits, row count, column count, sparsity, changed conclusion, and final decision.}
-{Selecting the prettiest heatmap; changing chemicals and settings at the same time; hiding unstable conclusions.}
-
-\begin{tabularx}{\textwidth}{p{0.17\textwidth}p{0.13\textwidth}p{0.13\textwidth}p{0.12\textwidth}p{0.12\textwidth}Y}
-\toprule
-\textbf{Profile/mode} & \textbf{Threshold} & \textbf{Rows} & \textbf{Cols.} & \textbf{Sparse?} & \textbf{Interpretation change}\\
-\midrule
-\rule{0pt}{2em} & & & & &\\
-\rule{0pt}{2em} & & & & &\\
-\rule{0pt}{2em} & & & & &\\
+\rule{0pt}{2em} & & & &\\
+\rule{0pt}{2em} & & & &\\
+\rule{0pt}{2em} & & & &\\
+\rule{0pt}{2em} & & & &\\
 \bottomrule
 \end{tabularx}
 
-\textbf{Completion standard:} The selected matrix settings are justified by evidence quality and interpretability.
-
-\section{Worksheet 10: Figure Planning Worksheet}
-\WorksheetNotes
-{Plan a figure before plotting so the graphic answers a scientific question.}
-{Week 7 before each major figure.}
-{Write the result sentence first. Then choose the source object and figure type.}
-{Figure question, source table or matrix, rows, columns, grouping variable, expected pattern, missingness plan, export format, and draft caption.}
-{Creating a figure only because the data are available; missing source table in caption; no plan for missing values.}
-
-\begin{tabularx}{\textwidth}{p{0.30\textwidth}Y}
+\section{Worksheet 5: Figure Planning}
+\begin{tabularx}{\textwidth}{p{0.28\textwidth}Y}
 \toprule
 \textbf{Prompt} & \textbf{Student response}\\
 \midrule
-Result sentence the figure should support & \rule{0pt}{3em}\\
-Source table, matrix, or script & \rule{0pt}{2.5em}\\
+Figure question & \rule{0pt}{3em}\\
+Source table or matrix & \rule{0pt}{2.5em}\\
 Rows or observations & \rule{0pt}{2.5em}\\
 Columns or variables & \rule{0pt}{2.5em}\\
 Grouping or color variable & \rule{0pt}{2.5em}\\
-Missing-value treatment & \rule{0pt}{2.5em}\\
 Expected pattern & \rule{0pt}{3em}\\
+Most important limitation & \rule{0pt}{3em}\\
 Draft caption & \rule{0pt}{4em}\\
 \bottomrule
 \end{tabularx}
 
-\textbf{Completion standard:} The figure plan names the evidence object and the limitation before plotting begins.
-
-\section{Worksheet 11: Figure Caption Checklist}
-\WorksheetNotes
-{Make captions scientifically useful and reviewer-ready.}
-{Week 7 figure clinic and final report preparation.}
-{Check each caption against the figure and underlying data.}
-{Figure number, source object, sample or chemical set, variables, missingness note, statistical or visual summary, and claim boundary.}
-{Captions that only restate the title; captions that imply causation or confirmation; unlabeled missing values.}
-
-\begin{tabularx}{\textwidth}{p{0.42\textwidth}p{0.18\textwidth}Y}
+\section{Worksheet 6: Literature and Evidence Synthesis}
+\begin{tabularx}{\textwidth}{p{0.15\textwidth}p{0.16\textwidth}p{0.14\textwidth}p{0.14\textwidth}Y}
 \toprule
-\textbf{Caption element} & \textbf{Present?} & \textbf{Revision note}\\
+\textbf{Chemical} & \textbf{Finding} & \textbf{uafR evidence} & \textbf{Citation} & \textbf{Interpretation and limitation}\\
 \midrule
-Source object or script named & &\\
-Chemical set or sample group defined & &\\
-Variables and units described & &\\
-Missing or sparse values explained & &\\
-Claim strength matches evidence & &\\
-Limitation included when needed & &\\
+\rule{0pt}{3em} & & & &\\
+\rule{0pt}{3em} & & & &\\
+\rule{0pt}{3em} & & & &\\
 \bottomrule
 \end{tabularx}
 
-\textbf{Completion standard:} A reader can understand what the figure shows and what it does not show without guessing.
-
-\section{Worksheet 12: Literature and Evidence Synthesis}
-\WorksheetNotes
-{Connect uafR outputs to literature without inflating claims.}
-{Week 8 and report discussion drafting.}
-{Summarize each paper by system, method, chemical evidence, main claim, and limitation. Link it to a specific project result.}
-{Chemical or trait, project result, citation, system, method, evidence type, support level, conflict or limitation, and final use.}
-{Citing a paper only because it mentions the same chemical; ignoring method differences; treating contextual support as direct proof.}
-
-\begin{longtable}{p{0.13\textwidth}p{0.15\textwidth}p{0.14\textwidth}p{0.13\textwidth}p{0.13\textwidth}p{0.18\textwidth}}
-\toprule
-\textbf{Chem./trait} & \textbf{Project result} & \textbf{Citation} & \textbf{System} & \textbf{Method} & \textbf{Support/limit}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Chem./trait} & \textbf{Project result} & \textbf{Citation} & \textbf{System} & \textbf{Method} & \textbf{Support/limit}\\
-\midrule
-\endhead
-\rule{0pt}{2.5em} & & & & &\\
-\rule{0pt}{2.5em} & & & & &\\
-\rule{0pt}{2.5em} & & & & &\\
-\bottomrule
-\end{longtable}
-
-\textbf{Completion standard:} Each retained source has a clear role in background, interpretation, methods, conflict, or future work.
-
-\section{Worksheet 13: Claim-Evidence-Limitation Memo}
-\WorksheetNotes
-{Draft defensible interpretation by pairing every claim with evidence and limitation.}
-{Week 8 interpretation gate and Week 9 report drafting.}
-{One row per claim. Include the strongest evidence and the most important caveat.}
-{Claim, result object, source evidence, literature support, limitation, reviewer challenge, and revised wording.}
-{Writing claims before checking evidence; omitting limitations; claiming pathway activity, clinical relevance, or sample occurrence from database records.}
-
-\begin{tabularx}{\textwidth}{p{0.22\textwidth}p{0.18\textwidth}p{0.18\textwidth}Y}
-\toprule
-\textbf{Draft claim} & \textbf{Evidence} & \textbf{Limitation} & \textbf{Revised wording}\\
-\midrule
-\rule{0pt}{3em} & & &\\
-\rule{0pt}{3em} & & &\\
-\rule{0pt}{3em} & & &\\
-\bottomrule
-\end{tabularx}
-
-\textbf{Completion standard:} Every final claim has a source-backed version and a clear boundary.
-
-\section{Worksheet 14: Peer Review Form}
-\WorksheetNotes
-{Structure peer feedback around evidence, reproducibility, and claim strength.}
-{Weeks 7 through 10, especially draft report and presentation review.}
-{Review the artifact first, then write specific comments that point to a figure, table, paragraph, or script.}
-{Research question, strongest result, weakest evidence, reproducibility issue, figure revision, methods gap, first revision priority, and reviewer name/date.}
-{Generic praise; comments without file locations; asking for stronger claims when evidence is weak.}
-
+\section{Worksheet 7: Peer Review Form}
 \begin{tabularx}{\textwidth}{p{0.32\textwidth}Y}
 \toprule
 \textbf{Review question} & \textbf{Reviewer notes}\\
 \midrule
 What is the research question? & \rule{0pt}{3em}\\
 What is the strongest result? & \rule{0pt}{3em}\\
+Where is the evidence strongest? & \rule{0pt}{3em}\\
 Where is the evidence weakest? & \rule{0pt}{3em}\\
-Which script or method detail needs attention? & \rule{0pt}{3em}\\
-Which figure needs revision? & \rule{0pt}{3em}\\
-Which claim should be weakened or defended? & \rule{0pt}{3em}\\
+Which figure needs the most improvement? & \rule{0pt}{3em}\\
+Which method detail is missing? & \rule{0pt}{3em}\\
 What should the author revise first? & \rule{0pt}{3em}\\
 \bottomrule
 \end{tabularx}
 
-\textbf{Completion standard:} The author receives at least three actionable revisions tied to specific locations.
-
-\section{Worksheet 15: Daily Research Log}
-\WorksheetNotes
-{Create a dated record of work, decisions, errors, and evidence.}
-{Every active calendar day. Weekend entries may be shorter but still required.}
-{Complete the log before ending work. Include commands, files, outputs, and decisions.}
-{Date, objective, script or file changed, command run, output produced, evidence inspected, problem, decision, next step, and question for review.}
-{Entries that say only that work was done; missing file names; undocumented interpretation changes.}
-
-\begin{tabularx}{\textwidth}{p{0.30\textwidth}Y}
+\section{Worksheet 8: Daily Research Log}
+\begin{tabularx}{\textwidth}{p{0.28\textwidth}Y}
 \toprule
 \textbf{Prompt} & \textbf{Student response}\\
 \midrule
-Date and day number & \rule{0pt}{2em}\\
+Date and week & \rule{0pt}{2em}\\
 Today's objective & \rule{0pt}{2.5em}\\
-Command/script/file changed & \rule{0pt}{3em}\\
+Script or file changed & \rule{0pt}{2.5em}\\
 Output produced & \rule{0pt}{2.5em}\\
 Evidence inspected & \rule{0pt}{3em}\\
 Problem encountered & \rule{0pt}{3em}\\
 Decision made & \rule{0pt}{3em}\\
-Question for review & \rule{0pt}{3em}\\
-Next first step & \rule{0pt}{2.5em}\\
+Question for discussion & \rule{0pt}{3em}\\
+Tomorrow's first step & \rule{0pt}{2.5em}\\
 \bottomrule
 \end{tabularx}
 
-\textbf{Completion standard:} A reviewer can reconstruct what changed that day and why.
-
-\section{Worksheet 16: Weekly Progress Review}
-\WorksheetNotes
-{Summarize the week's product, quality gate status, and next-week risks.}
-{End of every week before moving to the next milestone.}
-{Attach links or paths to completed artifacts. State what passed, what failed, and what changed after review.}
-{Weekly milestone, deliverables, quality gates, evidence reviewed, unresolved problems, mentor/peer feedback, and next-week plan.}
-{Moving forward with failed gates; failing to record feedback; treating unfinished tasks as complete.}
-
+\section{Worksheet 9: Evidence Court}
 \begin{tabularx}{\textwidth}{p{0.30\textwidth}Y}
-\toprule
-\textbf{Prompt} & \textbf{Response}\\
-\midrule
-Week and milestone & \rule{0pt}{2em}\\
-Primary deliverable location & \rule{0pt}{2em}\\
-Quality gates passed & \rule{0pt}{3em}\\
-Quality gates not yet passed & \rule{0pt}{3em}\\
-Evidence or outputs reviewed & \rule{0pt}{3em}\\
-Feedback received & \rule{0pt}{3em}\\
-Revision plan & \rule{0pt}{3em}\\
-\bottomrule
-\end{tabularx}
-
-\textbf{Completion standard:} The next week's work starts with a known priority, not a vague continuation.
-
-\section{Worksheet 17: Evidence Court}
-\WorksheetNotes
-{Test one important claim by tracing it from statement to evidence.}
-{Week 5 weekend, Week 8 interpretation, and final report review.}
-{Select a claim that matters. Fill every field before deciding whether to keep it.}
-{Draft claim, figure/table, uafR source table, evidence row or trait key, source database, confidence, literature support, revised claim, and reviewer decision.}
-{Choosing easy claims only; leaving confidence blank; keeping claims that only have narrative support.}
-
-\begin{tabularx}{\textwidth}{p{0.31\textwidth}Y}
 \toprule
 \textbf{Prompt} & \textbf{Student response}\\
 \midrule
 Draft claim & \rule{0pt}{3em}\\
 Figure or table supporting claim & \rule{0pt}{2.5em}\\
-uafR source table or matrix & \rule{0pt}{2.5em}\\
-Evidence row, trait key, or field & \rule{0pt}{2.5em}\\
+uafR source table & \rule{0pt}{2.5em}\\
+Evidence row or matrix key & \rule{0pt}{2.5em}\\
 Source database & \rule{0pt}{2.5em}\\
 Confidence or limitation & \rule{0pt}{3em}\\
-Literature support or conflict & \rule{0pt}{3em}\\
+Literature support & \rule{0pt}{3em}\\
 Rewritten claim & \rule{0pt}{4em}\\
 Reviewer decision & \rule{0pt}{2.5em}\\
 \bottomrule
 \end{tabularx}
 
-\textbf{Completion standard:} The claim is kept, weakened, moved to future work, or removed with evidence.
-
-\section{Worksheet 18: Final Handoff}
-\WorksheetNotes
-{Prepare the project so another person can continue it.}
-{Week 10 final package audit.}
-{List file locations, not just yes/no status. Include unresolved issues and next recommended step.}
-{README status, raw data location, processed data, scripts, saved uafR result, validation outputs, matrices, figures, report, session information, continuation note, and non-claims.}
-{Saying files exist without naming locations; leaving private-data access unexplained; omitting what should not be claimed.}
-
-\begin{longtable}{p{0.34\textwidth}p{0.23\textwidth}p{0.33\textwidth}}
+\section{Worksheet 10: Final Handoff}
+\begin{tabularx}{\textwidth}{p{0.34\textwidth}Y}
 \toprule
-\textbf{Handoff item} & \textbf{Location/status} & \textbf{Reviewer note}\\
+\textbf{Handoff item} & \textbf{Location or status}\\
 \midrule
-\endfirsthead
-\toprule
-\textbf{Handoff item} & \textbf{Location/status} & \textbf{Reviewer note}\\
-\midrule
-\endhead
-Project README is current & &\\
-Raw data preserved or access documented & &\\
-Processed data are scripted & &\\
-Saved uafR result object is present & &\\
-Validation summaries are saved & &\\
-Trait matrix and grouping dictionary are saved & &\\
-Figures regenerate from scripts & &\\
-Final report and presentation are saved & &\\
-Session information is saved & &\\
-Continuation note is complete & &\\
-Claims not to make are listed & &\\
-\bottomrule
-\end{longtable}
-
-\textbf{Completion standard:} A new student can identify the project status and first next step in less than 15 minutes.
-
-\section{Worksheet 19: Presentation Planning}
-\WorksheetNotes
-{Build a clear presentation around one central result and its evidence.}
-{Week 10 before slide or poster production.}
-{Choose one central result. Everything else should support context, method, evidence, limitation, or next step.}
-{Audience, central result, slide sequence, main figure, evidence source, limitation, anticipated questions, and closing next step.}
-{Too many results; unexplained methods; no limitation slide; figures that are unreadable at presentation size.}
-
-\begin{tabularx}{\textwidth}{p{0.30\textwidth}Y}
-\toprule
-\textbf{Prompt} & \textbf{Response}\\
-\midrule
-Audience and time limit & \rule{0pt}{2em}\\
-One-sentence central result & \rule{0pt}{3em}\\
-Opening context & \rule{0pt}{3em}\\
-Main figure or table & \rule{0pt}{2.5em}\\
-Evidence source behind result & \rule{0pt}{3em}\\
-Key limitation & \rule{0pt}{3em}\\
-Likely audience questions & \rule{0pt}{3em}\\
-Closing next step & \rule{0pt}{3em}\\
+Project README is current & \rule{0pt}{2em}\\
+Raw data are preserved or access is documented & \rule{0pt}{2em}\\
+Processed data are scripted & \rule{0pt}{2em}\\
+Saved uafR result object is present & \rule{0pt}{2em}\\
+Validation summaries are saved & \rule{0pt}{2em}\\
+Trait matrix and grouping dictionary are saved & \rule{0pt}{2em}\\
+Figures regenerate from scripts & \rule{0pt}{2em}\\
+Final report and presentation are saved & \rule{0pt}{2em}\\
+Session information is saved & \rule{0pt}{2em}\\
+Continuation note is complete & \rule{0pt}{2em}\\
 \bottomrule
 \end{tabularx}
-
-\textbf{Completion standard:} The presentation can be understood by a scientifically literate audience that has not seen the project folder.
-
-\section{Worksheet 20: Final Package Audit}
-\WorksheetNotes
-{Confirm that the final package meets the program completion standard.}
-{Final day and any archive or transfer event.}
-{Run the reproducibility check before marking the audit complete. Use file paths or project-relative locations.}
-{Project folder, report, presentation, scripts, data, saved objects, validation, traits, figures, research log, session information, continuation note, and archive location.}
-{Submitting only the final PDF; missing saved result objects; figures that cannot be regenerated; no statement of unsupported claims.}
-
-\begin{longtable}{p{0.42\textwidth}p{0.13\textwidth}p{0.35\textwidth}}
-\toprule
-\textbf{Requirement} & \textbf{Pass?} & \textbf{Evidence/location}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Requirement} & \textbf{Pass?} & \textbf{Evidence/location}\\
-\midrule
-\endhead
-Reproducible R project folder & &\\
-Cleaned query list and inclusion rules & &\\
-Saved uafR result object & &\\
-Validation summaries and source coverage & &\\
-Trait table or matrix & &\\
-Grouping dictionary & &\\
-At least three final figures or tables & &\\
-Manuscript-style report & &\\
-Presentation or poster & &\\
-Research log & &\\
-Session information & &\\
-Continuation note & &\\
-Explicit claims not to make & &\\
-\bottomrule
-\end{longtable}
-
-\textbf{Completion standard:} The package is complete, auditable, and ready for program archive or controlled transfer.
-
-\endgroup

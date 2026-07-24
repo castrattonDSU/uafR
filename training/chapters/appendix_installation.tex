@@ -6,9 +6,6 @@ The recommended student installation path is a private uafR student bundle distr
 The student bundle includes:
 \begin{itemize}
   \item \path{START_HERE.md}, the first checklist to open.
-  \item \path{uafR_QUICK_REFERENCE.md}, the compact command reference.
-  \item \path{CHECKSUMS.csv}, the generated file size and MD5 checksum table.
-  \item \path{verify_bundle_integrity.R}, the checksum verification script.
   \item A local uafR source package archive in \path{packages/}.
   \item \path{preflight_check.R}, the machine readiness check.
   \item \path{install_uafR_from_bundle.R}, the student installer.
@@ -29,17 +26,15 @@ The installation workflow is:
   \item Unzip the whole bundle folder.
   \item Open RStudio.
   \item Open \path{START_HERE.md} from the unzipped bundle folder.
-  \item Source \path{verify_bundle_integrity.R}.
   \item Source \path{preflight_check.R}.
   \item If preflight has no failed checks, source \path{install_uafR_from_bundle.R}.
   \item Source \path{run_student_acceptance_test.R}.
-  \item Keep \path{uafR_QUICK_REFERENCE.md} nearby and open \path{training/uafR_training_manual.pdf}.
+  \item Open \path{training/uafR_training_manual.pdf}.
 \end{enumerate}
 
-The main setup commands are:
+The three main commands are:
 
 \begin{rcode}
-source("verify_bundle_integrity.R")
 source("preflight_check.R")
 source("install_uafR_from_bundle.R")
 source("run_student_acceptance_test.R")
@@ -55,19 +50,6 @@ Rscript tools/build_student_bundle.R
 \end{verbatim}
 
 This creates a versioned bundle folder and zip archive under \path{student_bundle/}. The zip archive can be copied to a USB drive, shared through an approved campus file-transfer method, or unpacked onto classroom machines.
-
-\section{Confirm Bundle Integrity}
-The bundle builder writes \path{CHECKSUMS.csv} with the file size and MD5 checksum for each file in the generated bundle. After a bundle is copied or unzipped, the integrity check confirms that the files still match the build record.
-
-\begin{rcode}
-source("verify_bundle_integrity.R")
-\end{rcode}
-
-It should end with:
-
-\begin{verbatim}
-Bundle integrity result: PASS.
-\end{verbatim}
 
 \section{Confirm the Installation Without Live Web Queries}
 The verification script checks package loading, required dependencies, bundled datasets, and the saved standard categorate result. It does not query live web services.
@@ -120,7 +102,6 @@ source("run_student_acceptance_test.R")
 \toprule
 \textbf{Problem} & \textbf{Likely cause} & \textbf{What to do}\\
 \midrule
-Bundle integrity check fails & One or more files changed, did not copy, or did not unzip correctly. & Delete the unzipped folder and unzip the original bundle again. If it still fails, get a fresh copy of the zip.\\
 Installer cannot find uafR archive & The bundle was not fully unzipped or the \path{packages/} folder was moved. & Unzip the whole bundle again and keep the folder structure unchanged.\\
 Preflight says the R library is not writable & R cannot install packages into the first library path. & Restart RStudio. If the problem remains, set a user library before installing.\\
 Bioconductor dependency fails & Internet access, R version, or Bioconductor access is blocked. & Run \path{preflight_check.R}, update R if it is old, and try again on a network that can reach Bioconductor.\\

@@ -1,210 +1,94 @@
 \chapter{Assessment Rubrics}
 
-The rubrics are designed to reward research quality rather than speed. A student may produce a modest project and still meet a high standard if the work is reproducible, cautious, source-backed, and useful for continuation. Suggested weights can be adjusted for course credit, stipend programs, or noncredit research training.
-
-\section{Performance Levels}
-\begin{tabularx}{\textwidth}{p{0.18\textwidth}Y}
+\section{Weekly Deliverable Rubric}
+\begin{longtable}{p{0.18\textwidth}p{0.22\textwidth}p{0.22\textwidth}p{0.22\textwidth}}
 \toprule
-\textbf{Level} & \textbf{Meaning}\\
+\textbf{Criterion} & \textbf{Exemplary} & \textbf{Developing} & \textbf{Needs revision}\\
 \midrule
-Exemplary & Ready for dsDNA Core archive or external sharing after normal proofreading. Evidence is traceable and decisions are clear.\\
-Proficient & Meets the program standard with minor revisions. The main work is reproducible and scientifically cautious.\\
-Developing & Useful progress, but one or more quality gates need revision before the project can move forward.\\
-Incomplete & Missing evidence, unclear methods, unsupported claims, or outputs that cannot be rerun.\\
+\endfirsthead
+\toprule
+\textbf{Criterion} & \textbf{Exemplary} & \textbf{Developing} & \textbf{Needs revision}\\
+\midrule
+\endhead
+Research focus & Question is specific, feasible, and connected to chemical evidence. & Question is relevant but broad or missing a clear comparison. & Question is vague, untestable, or disconnected from available data.\\
+Reproducibility & Scripts run from the project root and outputs are clearly named. & Most work is reproducible but some paths or manual steps remain. & Work cannot be rerun without guessing or manual intervention.\\
+Evidence traceability & Claims link to tables, fields, figures, or citations. & Some claims have evidence but links are incomplete. & Claims are mostly unsupported or based on broad impressions.\\
+Data quality & Missing values, duplicates, and source coverage are inspected. & Some quality checks are present but incomplete. & Data quality issues are not inspected or documented.\\
+Interpretation & Conclusions are cautious, specific, and aligned with evidence. & Interpretation is plausible but overstates some evidence. & Interpretation makes claims the data cannot support.\\
+\bottomrule
+\end{longtable}
+
+\section{Final Report Rubric}
+\begin{longtable}{p{0.18\textwidth}p{0.22\textwidth}p{0.22\textwidth}p{0.22\textwidth}}
+\toprule
+\textbf{Area} & \textbf{High impact} & \textbf{Acceptable} & \textbf{Revise}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Area} & \textbf{High impact} & \textbf{Acceptable} & \textbf{Revise}\\
+\midrule
+\endhead
+Abstract & States question, approach, result, limitation, and significance in clear language. & Covers most elements but lacks precision or caveat. & Reads as a general summary without a concrete result.\\
+Methods & Includes package version, settings, data source, filtering, validation, and analysis steps. & Includes core workflow but omits some settings or checks. & Too vague to reproduce.\\
+Results & Figures and tables directly answer the research question. & Results are relevant but not fully connected to the question. & Results are descriptive without a clear purpose.\\
+Figures & Professional, readable, scripted, and captioned with source tables. & Understandable but needs formatting or caption improvements. & Hard to read, manually produced, or not traceable.\\
+Discussion & Explains significance, uncertainty, and next steps. & Provides interpretation but limited uncertainty or future direction. & Overclaims or repeats results without interpretation.\\
+Reproducibility & Project package is clean, runnable, and documented. & Mostly organized with minor missing files or unclear paths. & Files are disorganized or analysis cannot be rerun.\\
+\bottomrule
+\end{longtable}
+
+\section{Presentation Rubric}
+\begin{tabularx}{\textwidth}{p{0.24\textwidth}Y}
+\toprule
+\textbf{Criterion} & \textbf{What strong performance looks like}\\
+\midrule
+Opening & The audience understands the research problem within the first minute.\\
+Workflow explanation & The student explains data source, uafR processing, enrichment, and analysis without excessive technical clutter.\\
+Main result & The central figure is readable and tied to the research question.\\
+Evidence & The student can name the tables, database sources, or citations supporting the result.\\
+Limitations & Uncertainty is explicit and scientifically mature.\\
+Next steps & The proposed follow-up is realistic and connected to the result.\\
 \bottomrule
 \end{tabularx}
 
-\section{Rubric 1: Weekly Deliverables}
-\begin{longtable}{p{0.15\textwidth}p{0.07\textwidth}p{0.21\textwidth}p{0.21\textwidth}p{0.16\textwidth}}
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endhead
-Milestone product & 25 & Complete artifact addresses the week's milestone and is stored in the project folder. & Product is present but needs revision, clarification, or missing file links. & Product is absent or unrelated to the milestone.\\
-Quality gate & 25 & Gate is passed with evidence and review notes. & Gate is partly passed but unresolved issues remain. & Gate status is unknown or failed without plan.\\
-Documentation & 20 & Research log and README show what changed and why. & Documentation exists but misses commands, outputs, or decisions. & Work cannot be reconstructed.\\
-Evidence discipline & 20 & Claims cite data, source tables, figures, or literature. & Some claims are supported; some need traceability. & Claims are unsupported or overstate evidence.\\
-Responsiveness & 10 & Feedback is incorporated and documented. & Feedback is acknowledged but not fully resolved. & Feedback is ignored or lost.\\
-\bottomrule
-\end{longtable}
+\section{Review Prompts}
+\begin{itemize}
+  \item What is the strongest scientific move the student made this week?
+  \item What is the most important reproducibility issue to fix?
+  \item Which claim needs better evidence?
+  \item Which result is ready for a figure, table, or manuscript sentence?
+  \item What should the student do before collecting or analyzing more data?
+\end{itemize}
 
-\section{Rubric 2: Research Log}
-\begin{longtable}{p{0.15\textwidth}p{0.07\textwidth}p{0.21\textwidth}p{0.21\textwidth}p{0.16\textwidth}}
+\section{Research Log Rubric}
+\begin{tabularx}{\textwidth}{p{0.24\textwidth}Y}
 \toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
+\textbf{Criterion} & \textbf{Full-credit standard}\\
 \midrule
-\endfirsthead
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endhead
-Daily coverage & 20 & Every active day has an entry, including weekend asynchronous work. & Most days are covered; a few entries are thin. & Large gaps or no weekend record.\\
-Command and file traceability & 25 & Commands, scripts, files, outputs, and object names are recorded. & File names or commands are sometimes missing. & Entries say only what was attempted.\\
-Decision history & 25 & Changes in scope, identifiers, filters, variables, and claims are dated and justified. & Decisions appear but rationale is incomplete. & Important decisions are invisible.\\
-Error learning & 15 & Errors include context, diagnosis, fix, and remaining risk. & Errors are recorded but not fully explained. & Errors are hidden or only mentioned vaguely.\\
-Scientific caution & 15 & Log separates tentative matches, database evidence, and final claims. & Some caution appears but language sometimes overstates. & Log treats database output as proof.\\
-\bottomrule
-\end{longtable}
-
-\section{Rubric 3: Code and Reproducibility}
-\begin{longtable}{p{0.15\textwidth}p{0.07\textwidth}p{0.21\textwidth}p{0.21\textwidth}p{0.16\textwidth}}
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endhead
-Project structure & 15 & Root folder, README, data, scripts, outputs, logs, and docs are clear. & Structure is usable but some folders or names are confusing. & Files are scattered or unexplained.\\
-Script order & 20 & Scripts are numbered or otherwise clearly ordered and rerun from the project root. & Most scripts run but order or dependencies need clarification. & Workflow depends on manual steps or hidden state.\\
-Path safety & 15 & Relative paths are used and no local machine paths are required. & A few local assumptions remain but are easy to fix. & Analysis only runs on one machine.\\
-Data preservation & 15 & Raw data are preserved and processed outputs are scripted. & Raw data mostly preserved; some manual cleaning unclear. & Raw data were edited or cannot be found.\\
-Session state & 15 & Package versions and session information are saved. & Session info is present but incomplete. & No version record.\\
-Reproducibility check & 20 & Clean-session test runs or failures are documented and fixed. & Test partially runs with known issues. & No rerun attempt.\\
-\bottomrule
-\end{longtable}
-
-\section{Rubric 4: Chemical Evidence Traceability}
-\begin{longtable}{p{0.15\textwidth}p{0.07\textwidth}p{0.21\textwidth}p{0.21\textwidth}p{0.16\textwidth}}
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endhead
-Identifier handling & 20 & Original names, cleaned names, identifiers, ambiguity, and exclusions are documented. & Most identifiers are clear but some ambiguity remains. & Chemical list cannot be audited.\\
-Tentative identity caution & 20 & GC-MS hits are described as tentative unless confirmed by standards. & Mostly cautious with occasional imprecise wording. & Tentative hits are presented as confirmed.\\
-Source provenance & 25 & Important values trace to source table, field, URL or identifier, and evidence row. & Source names are present but row-level trace is incomplete. & Source provenance is missing.\\
-Missingness & 15 & Empty sources and sparse coverage are visible in interpretation. & Missingness is noted but not connected to claims. & Missingness is hidden.\\
-Claim strength & 20 & Claims match the evidence ladder and include limitations. & Claims are plausible but need stronger caveats. & Claims exceed available evidence.\\
-\bottomrule
-\end{longtable}
-
-\section{Rubric 5: Trait Matrix and Grouping Dictionary}
-\begin{longtable}{p{0.15\textwidth}p{0.07\textwidth}p{0.21\textwidth}p{0.21\textwidth}p{0.16\textwidth}}
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endhead
-Variable definition & 25 & Each variable has source table, field, extraction rule, allowed values, confidence rule, and caveat. & Variables are mostly defined but some rules are vague. & Variables are unexplained.\\
-Discrete extraction & 20 & Narrative text is converted into clean, reproducible values or excluded. & Some values are clean; some text remains too broad. & Full sentences are used as factors without rules.\\
-Matrix settings & 20 & Profile, mode, threshold, and maximum traits are recorded. & Settings are partly recorded. & Settings cannot be reconstructed.\\
-Sensitivity & 15 & Sparsity and confidence choices are tested. & Sensitivity is mentioned but not quantified. & No sensitivity check.\\
-Interpretability & 20 & Matrix supports a specific research question and avoids column overload. & Matrix is useful but could be narrowed. & Matrix is too noisy to interpret.\\
-\bottomrule
-\end{longtable}
-
-\section{Rubric 6: Figures and Captions}
-\begin{longtable}{p{0.15\textwidth}p{0.07\textwidth}p{0.21\textwidth}p{0.21\textwidth}p{0.16\textwidth}}
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endhead
-Purpose & 20 & Each figure answers a stated question or supports a result sentence. & Figure is relevant but purpose could be sharper. & Figure is decorative or unfocused.\\
-Reproducibility & 20 & Figures regenerate from scripts with documented source objects. & Most figures are scripted; some manual steps remain. & Figures cannot be regenerated.\\
-Readability & 20 & Labels, legends, colors, and sizing are publication-ready. & Understandable but needs formatting revision. & Hard to read or misleading.\\
-Missingness and uncertainty & 20 & Missing values, sparse coverage, and tentative status are visible or captioned. & Some caveats present but incomplete. & Missingness and uncertainty are hidden.\\
-Caption quality & 20 & Caption names source, variables, pattern, and limitation. & Caption describes figure but lacks source or caveat. & Caption overclaims or only repeats title.\\
-\bottomrule
-\end{longtable}
-
-\section{Rubric 7: Literature Integration}
-\begin{longtable}{p{0.15\textwidth}p{0.07\textwidth}p{0.21\textwidth}p{0.21\textwidth}p{0.16\textwidth}}
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endhead
-Search strategy & 15 & Search terms include chemicals, identifiers, system, methods, and traits. & Search terms are reasonable but incomplete. & Search process not documented.\\
-Source quality & 20 & Papers are relevant and roles are clear. & Some papers are useful; some are broad background only. & Sources are weak or unrelated.\\
-Evidence connection & 25 & Literature is tied to specific figures, traits, or claims. & Connection is present but sometimes generic. & Literature is pasted into discussion without purpose.\\
-Limitations & 20 & Differences in system, method, dose, organism, and evidence type are explained. & Some limitations are included. & Literature is treated as direct proof.\\
-Synthesis & 20 & Paragraphs use claim-evidence-limitation structure. & Interpretation is plausible but needs tighter evidence. & Interpretation overclaims or lacks synthesis.\\
-\bottomrule
-\end{longtable}
-
-\section{Rubric 8: Final Report}
-\begin{longtable}{p{0.15\textwidth}p{0.07\textwidth}p{0.21\textwidth}p{0.21\textwidth}p{0.16\textwidth}}
-\toprule
-\textbf{Area} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Area} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endhead
-Abstract and introduction & 15 & Question, system, evidence type, and significance are clear. & Mostly clear but broad or missing caveat. & Vague or disconnected from analysis.\\
-Methods & 20 & Data sources, uafR functions, settings, filters, validation, and versions are reproducible. & Core workflow present but settings or validation missing. & Methods cannot be rerun.\\
-Results & 20 & Results are tied to figures/tables and avoid unsupported interpretation. & Results relevant but some claims need restraint. & Results are descriptive or unsupported.\\
-Discussion & 20 & Interpretation, uncertainty, literature, and next steps are balanced. & Discussion is useful but overstates some points. & Discussion ignores limitations.\\
-Figures/tables & 15 & At least three publication-style products are clear and scripted. & Products are useful but need polish. & Products are missing or not traceable.\\
-Reproducibility statement & 10 & Project folder, scripts, objects, and session info are named. & Statement present but incomplete. & No reproducibility statement.\\
-\bottomrule
-\end{longtable}
-
-\section{Rubric 9: Presentation}
-\begin{longtable}{p{0.15\textwidth}p{0.07\textwidth}p{0.21\textwidth}p{0.21\textwidth}p{0.16\textwidth}}
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Criterion} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endhead
-Opening & 15 & Audience understands the problem, system, and question quickly. & Opening is understandable but too broad. & Purpose is unclear.\\
-Workflow explanation & 20 & Data source, uafR workflow, validation, and analysis are explained without clutter. & Workflow mostly clear but missing settings or validation. & Workflow is confusing or absent.\\
-Central result & 25 & One main figure or table anchors the presentation. & Result is relevant but not clearly central. & Presentation lists outputs without story.\\
-Evidence and limitation & 25 & Student can answer what supports the result and what it cannot prove. & Some evidence and caveats present. & Overclaims or cannot name source evidence.\\
-Delivery and questions & 15 & Clear, professional, and responsive to critique. & Understandable with minor issues. & Hard to follow or unable to answer basic questions.\\
-\bottomrule
-\end{longtable}
-
-\section{Rubric 10: Final Package and Handoff}
-\begin{longtable}{p{0.15\textwidth}p{0.07\textwidth}p{0.21\textwidth}p{0.21\textwidth}p{0.16\textwidth}}
-\toprule
-\textbf{Component} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endfirsthead
-\toprule
-\textbf{Component} & \textbf{Wt.} & \textbf{Exemplary} & \textbf{Prof./dev.} & \textbf{Incomplete}\\
-\midrule
-\endhead
-Package completeness & 25 & All required files, saved objects, figures, reports, logs, and notes are present. & Nearly complete with minor missing pieces. & Major products missing.\\
-Rerun readiness & 25 & Clean-session rerun succeeds or failures are documented with fixes. & Partial rerun with known issues. & No meaningful rerun path.\\
-Evidence trail & 20 & Final claims trace to data, uafR outputs, source rows, and citations. & Main claims mostly traceable. & Claims cannot be audited.\\
-Continuation note & 15 & Next steps, unresolved issues, and claims not to make are explicit. & Note is present but thin. & No continuation guidance.\\
-Archive quality & 15 & Package is organized for controlled DSU storage and future use. & Usable but needs cleanup. & Archive would confuse future users.\\
-\bottomrule
-\end{longtable}
-
-\section{Recommended Overall Program Weight}
-\begin{tabularx}{\textwidth}{p{0.38\textwidth}p{0.14\textwidth}Y}
-\toprule
-\textbf{Component} & \textbf{Weight} & \textbf{Evidence}\\
-\midrule
-Weekly deliverables and research log & 25\% & Weekly products, daily logs, peer review, revision history.\\
-Code and reproducible project package & 20\% & Folder structure, scripts, saved outputs, clean-session check.\\
-Chemical evidence and trait matrix quality & 20\% & Source coverage, evidence audit, grouping dictionary, matrix sensitivity.\\
-Final report and figures & 20\% & Manuscript-style report, figures, tables, limitations, citations.\\
-Presentation and handoff & 15\% & Final talk or poster, package audit, continuation note.\\
+Daily entries & Each workday has an entry with objective, output, evidence inspected, problem, decision, and next step.\\
+Decision traceability & Important changes in question, data, filtering, or interpretation are dated and justified.\\
+Error documentation & Errors include enough context for another student to understand what failed and how it was fixed.\\
+Evidence discipline & Claims in the log refer to source tables, figures, scripts, or citations.\\
+Program usefulness & A reviewer can read the log and understand current project status within 10 minutes.\\
 \bottomrule
 \end{tabularx}
+
+\section{Final Package Rubric}
+\begin{longtable}{p{0.20\textwidth}p{0.33\textwidth}p{0.37\textwidth}}
+\toprule
+\textbf{Component} & \textbf{High-quality evidence} & \textbf{Common deduction}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Component} & \textbf{High-quality evidence} & \textbf{Common deduction}\\
+\midrule
+\endhead
+README & Explains question, data, scripts, outputs, and rerun order. & Reader cannot tell where to start.\\
+Scripts & Numbered, runnable from project root, and write outputs predictably. & Absolute paths, manual steps, or unclear dependencies.\\
+Data & Raw data are preserved and processed data are derived by scripts. & Edited raw files or undocumented manual cleaning.\\
+uafR outputs & Saved result object, validation summary, source coverage, and trait outputs are present. & Only final figures are saved.\\
+Figures & Regenerated by code and captioned with source table and limitation. & Figures are manually edited or overclaim.\\
+Report & Methods, results, discussion, limitations, and next steps are complete. & Report lacks reproducibility details or uncertainty.\\
+Handoff & Continuation note names what to do next and what not to claim. & Future student would need to reconstruct decisions from scratch.\\
+\bottomrule
+\end{longtable}

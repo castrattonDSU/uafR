@@ -667,6 +667,15 @@ packageVersion("uafR")
 sessionInfo()
 ```
 
+### Migration note for pre-0.4 development outputs
+
+uafR 0.4 uses request-bound PubChem cache keys and production checkpoint schema
+`3.3.0`. Legacy PubChem caches are ignored where their keys cannot establish the
+exact request. Regenerate identity and Tanimoto products made with older
+development cache logic, and validate any resumed plant checkpoint before
+reuse. Production discovery defaults also use more conservative throttling and
+smaller batches than the earliest plant-workflow prototypes.
+
 ## Documentation and support
 
 - Function reference: <https://castrattonDSU.github.io/uafR/>

@@ -132,6 +132,9 @@ uafRApiStability = function() {
              "Comparable scope/group filtered summaries are supported."),
     .api_row("exportPlantChemistryFeatureSet", "Model-ready export", "stable",
              "Species feature matrices and manifest outputs are supported."),
+    .api_row("exportAiNsectMolOlfInputs", "External integration",
+             "project_specific",
+             "aiNsect molecular-olfaction export; treatment aliases and source labels require project review."),
     .api_row("tools/run_dsi_categorate_tanimoto.R", "Project wrapper",
              "project_specific", "DSI-specific script; not a general package API.")
   )
